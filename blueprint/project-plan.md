@@ -153,9 +153,11 @@ Python service can be added later only for work that needs it.
 
 Subscription with AI credits. All prices are **hypotheses to test**. Prices differ by region: Kenya is priced in KES and paid by M-Pesa or card through Paystack; international customers pay in USD through a merchant of record that handles global tax. Regional prices are set from local willingness to pay, not currency conversion, and are edited by finance staff in the admin panel. Pricing levels are an open business decision.
 
-- **Free:** CV upload, profile, application tracking (free on every plan), saved
-  jobs, limited discovery view, a few evaluations to show the value
-- **Starter (~$9):** daily discovery for one track, daily digest, a monthly
+- **Free:** CV upload, profile, application tracking (free on every plan),
+  bring-your-own-job (paste a link or the posting text), a small monthly
+  allowance of evaluations and tailored kits to show the value, and a limited
+  preview of automatic discovery once it exists
+- **Starter (~$9):** automatic daily discovery for one track, daily digest, a monthly
   evaluation allowance
 - **Pro (~$19):** multiple tracks and profiles, Telegram alerts, tailored
   documents, application CRM, larger credit allowance
@@ -167,6 +169,10 @@ separate monthly quotas per workflow so each is easy to explain and cap. Cached
 results are free. Consider an early-bird price for the first 10 customers. Discovery itself is mostly conventional code, so it can be
 generous. Track cost per user and per workflow from day one so pricing follows
 real margin data.
+
+Build order follows the packaging: the free paste-a-job loop is built first (it is the
+core: evaluate, tailor, track, measure interviews), then automatic discovery and alerts as
+the premium upgrade, reusing the same evaluator.
 
 Smallest paid feature set to test: verified daily discovery + evidence-based
 evaluation + Telegram digest + tailored CV. Return-daily hook: the morning

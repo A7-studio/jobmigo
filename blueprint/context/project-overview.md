@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 33a551ae59fa3b60062aa2cfacea75dcd2528661760085a974650adb6decc185 -->
+<!-- blueprint:source-hash dab52c2f61c40de94cff2abcfb030432a9803a9ae472340f46d5361487489c55 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 
@@ -30,34 +30,44 @@ Principles for every feature:
 
 ## Features
 
-Build order from `build-plan.md`. The first ten form the vertical slice usable by the founder; the **headline feature is #8, AI job evaluation**.
+Build order from `build-plan.md`. Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
 0. **Waitlist launch (features 27 and 28)** - first: TypeScript full-stack switch, then public homepage with a consented waitlist, confirmation email, production deploy behind Cloudflare.
+
+_Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
 2. **AI gateway and usage ledger** - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
 3. **CV upload and parsing** - PDF/DOCX to private storage, text extraction, AI parse into a profile draft.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
 5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-have vs nice-to-have per track, dealbreakers, do-not-apply list.
-6. **Job source ingestion** - adapter contract with per-host limits, URL-normalised dedupe, dismissed-job memory with recheck window, verify live, detect expiry, legitimacy flag.
-7. **Jobs list** - search, filters, saved and dismissed jobs.
-8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached.
-9. **Dashboard** - relevant jobs, top opportunities, needs-action list, progress, empty/loading states.
-10. **Scheduled discovery and Telegram alerts** - daily run, digest, strong-fit alerts, in-app notifications.
+29. **Add a job by link or paste** - paste a link or the posting text; fetch public page text when allowed, paste fallback; normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan.
+8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes.
 11. **Application kit** - tailored CV, cover letter, answer drafts from confirmed facts, fact check, versions, PDF/DOCX export.
-12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan.
+12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; each application records its outcome and the app shows interviews per application by track.
+9. **Dashboard** - evaluated jobs, needs-action list, application progress, empty/loading states; discovery widgets arrive with feature 10.
+19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-evaluation moment (paste a job, see an evidence-based evaluation); first-shortlist moment arrives with discovery; demand validation (homepage and waitlist ship in 28).
+
+_Slice 2, apply better and follow through_
 13. **Follow-ups and ghost watch** - due items on dashboard and Telegram, flag applications silent for 10+ days and draft a nudge.
+21. **Reachability check** - AI checklist of how a tailored CV reads to hiring systems (readability, headings, title match, keyword coverage with truthful additions only, file type), plus a hiring-team route and apply-early prompt.
+14. **Company and recruiter research** - public hiring-team info and company summaries.
+15. **Outreach drafts and log** - personalised messages and tracking.
+20. **Progress and quests** - daily quests, streaks, levels, badges rewarding careful applications and follow-ups, not volume; weekly recap, streak freeze, Migo mascot moments.
+
+_Slice 3, premium automatic discovery_
+16. **Subscription billing and entitlements** - plans, regional price book (KES via Paystack with M-Pesa and cards, USD via a merchant of record), credit allowances, checkout, M-Pesa prepaid renewal prompts, dunning, invoices, upgrade prompts, pause instead of cancel; free plan is bring-your-own-job with a small evaluation allowance, paid plans add automatic discovery and alerts.
+6. **Job source ingestion (premium)** - adapter contract with per-host limits, URL-normalised dedupe, dismissed-job memory with recheck window, verify live, detect expiry, legitimacy flag.
+7. **Jobs list (premium)** - search, filters, saved and dismissed jobs.
+10. **Scheduled discovery and Telegram alerts (premium)** - daily run, digest, strong-fit alerts, in-app notifications.
+
+_Slice 4, grow and operate_
+17. **Data export and account deletion** - full export, verified delete.
+18. **Application analytics** - response rate, time to reply, outcomes by track.
 23. **Localisation** - i18n catalogs (English, Swahili), locale and time zone, regional formatting, region-aware payment methods and tax display.
 24. **Email service** - full layer beyond the waitlist confirmation (Resend first), per-locale templates, bounce handling, receipts and reminders, consented marketing.
 25. **Admin panel** - staff roles with MFA, users, subscriptions and refunds, price book, job sources, AI cost, flags, announcements, ops, audit log.
 26. **Support desk** - in-app help form, inbound email to tickets, admin inbox, notes, canned replies.
-21. **Reachability check** - AI checklist of how a tailored CV reads to hiring systems (readability, headings, title match, keyword coverage with truthful additions only, file type), plus a hiring-team route and apply-early prompt.
-20. **Progress and quests** - daily quests, streaks, levels, badges rewarding careful applications and follow-ups, not volume; weekly recap, streak freeze, Migo mascot moments.
-14. **Company and recruiter research** - public hiring-team info and company summaries.
-15. **Outreach drafts and log** - personalised messages and tracking.
-16. **Subscription billing and entitlements** - plans, regional price book (KES via Paystack with M-Pesa and cards, USD via a merchant of record), credit allowances, checkout, M-Pesa prepaid renewal prompts, dunning, invoices, upgrade prompts, pause instead of cancel.
-17. **Data export and account deletion** - full export, verified delete.
-18. **Application analytics** - response rate, time to reply, outcomes by track.
-19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-shortlist moment, demand validation (homepage and waitlist ship in 28).
+22. **Ask Migo** - natural-language questions over the user's own jobs, profile and applications, with cited answers.
 
 Excluded or later: browser automation/auto-apply, LinkedIn scraping, BYOK (gateway designed for it, not built), autonomous agents, microservices, native app, team accounts, interview prep and coaching (later), AI insights dashboards (later), sending email from the user's mailbox (a read-only status scan may come later).
 
@@ -157,8 +167,8 @@ AI task routing:
 
 Subscription plus AI credits. Prices are hypotheses to test and differ by region: Kenya in KES (M-Pesa, cards via Paystack), international in USD (merchant of record). Prices are set per region, not converted, and edited in the admin panel.
 
-- **Free:** CV upload, profile, application tracking (free on every plan), saved jobs, limited discovery view, a few evaluations.
-- **Starter (~$9):** daily discovery for one track, digest, monthly evaluation allowance.
+- **Free:** CV upload, profile, application tracking (free on every plan), bring-your-own-job (paste a link or text), a small monthly allowance of evaluations and kits, a limited preview of automatic discovery once built.
+- **Starter (~$9):** automatic daily discovery for one track, digest, monthly evaluation allowance.
 - **Pro (~$19):** multiple tracks and profiles, Telegram alerts, tailored documents, CRM, larger credits.
 - **Power (~$39):** recruiter research and outreach, highest credits, priority processing, exports.
 
