@@ -1,0 +1,68 @@
+/* Jobmigo theme - locked from the approved design canvas, restyled 2026-11-06
+   with Claude orange and playful Fredoka + Nunito typography.
+   https://claude.ai/artifact/2jc4qnjcWgNi6cFLu72k7Q
+   Port this block into the app's globals.css @theme when building the first UI feature. */
+
+:root {
+  /* surfaces (warm neutrals) */
+  --bg: #FAF9F5;            /* page background */
+  --surface: #FFFFFF;       /* cards, sidebar, inputs */
+  --surface-muted: #F7F5EE; /* inset panels, evidence blocks, row hover */
+  --surface-sunken: #EFECE2;/* board columns, dividers, bar tracks */
+  --border: #E8E5DA;
+  --border-strong: #D9D5C7; /* inputs, secondary buttons */
+
+  /* text */
+  --text: #1A1A18;          /* primary */
+  --text-body: #3D3D3A;     /* long-form copy */
+  --muted: #4A4944;         /* labels, secondary */
+  --faint: #5E5D59;         /* hints, captions (4.5:1+ on surface) */
+
+  /* accent: Claude orange */
+  --accent: #D97757;        /* primary action, brand mark, chart fills, focus */
+  --accent-ink: #1A1A18;    /* text on the light orange #D97757 (5.9:1; white on it fails) */
+  --accent-strong: #B04A27; /* primary button background, white text on it (5.5:1) */
+  --accent-strong-hover: #963E1F;
+  --accent-soft: #F8E3D8;   /* active nav, soft tags */
+  --accent-soft-ink: #8A3B1E;
+  --accent-text: #B04A27;   /* orange text and links on light surfaces (5:1+) */
+  --accent-mid: #E8A98F;
+  --accent-light: #F1CBBA;
+  --accent-wash: #FDF3EE;   /* selected option background */
+
+  /* semantic states: soft background + dark ink, always paired with a text label */
+  --good-bg: #DDF3EC;   --good-ink: #0B5E50;   /* strong fit, met, verified, confirmed */
+  --info-bg: #E3EBF5;   --info-ink: #1F4E79;   /* good fit, drafts, reworded, in progress */
+  --warn-bg: #FFF1CC;   --warn-ink: #6B4300;   /* stretch, partial, due soon, needs review */
+  --bad-bg: #FADCDC;    --bad-ink: #8A1F1F;    /* gap, overdue, rejected, errors */
+  --neutral-bg: #F0EEE6; --neutral-ink: #4A4944; /* tags, to do, waiting */
+  --series-2: #3D3D3A;  /* second chart series (orange is the first) */
+  --alert: #B3261E;     /* notification badge */
+
+  /* type: Fredoka (rounded, friendly) for headings, big numbers and the wordmark; Nunito for body and UI */
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --weight-heading: 700;    /* Fredoka tops out at 700, used for all headings */
+  --weight-display: 700;
+  --weight-strong: 700;     /* buttons, labels */
+  --weight-ui: 600;         /* chips, nav */
+  --tracking-display: 0;       /* rounded type needs no tight tracking */
+  --tracking-heading: 0;
+  --tracking-card: 0;
+  --leading-tight: 1.1;         /* headings */
+  --leading-body: 1.5;          /* body copy */
+
+  /* mascot and motion: Migo bobs and blinks; bars and rings fill in; respect prefers-reduced-motion */
+  --motion-fast: 150ms;
+  --motion-fill: 900ms cubic-bezier(.2,.8,.2,1);
+
+  /* scale */
+  --radius-sm: 10px;   /* tags, small tiles */
+  --radius: 12px;      /* buttons, inputs, nav items */
+  --radius-lg: 16px;   /* nested cards */
+  --radius-xl: 20px;   /* primary cards */
+  --radius-pill: 999px;
+  --sidebar-w: 264px;
+  --control-h: 44px;   /* minimum touch target */
+}
