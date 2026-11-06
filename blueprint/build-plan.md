@@ -5,8 +5,16 @@ The first ten features form the first vertical slice: account -> CV -> profile
 -> preferences -> jobs -> evaluation -> shortlist -> Telegram alert. Everything
 after it is post-slice and ordered by commercial value.
 
-Scaffolding the app (TanStack Start web, FastAPI api, Postgres, Docker) and applying
-`prototypes/theme.css` are pre-build steps, not features.
+The stack is TypeScript end to end: TanStack Start (web and server code), Postgres with
+Drizzle, a Node worker on the same codebase. Features 27 and 28 come first so the public
+waitlist can go live; the first slice resumes at feature 2 afterwards.
+
+Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not features.
+
+## Slice 0: launch (waitlist live)
+
+- [ ] 27. TypeScript full-stack switch - replace the FastAPI api with TanStack Start server code: Drizzle schema and migrations carrying over the user, staff, audit log and Better Auth tables, Better Auth sessions used directly by server functions, per-user data scoping helper, staff permissions, audit log recorder, health check, Vitest tests, remove `api/`, update compose, docs and design docs
+- [ ] 28. Waitlist and launch - public homepage from the design with a working waitlist (consented email capture, duplicate handling, rate limit, confirmation email through Resend behind a mail interface, privacy notice), production deploy on one VPS behind Cloudflare with HTTPS, backups and a health check
 
 ## Slice 1: usable by the founder
 
@@ -37,11 +45,11 @@ Scaffolding the app (TanStack Start web, FastAPI api, Postgres, Docker) and appl
 - [ ] 17. Data export and account deletion - full export and verified delete
 - [ ] 18. Application analytics - response rate, time to reply, outcomes by track
 - [ ] 23. Localisation - i18n catalogs (English, then Swahili), locale and time zone settings, regional currency and number formatting, region-aware payment methods and tax display
-- [ ] 24. Email service - Postmark provider, templates per locale, bounce and complaint handling, receipts and reminders, consented marketing email
+- [ ] 24. Email service - full email layer beyond the waitlist confirmation (Resend first, Postmark later if needed), templates per locale, bounce and complaint handling, receipts and reminders, consented marketing email
 - [ ] 25. Admin panel - staff roles with MFA, user search and detail, credit adjustments, subscriptions and refunds, price book and regions, job source health, AI cost and kill switches, feature flags, announcements, ops views, audit log
 - [ ] 26. Support desk - in-app help form, inbound support email to tickets, admin inbox with replies, internal notes, canned replies, response-time tracking
 - [ ] 22. Ask Migo - natural-language questions over the user's own jobs, profile and applications, with cited answers
-- [ ] 19. Homepage, sign-up and onboarding flow - public homepage with waitlist, sign-up page, four-step onboarding ending in a first-shortlist moment, demand validation
+- [ ] 19. Sign-up and onboarding flow - sign-up page, four-step onboarding ending in a first-shortlist moment, demand validation (the public homepage and waitlist ship in feature 28)
 
 ## Later (not scheduled)
 

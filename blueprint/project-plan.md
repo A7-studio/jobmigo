@@ -116,28 +116,27 @@ a user's CV or preferences is private to that user.
 Modular monolith, no microservices.
 
 - **Frontend:** TanStack Start (TanStack Router and Query), React, TypeScript, Tailwind CSS
-- **Backend:** Python, FastAPI, SQLAlchemy, Alembic
+- **Backend:** TypeScript on the TanStack Start server (server functions and routes), Drizzle ORM and drizzle-kit migrations, Zod validation, Vitest
 - **Database:** PostgreSQL
-- **Background work:** start with a Postgres-backed job table and a simple
-  worker process plus a scheduler; introduce Redis/Celery only when volume or
-  retry needs justify it
+- **Background work:** start with a Postgres-backed queue (pg-boss) and a Node
+  worker process on the same codebase plus a scheduler; add Redis only when
+  volume or retry needs justify it
 - **Storage:** private S3-compatible object storage with signed URLs
 - **AI:** provider-independent AI gateway (single interface, per-task model
   routing, prompt versioning, schema-validated structured outputs, caching,
   usage and cost ledger). Managed keys by default; BYOK later via the same
   interface
-- **Auth:** Better Auth (open source, in the web server, data in our PostgreSQL; email and Google sign-in, two-factor for staff later) issuing short-lived JWTs that the API verifies, behind a provider interface
-- **Email:** Postmark (transactional, broadcast and inbound support email) behind a provider interface
+- **Auth:** Better Auth (open source, in the web server, data in our PostgreSQL; email and Google sign-in, two-factor for staff later) sessions read directly by server functions, behind a thin auth interface
+- **Email:** Resend (free tier) first for transactional email, behind a provider interface; Postmark or another provider later for inbound support and broadcast
 - **Billing:** Paystack for Kenya (KES; M-Pesa and cards) and Paddle as merchant of record for international (USD), behind one billing interface
 - **Admin and support:** staff-only `/admin` area with roles, audit log and an in-house support inbox
 - **Localisation:** i18n catalogs (English, then Swahili), per-region price book and payment methods
 - **Notifications:** Telegram bot first, plus in-app
 - **Deployment:** Docker, one small cloud host
 
-Challenges to the proposed split: a two-language stack doubles tooling and
-deployment work for a solo builder. It is acceptable because the AI/ingestion
-logic is Python-native, but keep the boundary thin (typed API contract
-generated from OpenAPI) and keep TanStack Start as a UI layer only.
+Decision: one language (TypeScript) end to end, chosen because the founder maintains
+the code and AI work here is model-API calls, which TypeScript SDKs cover. A small
+Python service can be added later only for work that needs it.
 
 **AI task routing:**
 - Conventional code: file text extraction, dedupe, expiry checks, filters,
@@ -205,7 +204,7 @@ status are always conveyed by text labels, never colour alone.
 
 ## 8. Deployment - Where and how will this ship?
 
-- Containers: `web` (TanStack Start), `api` (FastAPI), `worker` (jobs and scheduler),
+- Containers: `app` (TanStack Start Node server), `worker` (jobs and scheduler),
   Postgres, object storage
 - Early host: one small VPS running Docker Compose behind Cloudflare, with object
   storage for files and backups (about 10 to 40 USD a month fixed, plus AI cost);
@@ -213,10 +212,10 @@ status are always conveyed by text labels, never colour alone.
   100 users within a couple of months.
 - Env vars by name: `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`,
   `STORAGE_KEY`, `STORAGE_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
-  `BETTER_AUTH_JWKS_URL`, `BETTER_AUTH_ISSUER`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER_KEYS`,
-  `TELEGRAM_BOT_TOKEN`, `POSTMARK_SERVER_TOKEN`, `POSTMARK_INBOUND_SECRET`,
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER_KEYS`,
+  `TELEGRAM_BOT_TOKEN`, `RESEND_API_KEY`, `MAIL_FROM`,
   `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `SENTRY_DSN`
-- Health check: `GET /healthz` on the API
+- Health check: `GET /healthz` on the app
 - Scheduled work: daily discovery and digest run by the worker scheduler
 - Backups: automated daily Postgres backups with a tested restore
 - Logging: structured logs with request IDs and error tracking

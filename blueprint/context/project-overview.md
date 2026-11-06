@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 94465409b5defdf4730be88bf9abf5303fd4bd4dd50da8dcf330a0b48a204dc9 -->
+<!-- blueprint:source-hash d33bd219facfb165f86719d930aca385d2f6e8844763797020d9b24b09d5df45 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 
@@ -32,7 +32,8 @@ Principles for every feature:
 
 Build order from `build-plan.md`. The first ten form the vertical slice usable by the founder; the **headline feature is #8, AI job evaluation**.
 
-1. **Foundation and app shell** - sign-up/sign-in via Better Auth (web server, JWT to the API) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
+0. **Waitlist launch (features 27 and 28)** - first: TypeScript full-stack switch, then public homepage with a consented waitlist, confirmation email, production deploy behind Cloudflare.
+1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
 2. **AI gateway and usage ledger** - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
 3. **CV upload and parsing** - PDF/DOCX to private storage, text extraction, AI parse into a profile draft.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
@@ -46,7 +47,7 @@ Build order from `build-plan.md`. The first ten form the vertical slice usable b
 12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan.
 13. **Follow-ups and ghost watch** - due items on dashboard and Telegram, flag applications silent for 10+ days and draft a nudge.
 23. **Localisation** - i18n catalogs (English, Swahili), locale and time zone, regional formatting, region-aware payment methods and tax display.
-24. **Email service** - Postmark provider, per-locale templates, bounce handling, receipts and reminders, consented marketing.
+24. **Email service** - full layer beyond the waitlist confirmation (Resend first), per-locale templates, bounce handling, receipts and reminders, consented marketing.
 25. **Admin panel** - staff roles with MFA, users, subscriptions and refunds, price book, job sources, AI cost, flags, announcements, ops, audit log.
 26. **Support desk** - in-app help form, inbound email to tickets, admin inbox, notes, canned replies.
 21. **Reachability check** - AI checklist of how a tailored CV reads to hiring systems (readability, headings, title match, keyword coverage with truthful additions only, file type), plus a hiring-team route and apply-early prompt.
@@ -56,7 +57,7 @@ Build order from `build-plan.md`. The first ten form the vertical slice usable b
 16. **Subscription billing and entitlements** - plans, regional price book (KES via Paystack with M-Pesa and cards, USD via a merchant of record), credit allowances, checkout, M-Pesa prepaid renewal prompts, dunning, invoices, upgrade prompts, pause instead of cancel.
 17. **Data export and account deletion** - full export, verified delete.
 18. **Application analytics** - response rate, time to reply, outcomes by track.
-19. **Homepage, sign-up and onboarding flow** - public homepage with waitlist, sign-up page, four-step onboarding ending in a first-shortlist moment, demand validation.
+19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-shortlist moment, demand validation (homepage and waitlist ship in 28).
 
 Excluded or later: browser automation/auto-apply, LinkedIn scraping, BYOK (gateway designed for it, not built), autonomous agents, microservices, native app, team accounts, interview prep and coaching (later), AI insights dashboards (later), sending email from the user's mailbox (a read-only status scan may come later).
 
@@ -134,13 +135,13 @@ Full field-level design in `docs/database-design.md`; architecture, auth, billin
 Modular monolith, no microservices.
 
 - **TanStack Start (Router, Query), React, TypeScript, Tailwind CSS** - UI layer only
-- **Python, FastAPI** - API and domain modules; typed contract generated from OpenAPI to keep the language boundary thin
-- **PostgreSQL, SQLAlchemy, Alembic** - data and migrations
-- **Postgres-backed job table + worker + scheduler** - background work; Redis/Celery only when volume or retries justify it
+- **TypeScript server code in TanStack Start** - domain modules, server functions and routes, Zod validation, Vitest; one language end to end (decision: the founder maintains the code; a Python service may be added later only if needed)
+- **PostgreSQL, Drizzle, drizzle-kit** - data and migrations
+- **Postgres-backed queue (pg-boss) + Node worker + scheduler** - background work; Redis only when volume or retries justify it
 - **Private S3-compatible object storage** - CVs and exports via signed URLs
 - **AI gateway** - provider-independent; per-task model routing, prompt versioning, schema-validated outputs, content-hash caching, usage ledger. Managed keys by default; BYOK later through the same interface
-- **Better Auth** - in the web server, data in our PostgreSQL (`auth_*` tables), email and Google sign-in, issues 15-minute JWTs the API verifies via JWKS, behind an auth interface; the application `user` stores `auth_subject` only
-- **Postmark** - transactional, broadcast and inbound support email behind an email interface
+- **Better Auth** - in the web server, data in our PostgreSQL (`auth_*` tables), email and Google sign-in, sessions read directly by server functions, behind an auth interface; the application `user` stores `auth_subject` only
+- **Resend** (free tier) first for transactional email behind an email interface; Postmark or another provider later for inbound support and broadcast
 - **Paystack (Kenya, KES, M-Pesa and cards) and Paddle (international, USD, merchant of record)** - behind one billing interface
 - **i18n catalogs** - English first, Swahili next
 - **Telegram bot** - first notification channel
@@ -179,10 +180,10 @@ Screens (route names proposed):
 
 ## Deployment
 
-- Containers: `web` (TanStack Start), `api` (FastAPI), `worker` (jobs and scheduler), Postgres, object storage.
+- Containers: `app` (TanStack Start Node server), `worker` (jobs and scheduler), Postgres, object storage.
 - Host: one small VPS with Docker Compose behind Cloudflare, object storage for files and backups; staged scaling path in `docs/technical-design.md` (sections 15 and 16). Provider and region chosen on price, stock and Kenya latency.
-- Env vars (see `docs/technical-design.md`): `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_KEY`, `STORAGE_SECRET`, `AUTH_SECRET`, `AI_PROVIDER_KEYS`, `TELEGRAM_BOT_TOKEN`, `STRIPE_SECRET_KEY` (later).
-- Health check: `GET /healthz` on the API.
+- Env vars (see `docs/technical-design.md`): `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_KEY`, `STORAGE_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `RESEND_API_KEY`, `MAIL_FROM`, `AI_PROVIDER_KEYS`, `TELEGRAM_BOT_TOKEN`, `PAYSTACK_SECRET_KEY` and `PADDLE_API_KEY` (later).
+- Health check: `GET /healthz` on the app.
 - Cron: daily discovery and digest run by the worker scheduler.
 - Backups: daily Postgres backups with a tested restore. Structured logs with request IDs and error tracking.
 - > TODO build and start commands, domain.
@@ -191,9 +192,8 @@ Screens (route names proposed):
 
 > Resolve in the plans, then re-run /overview. Delete when empty.
 
-- Feature 19 (onboarding, waitlist page) is last, but demand validation and first-run setup are needed before inviting anyone beyond the founder.
+- Feature 19 (sign-up and onboarding) is last; the waitlist ships earlier in feature 28 for demand validation.
 - Feature 17 (export and deletion) is scheduled after CVs are stored (feature 3); the plan states export and deletion are a requirement. Consider moving it earlier.
 - "Credit limits from day one" (plan section 3) vs enforcement only arriving with billing (feature 16): decide whether feature 2 enforces a hard cap.
-- Scaffolding (TanStack Start + FastAPI + Postgres + Docker) is a pre-build step; the repo is not yet scaffolded or under git.
 - Job source list (which ATS/career-page adapters first) and the identity/auth provider are not chosen.
 - Project plan §3 lists Telegram and in-app alerts together with scheduled discovery; feature 10 matches, but in-app notifications are also needed by feature 9 (dashboard).
