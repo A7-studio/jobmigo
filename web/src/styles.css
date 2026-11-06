@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Tokens ported from ../prototypes/theme.css (the locked design theme). */
+@theme {
+  --color-bg: #FAF9F5;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F7F5EE;
+  --color-surface-sunken: #EFECE2;
+  --color-border: #E8E5DA;
+  --color-border-strong: #D9D5C7;
+
+  --color-ink: #1A1A18;
+  --color-body: #3D3D3A;
+  --color-muted: #4A4944;
+  --color-faint: #5E5D59;
+
+  --color-accent: #D97757;
+  --color-accent-ink: #1A1A18;
+  --color-accent-strong: #B04A27;
+  --color-accent-strong-hover: #963E1F;
+  --color-accent-soft: #F8E3D8;
+  --color-accent-soft-ink: #8A3B1E;
+  --color-accent-mid: #E8A98F;
+  --color-accent-light: #F1CBBA;
+  --color-accent-wash: #FDF3EE;
+
+  --color-good-bg: #DDF3EC;
+  --color-good-ink: #0B5E50;
+  --color-info-bg: #E3EBF5;
+  --color-info-ink: #1F4E79;
+  --color-warn-bg: #FFF1CC;
+  --color-warn-ink: #6B4300;
+  --color-bad-bg: #FADCDC;
+  --color-bad-ink: #8A1F1F;
+  --color-neutral-bg: #F0EEE6;
+  --color-neutral-ink: #4A4944;
+  --color-series-2: #3D3D3A;
+  --color-alert: #B3261E;
+
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
