@@ -1,0 +1,27 @@
+# dependencies and builds
+node_modules/
+dist/
+.output/
+.vinxi/
+.tanstack/
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# local config and secrets
+.env
+.env.*
+!.env.example
+
+# blueprint transient state
+blueprint/.state/run.json
+blueprint/.state/backups/
+blueprint/.state/staging/
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
