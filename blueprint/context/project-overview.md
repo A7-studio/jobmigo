@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash d33bd219facfb165f86719d930aca385d2f6e8844763797020d9b24b09d5df45 -->
+<!-- blueprint:source-hash 33a551ae59fa3b60062aa2cfacea75dcd2528661760085a974650adb6decc185 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 

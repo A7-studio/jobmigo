@@ -4,12 +4,6 @@ dist/
 .output/
 .vinxi/
 .tanstack/
-__pycache__/
-*.pyc
-.venv/
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
 
 # local config and secrets
 .env

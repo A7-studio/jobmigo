@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ApiError } from '#/lib/api'
 import { useMe } from '#/lib/useMe'
 
 export const Route = createFileRoute('/_app/dashboard')({
@@ -10,7 +9,7 @@ export const Route = createFileRoute('/_app/dashboard')({
 function Dashboard() {
   const me = useMe()
   const navigate = useNavigate()
-  const unauthorized = me.error instanceof ApiError && me.error.status === 401
+  const unauthorized = me.data?.ok === false && me.data.code === 'unauthorized'
 
   useEffect(() => {
     if (unauthorized) void navigate({ to: '/sign-in' })
@@ -29,7 +28,11 @@ function Dashboard() {
     )
   }
 
-  if (me.isError) {
+  const result = me.data
+
+  if (me.isError || !result?.ok) {
+    const failure =
+      result?.ok === false ? result.message : 'Could not reach the server.'
     return (
       <div
         role="alert"
@@ -38,7 +41,7 @@ function Dashboard() {
         <h1 className="text-xl font-semibold">
           We could not load your dashboard
         </h1>
-        <p className="mt-1 text-muted">{me.error.message}</p>
+        <p className="mt-1 text-muted">{failure}</p>
         <button
           type="button"
           onClick={() => void me.refetch()}
@@ -51,7 +54,7 @@ function Dashboard() {
     )
   }
 
-  const name = me.data.display_name ?? me.data.email
+  const name = result.me.displayName ?? result.me.email
 
   return (
     <div className="max-w-xl">

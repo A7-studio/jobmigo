@@ -24,42 +24,39 @@ that forbid it, native mobile apps, enterprise SSO, multi-region active-active.
 flowchart LR
   U[Job seeker] --> WEB[Web app<br/>TanStack Start]
   S[Staff: support and admin] --> WEB
-  WEB --> API[API<br/>FastAPI modular monolith]
-  API --> DB[(PostgreSQL)]
-  API --> OBJ[(Private object storage)]
+  WEB --> DB[(PostgreSQL)]
+  WEB --> OBJ[(Private object storage)]
   WRK[Worker and scheduler<br/>same codebase] --> DB
   WRK --> OBJ
-  API --> AIG[AI gateway]
+  WEB --> AIG[AI gateway]
   WRK --> AIG
   AIG --> LLM[Model providers]
   WRK --> SRC[Public job sources]
-  WEB -- sign-in and sessions --> DB
-  API -- verify tokens via JWKS --> WEB
-  API --> PAY[Payment providers<br/>Paystack and merchant of record]
-  PAY -- webhooks --> API
-  API --> MAIL[Email provider]
-  MAIL -- inbound support email --> API
-  API --> TG[Telegram bot]
+  WEB --> PAY[Payment providers<br/>Paystack and merchant of record]
+  PAY -- webhooks --> WEB
+  WEB --> MAIL[Email provider]
+  MAIL -- inbound support email --> WEB
+  WEB --> TG[Telegram bot]
   TG --> U
   MAIL --> U
 ```
 
 ## 3. Architecture overview
 
-One deployable backend (modular monolith) plus the web app. Background work runs
-in a second process from the same codebase.
+One TypeScript app (modular monolith) built on TanStack Start: the UI and the
+server code live together. Background work runs in a second Node process from the
+same codebase.
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `web` | TanStack Start, React, TypeScript, Tailwind, Better Auth | Public site, app UI, admin UI. Runs sign-up, sign-in and sessions (Better Auth) and issues API tokens. Calls the API for everything else. No business logic. Touches only the `auth_*` tables |
-| `api` | Python, FastAPI, SQLAlchemy, Alembic | All business logic, validation, authorisation, billing logic, webhooks |
-| `worker` | Same code as `api` | Background jobs, schedules, retries, email sending, AI calls, job-source ingestion |
+| `web` | TanStack Start, React, TypeScript, Tailwind, Better Auth, Drizzle | Public site, app UI, admin UI, and all server code: sign-up, sign-in and sessions (Better Auth), business logic, validation, authorisation, billing logic, webhooks, in `web/src/server/` |
+| `worker` | Same code as `web` (separate Node process) | Background jobs, schedules, retries, email sending, AI calls, job-source ingestion |
 | `db` | PostgreSQL | System of record, job queue, audit trail |
 | `storage` | S3-compatible private bucket | CVs, generated documents, invoice PDFs |
 
 ### Backend modules
 
-Each module owns its models, schemas, service functions and routes. A module calls
+Each module owns its tables, schemas, service functions and server functions. A module calls
 another only through that module's service functions, never its tables.
 
 | Module | Owns |
@@ -91,9 +88,9 @@ Every external service sits behind a small interface so it can be swapped.
 
 | Interface | Methods (sketch) | First implementation |
 |---|---|---|
-| `AuthProvider` | `verify(token) -> Identity(subject, email, name)` | Better Auth JWT (see section 6) |
+| `AuthProvider` | `getSession(headers) -> { user: { id, email, name } } or null` | Better Auth sessions (see section 6) |
 | `BillingProvider` | `create_checkout`, `change_plan`, `cancel`, `pause`, `refund`, `parse_webhook` | Paystack (Kenya), Paddle (international) |
-| `EmailProvider` | `send(template, to, locale, data)`, `parse_inbound` | Postmark |
+| `EmailProvider` | `send(template, to, locale, data)`, `parseInbound` | Resend first; Postmark or another later |
 | `NotificationChannel` | `deliver(user, message)` | In-app, Telegram, email |
 | `AIProvider` | `complete(task, input, schema)` | Chosen per task in config |
 | `JobSourceAdapter` | `detect`, `fetch` | Public career pages and job APIs |
@@ -103,11 +100,11 @@ Every external service sits behind a small interface so it can be swapped.
 
 ### Request lifecycle
 
-1. The web app sends the request with the session token.
-2. API middleware verifies the token through `AuthVerifier`, loads the `user`, sets a request id and the owner scope.
-3. The route validates input with Pydantic and calls a service.
-4. The service checks permissions and entitlements, does the work, and returns a schema.
-5. Errors are typed domain errors mapped to HTTP status codes in one handler. Responses use one error shape.
+1. The browser calls a server function or route with its session cookie.
+2. Request middleware assigns a request id; `requireUser` reads the session and loads the `user`.
+3. The function validates input and calls a service, always scoped by the user id.
+4. The service checks permissions and entitlements, does the work, and returns typed data.
+5. Errors are typed domain errors mapped to one `{ code, message }` shape; unexpected errors are logged without personal data and returned as a generic error.
 
 ### Background work
 
@@ -122,17 +119,18 @@ Every external service sits behind a small interface so it can be swapped.
 - Webhooks and API writes that move money or credits carry an idempotency key. Duplicate deliveries are detected by `billing_event.provider_event_id`.
 - External calls have timeouts and retries. A failing source or provider degrades one feature, never the whole app.
 
-### API style
+### Server interface style
 
-REST over JSON, versioned under `/v1`, OpenAPI generated. The web app's typed
-client is generated from the schema. Staff endpoints live under `/v1/admin`
-behind a separate permission check.
+Server functions (typed end to end, no generated client) serve the app UI, and
+server routes serve webhooks, health checks and any public endpoint. Both return
+the stable `{ code, message }` error shape. Staff functions sit behind a separate
+permission check.
 
 ## 5. Frontend architecture
 
 - TanStack Start: file-based routes, loaders that prefetch through TanStack Query, server rendering for the public site.
 - Routes: public (`/`, `/pricing`, `/signup`), onboarding, app (`/dashboard`, `/jobs`, `/applications`, `/documents`, `/outreach`, `/profile`), billing (`/plans`, `/checkout`), admin (`/admin/*`, staff only).
-- The web server also hosts Better Auth (`/api/auth/*`) and server functions for the session. Business logic stays in the API.
+- The web server also hosts Better Auth (`/api/auth/*`). Business logic lives in `web/src/server/` modules, called from thin server functions and routes; client components never import it.
 - Styling from the locked tokens in `prototypes/theme.css`. Motion respects reduced-motion settings.
 
 ## 6. Authentication and authorisation
@@ -140,53 +138,48 @@ behind a separate permission check.
 **Choice: Better Auth** (open source, TypeScript), running inside the TanStack Start
 web server, with its data in our own PostgreSQL database.
 
-- Why: no per-user fee and no external account or vendor lock-in, our users live in our database, email and password plus Google sign-in out of the box, plugins for two-factor authentication (staff) and JWT issuing, and first-class TanStack Start support.
+- Why: no per-user fee and no external account or vendor lock-in, our users live in our database, email and password plus Google sign-in out of the box, a plugin for two-factor authentication (staff), and first-class TanStack Start support.
 - Trade-offs accepted: we own the security configuration (password rules, rate limits, cookie settings), keep it patched, and build the sign-in screens ourselves. Email verification and password reset need the email service (feature 24).
 - Alternatives kept in view: Clerk (managed UI and a free tier, but per-user pricing later and vendor lock-in) and WorkOS AuthKit.
-- Portability: the API depends only on the `AuthProvider` interface and a JWT contract. The application `user` row stores `auth_subject` (the Better Auth user id) and email; everything else about people stays in our tables.
+- Portability: server code depends only on the `AuthProvider` shape (`getSession`). The application `user` row stores `auth_subject` (the Better Auth user id) and email; everything else about people stays in our tables.
 
-### How the two services share identity
+### How identity reaches the app
 
-Better Auth lives in the web server and owns five tables (`auth_user`, `auth_session`,
-`auth_account`, `auth_verification`, `auth_jwks`) in the same database. Alembic
-creates them, like every other table. The FastAPI service never touches those
-tables. It trusts a short-lived signed token instead.
+Better Auth owns four tables (`auth_user`, `auth_session`, `auth_account`,
+`auth_verification`) in the same database. Drizzle migrations create them like every
+other table. The rest of the server code never reads them directly. It asks for the
+session and maps it to the application `user` row.
 
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant W as Web server (Better Auth)
+  participant S as Web server
   participant D as PostgreSQL
-  participant A as API
-  B->>W: Sign up or sign in (email and password, or Google)
-  W->>D: Create user, account and session rows
-  W-->>B: Session cookie
-  B->>W: Ask for an API token (needs the session cookie)
-  W-->>B: JWT, 15 minutes, signed with Ed25519
-  B->>A: API call with Authorization Bearer JWT
-  A->>W: Fetch public keys from the JWKS endpoint (cached)
-  A->>A: Check signature, issuer, audience, expiry
-  A->>D: Find or create the application user from the token claims
-  A-->>B: Data
+  B->>S: Sign up or sign in (email and password, or Google)
+  S->>D: Create user, account and session rows
+  S-->>B: Session cookie
+  B->>S: Server function call (cookie attached)
+  S->>S: requireUser: read the session
+  S->>D: Find or create the application user from the session
+  S-->>B: Data
 ```
 
-- Tokens carry `sub` (Better Auth user id), `email`, `name` and `emailVerified`. Issuer and audience are the web base URL.
-- Keys rotate on a schedule with a grace period so older tokens keep working. The API caches keys and refetches when it sees an unknown key id.
-- The browser asks for a fresh token shortly before the old one expires. A leaked token is useful for at most 15 minutes.
+- `requireUser` is the only source of the acting user. It creates the `user` row on first use (concurrent first requests create one row), refuses suspended or deleted users, and refuses an email already owned by another identity.
+- Account linking is disabled until email verification exists (feature 24), so a pre-registered unverified email cannot be taken over by a later social sign-in.
 
 ### Authorisation
 
-- **Users:** every query is scoped by the authenticated `user_id`, taken from the verified token, never from client input.
+- **Users:** every query is scoped by the authenticated `user_id`, taken from the verified session, never from client input.
 - **Entitlements:** plan features and credit balance are checked in services before any paid or AI action.
 - **Staff:** roles `support`, `finance`, `admin`, `owner` with explicit permissions (`users.read`, `tickets.reply`, `billing.refund`, `pricing.write`, `flags.write`). Staff accounts will require two-factor authentication (Better Auth plugin) and are provisioned by an owner.
-- Staff endpoints are separate, permission-checked, rate-limited and write an audit row for every read or change of user data.
+- Staff functions are separate, permission-checked, rate-limited and write an audit row for every read or change of user data.
 
 ### Security settings we own
 
 Password minimum length 8 and a breached-password check when available, rate limits
 on sign-in and sign-up, secure and `HttpOnly` cookies, CSRF protection, a long random
 `BETTER_AUTH_SECRET` per environment, trusted origins limited to our domains, and a
-database role for the web server limited to the `auth_*` tables once deployed.
+separate database role for migrations once deployed.
 
 ## 7. Subscriptions, billing and payments
 
@@ -236,7 +229,7 @@ payments, while cards can. **Verify** current behaviour. Design for it:
 sequenceDiagram
   participant U as User
   participant W as Web app
-  participant A as API
+  participant A as Server
   participant P as Payment provider
   participant D as Database
   U->>W: Choose plan on /plans
@@ -297,8 +290,9 @@ Localisation covers language, currency, payment methods, tax, time and email.
 
 ## 9. Email service
 
-**Choice: Postmark** for transactional and inbound email, using separate message
-streams for transactional and broadcast mail.
+**Choice: Resend first** (free tier, transactional email, behind the `EmailProvider`
+interface). Postmark or another provider can take over inbound support mail and
+broadcast later, with separate streams for transactional and broadcast mail.
 
 - Why: strong deliverability record, simple inbound parsing (needed for the support inbox), clear bounce and spam handling. Sources agree Postmark leads on deliverability and inbound, Resend on developer experience, and Amazon SES on cost at high volume. Resend may lack inbound parsing (**Verify**).
 - Cost note: Postmark is priced higher per message than SES. At our early volume the difference is small. Revisit SES if volume grows past what justifies the premium.
@@ -393,7 +387,7 @@ flowchart LR
 ## 14. Observability and operations
 
 - Structured JSON logs with request id and user id (no personal text).
-- Error tracking (Sentry or equivalent) for web, api and worker.
+- Error tracking (Sentry or equivalent) for the app and the worker.
 - Metrics: request latency, job queue depth and age, webhook failures, AI cost per workflow, email bounce rate, payment success rate by region and method.
 - Alerts: failed webhooks, stuck queue, error spike, AI daily spend over budget.
 - Health: `GET /healthz` (process) and `GET /readyz` (database, storage).
@@ -408,7 +402,7 @@ Run everything on **one small virtual server** with Docker Compose, put Cloudfla
 
 | Piece | Choice | Why |
 |---|---|---|
-| Compute | One VPS, 2 vCPU, 4 GB RAM, 40 GB or more disk, running Caddy (automatic HTTPS), `web`, `api`, `worker` and PostgreSQL | One bill, one place to debug, no per-service minimums |
+| Compute | One VPS, 2 vCPU, 4 GB RAM, 40 GB or more disk, running Caddy (automatic HTTPS), `web`, `worker` and PostgreSQL | One bill, one place to debug, no per-service minimums |
 | Edge | Cloudflare free plan for DNS, caching of static files, DDoS protection | Free, and shields the single server |
 | Files and backups | S3-compatible object storage (Cloudflare R2 or Backblaze B2) | Pennies at our size. **Verify** current free tier and fees |
 | Database backups | Nightly encrypted `pg_dump` to object storage, plus the VPS provider's weekly snapshot, and a restore drill before launch | Cheap and testable |
@@ -441,7 +435,7 @@ with a short load test before launch).
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_JWKS_URL`, `BETTER_AUTH_ISSUER`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `POSTMARK_SERVER_TOKEN`, `POSTMARK_INBOUND_SECRET`, `TELEGRAM_BOT_TOKEN`, `AI_PROVIDER_KEYS`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `AI_PROVIDER_KEYS`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan
@@ -452,7 +446,7 @@ with a short load test before launch).
 |---|---|---|
 | VPS | 5 to 20 | Provider and size dependent. **Verify** |
 | Object storage and backups | 0 to 2 | R2 or B2 |
-| Email (Postmark) | 0 to 15 | Free developer tier covers tiny volume; the 10k plan is 15. A cheaper provider is an option while volume is small |
+| Email (Resend) | 0 to 20 | Free tier covers early volume. **Verify** current limits and paid plans |
 | Authentication | 0 | Better Auth is open source |
 | Error tracking and uptime | 0 | Free tiers |
 | Domain | about 1 | Per month equivalent |
@@ -476,19 +470,19 @@ Scale in steps, triggered by measurements, not by user counts alone.
 |---|---|---|---|
 | 0 | up to 300 users | One VPS as above | baseline |
 | 1 | 300 to 2,000 | Bigger VPS, or move PostgreSQL to its own server or a managed instance with point-in-time recovery, add PgBouncer | modest |
-| 2 | 2,000 to 10,000 | Two `web` and `api` nodes behind a load balancer, a separate `worker` node, managed Postgres with a standby, Redis only if the queue needs it | noticeable |
+| 2 | 2,000 to 10,000 | Two `web` nodes behind a load balancer, a separate `worker` node, managed Postgres with a standby, Redis only if the queue needs it | noticeable |
 | 3 | 10,000 and up | Read replica, a queue service, regional edge, autoscaling or Kubernetes only if the team and load justify it | significant |
 
 | Signal | Threshold (starting point) | Action |
 |---|---|---|
 | CPU or memory | over 60 percent CPU or 75 percent memory sustained | Move up a server size |
 | Database | over half the disk, or connections near the limit | Separate database server, add PgBouncer |
-| Latency | API p95 over 800 ms | Profile first, then add a node |
+| Latency | Server p95 over 800 ms | Profile first, then add a node |
 | Queue | oldest waiting job over 5 minutes | Move the worker to its own node, raise concurrency |
 | Availability | deploys or restarts visible to users | Second app node behind a load balancer |
 | AI spend | over daily budget | Tighten credits and caching, route more work to the cheap model |
 
-**Why this scales without a rewrite.** `web` and `api` are stateless (sessions live in
+**Why this scales without a rewrite.** `web` is stateless (sessions live in
 the database, files in object storage), the worker pulls jobs from a table so more
 workers can share it, everything runs in containers configured by environment
 variables, and every provider is behind an interface.
@@ -498,11 +492,12 @@ variables, and every provider is behind an interface.
 | Decision | Choice | Status |
 |---|---|---|
 | Architecture | Modular monolith, one worker process | Decided |
-| Auth | Better Auth in the web server, JWT to the API, behind `AuthProvider` | Decided |
-| Email | Postmark, two streams, inbound for support | Proposed |
+| Stack | TypeScript end to end: TanStack Start, Drizzle, Better Auth, Vitest | Decided |
+| Auth | Better Auth in the web server, sessions read by server functions, behind `AuthProvider` | Decided |
+| Email | Resend first behind `EmailProvider`; Postmark or similar later for inbound and broadcast | Proposed |
 | Kenya billing | Paystack (cards auto-renew, M-Pesa prepaid with renewal prompt) | Proposed. **Verify** M-Pesa recurring |
 | International billing | Paddle as merchant of record, Polar as fallback | Proposed. **Verify** Kenyan payout |
-| Support desk | In-house in the admin panel, Postmark inbound | Proposed |
+| Support desk | In-house in the admin panel, inbound email provider chosen later | Proposed |
 | Languages | English first, Swahili next | Proposed |
 | Pricing levels | Kenya and international prices | Open: business decision |
 | Hosting | One VPS with Docker Compose and Cloudflare to start (section 15), scale by stages (section 16) | Proposed. Pick provider and region on price, stock and latency |
@@ -512,8 +507,8 @@ variables, and every provider is behind an interface.
 
 New or expanded work (added to `blueprint/build-plan.md`):
 
-- Foundation: Better Auth in the web server, the `AuthProvider` JWT interface, staff roles and the audit log skeleton.
+- Foundation: Better Auth in the web server, the `AuthProvider` session interface, staff roles and the audit log skeleton.
 - Billing and entitlements: regional price book, Paystack and Paddle providers, webhooks, entitlements, M-Pesa renewal prompts, dunning, invoices.
 - Localisation: i18n catalogs, locale and timezone settings, regional formatting.
-- Email: Postmark provider, templates, bounce handling, inbound support.
+- Email: Resend provider, templates, bounce handling, inbound support.
 - Admin panel and support desk.

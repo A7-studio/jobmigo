@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { authClient } from '#/lib/auth-client'
 
 type Mode = 'sign-in' | 'sign-up'
@@ -64,6 +65,7 @@ function serverMessage(code: string | undefined, mode: Mode): Errors {
 export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
   const copy = COPY[mode]
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -103,6 +105,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
           ? await authClient.signUp.email({ name, email, password })
           : await authClient.signIn.email({ email, password })
       if (error) return fail(serverMessage(error.code, mode))
+      queryClient.clear()
       await navigate({ to: '/dashboard' })
     } catch {
       fail({

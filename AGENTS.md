@@ -81,25 +81,24 @@ Skills: `adopt`, `audit`, `blueprint-doctor`, `blueprint-status`, `brief`,
 
 ## Commands
 
-Jobmigo is a TanStack Start web app (`web/`) plus a FastAPI api (`api/`) with
-Postgres. Local ports avoid common clashes: web 3000, api 8001, Postgres 5442.
-Copy `.env.example` to `.env` first.
+Jobmigo is one TypeScript app: TanStack Start (`web/`) with the server code,
+Better Auth and Drizzle on PostgreSQL. Local ports: web 3000, Postgres 5442.
+Copy `.env.example` to `.env` first (the scripts below read it).
 
-- Database: `docker compose up -d db`
-- Web dev server: `npm run dev` in `web/` (http://localhost:3000)
-- Web build: `npm run build` in `web/`
-- Web lint: `npm run lint` in `web/`
-- Api types for the web client: with the api running, `npm run api:types` in `web/` rewrites `src/lib/api-types.ts`
-- Api dev server: `uv run uvicorn app.main:app --reload --port 8001` in `api/` (http://localhost:8001, health at `/healthz`, `/readyz`)
-- Api lint and format: `uv run ruff check .` and `uv run ruff format .` in `api/`
-- Api type check: `uv run mypy app` in `api/`
-- Test: `uv run pytest` in `api/`
-- Web env (`web/` reads the shell environment; `set -a; . ../.env; set +a` before `npm run dev`): `AUTH_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `VITE_API_URL`, optional `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
-- Test database: `jobmigo_test` on the same Postgres, created and migrated by the test fixtures (`TEST_DATABASE_URL` overrides)
-- Migrations: `uv run alembic upgrade head` in `api/`; new revision with `uv run alembic revision --autogenerate -m "message"`
-- Full local stack: `docker compose up --build` (development images; the production web adapter is chosen with the hosting decision)
+Run these in `web/` unless noted:
+
+- Database: `docker compose up -d db` (repo root)
+- Database reset (deletes local data): `docker compose down -v` then `docker compose up -d db` (repo root), then `npm run db:migrate`
+- Migrate: `npm run db:migrate`; new migration after a schema change: `npm run db:generate`
+- Dev server: `npm run dev` (http://localhost:3000, health at `/healthz`, `/readyz`)
+- Build: `npm run build`
+- Lint: `npm run lint`
+- Type check: `npm run typecheck`
+- Test: `npm test` (Vitest; needs the database running; uses `TEST_DATABASE_URL`, whose name must end in `_test`)
+- Verify: `npm run lint && npm run typecheck && npm run build && npm test`
+- Full local stack: `docker compose up --build` (development images; the production build is chosen with the hosting decision)
 
 Browser testing is opt-in. Run `/tests browser` or `$tests browser` to add or
-normalize a browser harness and document its exact command as `Browser tests`.
-Check and Continuous Mode can then reuse it without installing tooling
-mid-feature. Web unit tests (Vitest) are added when the first web logic needs them.
+normalize a browser harness and document its exact command as `Browser
+tests`. Check and Continuous Mode can then reuse it without installing tooling
+mid-feature.

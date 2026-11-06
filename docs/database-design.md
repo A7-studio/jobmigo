@@ -1,6 +1,6 @@
 # Jobmigo database design
 
-PostgreSQL, SQLAlchemy 2.x models, Alembic migrations. This document is the
+PostgreSQL, Drizzle ORM schema, drizzle-kit migrations. This document is the
 design of record for how data is stored. Field lists are the starting point; the
 feature that first uses a table locks its final shape in its spec.
 
@@ -8,7 +8,7 @@ feature that first uses a table locks its final shape in its spec.
 
 - Primary keys are UUIDs (`id`). Every table has `created_at`; mutable tables also have `updated_at`.
 - **Tenant data** (anything derived from a user's CV, preferences, applications or payments) carries `user_id` and is always queried through the owner-scoping helper. **Shared data** (`company`, `job`, `job_listing`, `job_source`, `plan`, `price`) has no `user_id`.
-- Defence in depth: Row Level Security is enabled on tenant tables. The API sets `app.user_id` per request; the admin role bypasses it only through the audited admin module.
+- Defence in depth: Row Level Security is enabled on tenant tables. The server sets `app.user_id` per request; the admin role bypasses it only through the audited admin module.
 - Money is stored as integer minor units (`amount_minor`) with an ISO `currency` code. Never floats.
 - Enums are Postgres enums or text with check constraints, defined once in the owning module.
 - Soft delete only where history matters (`user.status`, `application`). User deletion is a real purge job that removes tenant rows and storage objects.
@@ -18,7 +18,7 @@ feature that first uses a table locks its final shape in its spec.
 
 ## 1. Identity and access
 
-Sign-in is handled by Better Auth in the web server. It owns five tables, created by Alembic like the rest: `auth_user`, `auth_session`, `auth_account`, `auth_verification` and `auth_jwks` (signing keys). The API never reads them. It trusts a signed token, and `user.auth_subject` holds the Better Auth user id.
+Sign-in is handled by Better Auth in the web server. It owns four tables, created by Drizzle migrations like the rest: `auth_user`, `auth_session`, `auth_account` and `auth_verification`. Server code reads them only through Better Auth, and `user.auth_subject` holds the Better Auth user id. Columns are snake_case.
 
 ```mermaid
 erDiagram

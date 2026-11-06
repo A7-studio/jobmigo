@@ -8,7 +8,6 @@ import {
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authClient } from '#/lib/auth-client'
-import { clearApiToken } from '#/lib/api'
 import { getSession } from '#/lib/auth.functions'
 
 export const Route = createFileRoute('/_app')({
@@ -40,7 +39,6 @@ function AppShell() {
 
   async function signOut() {
     await authClient.signOut()
-    clearApiToken()
     queryClient.clear()
     await navigate({ to: '/sign-in' })
   }

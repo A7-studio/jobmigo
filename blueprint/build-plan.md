@@ -13,7 +13,7 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 
 ## Slice 0: launch (waitlist live)
 
-- [ ] 27. TypeScript full-stack switch - replace the FastAPI api with TanStack Start server code: Drizzle schema and migrations carrying over the user, staff, audit log and Better Auth tables, Better Auth sessions used directly by server functions, per-user data scoping helper, staff permissions, audit log recorder, health check, Vitest tests, remove `api/`, update compose, docs and design docs
+- [x] 27. TypeScript full-stack switch - replace the separate Python API with TanStack Start server code: Drizzle schema and migrations carrying over the user, staff, audit log and Better Auth tables, Better Auth sessions used directly by server functions, per-user data scoping helper, staff permissions, audit log recorder, health check, Vitest tests, remove `api/`, update compose, docs and design docs
 - [ ] 28. Waitlist and launch - public homepage from the design with a working waitlist (consented email capture, duplicate handling, rate limit, confirmation email through Resend behind a mail interface, privacy notice), production deploy on one VPS behind Cloudflare with HTTPS, backups and a health check
 
 ## Slice 1: usable by the founder

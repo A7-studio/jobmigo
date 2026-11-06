@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchMe } from '#/lib/api'
+import { getMe } from '#/lib/auth.functions'
 
 export function useMe() {
-  return useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  return useQuery({ queryKey: ['me'], queryFn: () => getMe() })
 }

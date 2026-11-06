@@ -6,14 +6,17 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "node --env-file-if-exists=../.env node_modules/vite/bin/vite.js dev --port 3000",
     "generate-routes": "vite build",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check .",
-    "api:types": "openapi-typescript ${VITE_API_URL:-http://localhost:8001}/openapi.json -o src/lib/api-types.ts"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs migrate",
+    "test": "node --env-file-if-exists=../.env node_modules/vitest/vitest.mjs run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -23,6 +26,7 @@
     "@tanstack/react-router-devtools": "1.167.2",
     "@tanstack/react-start": "1.169.4",
     "better-auth": "^1.7.18",
+    "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -36,11 +40,12 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9.20.0",
-    "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^5.1.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
