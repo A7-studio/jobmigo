@@ -18,6 +18,8 @@ feature that first uses a table locks its final shape in its spec.
 
 ## 1. Identity and access
 
+Sign-in is handled by Better Auth in the web server. It owns five tables, created by Alembic like the rest: `auth_user`, `auth_session`, `auth_account`, `auth_verification` and `auth_jwks` (signing keys). The API never reads them. It trusts a signed token, and `user.auth_subject` holds the Better Auth user id.
+
 ```mermaid
 erDiagram
   USER ||--o{ CONSENT : gives
@@ -27,7 +29,7 @@ erDiagram
   ROLE ||--o{ ROLE_PERMISSION : grants
   USER {
     uuid id PK
-    text auth_subject UK "id from the auth provider"
+    text auth_subject UK "Better Auth user id"
     text email UK
     text display_name
     text country "ISO 3166, from billing or choice"
@@ -503,7 +505,7 @@ trigger). Every staff action that reads or changes a user's data writes a row.
 | CV files, exported documents, invoice PDFs | Private S3-compatible bucket | Signed URLs, short expiry |
 | Cache of AI results | PostgreSQL (`evaluation.cache_key`, document versions) | Keyed by content hash |
 | Job queue | PostgreSQL `background_job` | Redis only if volume demands it |
-| Sessions and identities | Auth provider | We store `user.auth_subject` only |
+| Sessions, credentials and signing keys | `auth_*` tables (Better Auth, in our PostgreSQL) | Application `user` stores `auth_subject` and email only |
 | Card and M-Pesa credentials | Payment providers | Never stored by Jobmigo |
 | Raw inbound support emails | Provider and `ticket_message` | Attachments in the private bucket |
 

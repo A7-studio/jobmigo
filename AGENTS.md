@@ -89,10 +89,13 @@ Copy `.env.example` to `.env` first.
 - Web dev server: `npm run dev` in `web/` (http://localhost:3000)
 - Web build: `npm run build` in `web/`
 - Web lint: `npm run lint` in `web/`
+- Api types for the web client: with the api running, `npm run api:types` in `web/` rewrites `src/lib/api-types.ts`
 - Api dev server: `uv run uvicorn app.main:app --reload --port 8001` in `api/` (http://localhost:8001, health at `/healthz`, `/readyz`)
 - Api lint and format: `uv run ruff check .` and `uv run ruff format .` in `api/`
 - Api type check: `uv run mypy app` in `api/`
 - Test: `uv run pytest` in `api/`
+- Web env (`web/` reads the shell environment; `set -a; . ../.env; set +a` before `npm run dev`): `AUTH_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `VITE_API_URL`, optional `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
+- Test database: `jobmigo_test` on the same Postgres, created and migrated by the test fixtures (`TEST_DATABASE_URL` overrides)
 - Migrations: `uv run alembic upgrade head` in `api/`; new revision with `uv run alembic revision --autogenerate -m "message"`
 - Full local stack: `docker compose up --build` (development images; the production web adapter is chosen with the hosting decision)
 

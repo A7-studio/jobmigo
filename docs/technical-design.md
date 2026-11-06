@@ -33,7 +33,8 @@ flowchart LR
   WRK --> AIG
   AIG --> LLM[Model providers]
   WRK --> SRC[Public job sources]
-  API --> AUTH[Auth provider]
+  WEB -- sign-in and sessions --> DB
+  API -- verify tokens via JWKS --> WEB
   API --> PAY[Payment providers<br/>Paystack and merchant of record]
   PAY -- webhooks --> API
   API --> MAIL[Email provider]
@@ -50,7 +51,7 @@ in a second process from the same codebase.
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `web` | TanStack Start, React, TypeScript, Tailwind | Public site, app UI, admin UI. Renders pages, calls the API. No business logic, no database access, no secrets |
+| `web` | TanStack Start, React, TypeScript, Tailwind, Better Auth | Public site, app UI, admin UI. Runs sign-up, sign-in and sessions (Better Auth) and issues API tokens. Calls the API for everything else. No business logic. Touches only the `auth_*` tables |
 | `api` | Python, FastAPI, SQLAlchemy, Alembic | All business logic, validation, authorisation, billing logic, webhooks |
 | `worker` | Same code as `api` | Background jobs, schedules, retries, email sending, AI calls, job-source ingestion |
 | `db` | PostgreSQL | System of record, job queue, audit trail |
@@ -63,7 +64,7 @@ another only through that module's service functions, never its tables.
 
 | Module | Owns |
 |---|---|
-| `identity` | Users, consent, data requests, staff and roles (identity itself lives in the auth provider) |
+| `identity` | Application users, consent, data requests, staff and roles. Sign-in itself lives in Better Auth (web server) |
 | `profiles` | CV upload and parsing, profile, tracks |
 | `jobs` | Sources, adapters, ingestion, dedupe, verification, legitimacy |
 | `evaluation` | Screening, fit evaluation, evidence |
@@ -90,7 +91,7 @@ Every external service sits behind a small interface so it can be swapped.
 
 | Interface | Methods (sketch) | First implementation |
 |---|---|---|
-| `AuthVerifier` | `verify(token) -> Identity` | Clerk (see section 6) |
+| `AuthProvider` | `verify(token) -> Identity(subject, email, name)` | Better Auth JWT (see section 6) |
 | `BillingProvider` | `create_checkout`, `change_plan`, `cancel`, `pause`, `refund`, `parse_webhook` | Paystack (Kenya), Paddle (international) |
 | `EmailProvider` | `send(template, to, locale, data)`, `parse_inbound` | Postmark |
 | `NotificationChannel` | `deliver(user, message)` | In-app, Telegram, email |
@@ -131,43 +132,61 @@ behind a separate permission check.
 
 - TanStack Start: file-based routes, loaders that prefetch through TanStack Query, server rendering for the public site.
 - Routes: public (`/`, `/pricing`, `/signup`), onboarding, app (`/dashboard`, `/jobs`, `/applications`, `/documents`, `/outreach`, `/profile`), billing (`/plans`, `/checkout`), admin (`/admin/*`, staff only).
-- Server functions are limited to web-layer concerns (session cookie handling). Business logic stays in the API.
+- The web server also hosts Better Auth (`/api/auth/*`) and server functions for the session. Business logic stays in the API.
 - Styling from the locked tokens in `prototypes/theme.css`. Motion respects reduced-motion settings.
 
 ## 6. Authentication and authorisation
 
-**Choice: Clerk** as the managed identity provider for v1.
+**Choice: Better Auth** (open source, TypeScript), running inside the TanStack Start
+web server, with its data in our own PostgreSQL database.
 
-- Why: complete sign-up and sign-in UI (email and Google), email verification, password reset, MFA, session handling, a TanStack Start SDK, and a free tier that comfortably covers early volume. Newer sources put the free tier at 50,000 monthly retained users, older ones at 10,000. **Verify** current limits and pricing.
-- Alternatives kept in view: WorkOS AuthKit (very large free tier, strong for B2B later), Better Auth (open source, self-hosted, no vendor fee, but we would own security and it runs in the TypeScript layer).
-- Lock-in control: we store only `user.auth_subject` and `email`. Profile and product data stay in our database. `AuthVerifier` isolates the provider, so a move is a migration of identities, not of data.
+- Why: no per-user fee and no external account or vendor lock-in, our users live in our database, email and password plus Google sign-in out of the box, plugins for two-factor authentication (staff) and JWT issuing, and first-class TanStack Start support.
+- Trade-offs accepted: we own the security configuration (password rules, rate limits, cookie settings), keep it patched, and build the sign-in screens ourselves. Email verification and password reset need the email service (feature 24).
+- Alternatives kept in view: Clerk (managed UI and a free tier, but per-user pricing later and vendor lock-in) and WorkOS AuthKit.
+- Portability: the API depends only on the `AuthProvider` interface and a JWT contract. The application `user` row stores `auth_subject` (the Better Auth user id) and email; everything else about people stays in our tables.
 
-### Flow
+### How the two services share identity
+
+Better Auth lives in the web server and owns five tables (`auth_user`, `auth_session`,
+`auth_account`, `auth_verification`, `auth_jwks`) in the same database. Alembic
+creates them, like every other table. The FastAPI service never touches those
+tables. It trusts a short-lived signed token instead.
 
 ```mermaid
 sequenceDiagram
   participant B as Browser
-  participant W as Web app
-  participant C as Clerk
+  participant W as Web server (Better Auth)
+  participant D as PostgreSQL
   participant A as API
-  participant D as Database
-  B->>C: Sign up or sign in (email or Google)
-  C-->>B: Session
-  C->>A: Webhook user.created (signed)
-  A->>D: Create user, consent, entitlement (free)
-  B->>W: Request page
-  W->>A: API call with session token
-  A->>C: Verify token (JWKS, cached)
-  A->>D: Load user, apply owner scope
-  A-->>W: Data
+  B->>W: Sign up or sign in (email and password, or Google)
+  W->>D: Create user, account and session rows
+  W-->>B: Session cookie
+  B->>W: Ask for an API token (needs the session cookie)
+  W-->>B: JWT, 15 minutes, signed with Ed25519
+  B->>A: API call with Authorization Bearer JWT
+  A->>W: Fetch public keys from the JWKS endpoint (cached)
+  A->>A: Check signature, issuer, audience, expiry
+  A->>D: Find or create the application user from the token claims
+  A-->>B: Data
 ```
+
+- Tokens carry `sub` (Better Auth user id), `email`, `name` and `emailVerified`. Issuer and audience are the web base URL.
+- Keys rotate on a schedule with a grace period so older tokens keep working. The API caches keys and refetches when it sees an unknown key id.
+- The browser asks for a fresh token shortly before the old one expires. A leaked token is useful for at most 15 minutes.
 
 ### Authorisation
 
-- **Users:** every query is scoped by the authenticated `user_id`, taken from the verified session, never from client input.
+- **Users:** every query is scoped by the authenticated `user_id`, taken from the verified token, never from client input.
 - **Entitlements:** plan features and credit balance are checked in services before any paid or AI action.
-- **Staff:** roles `support`, `finance`, `admin`, `owner` with explicit permissions (`users.read`, `tickets.reply`, `billing.refund`, `pricing.write`, `flags.write`). Staff accounts require MFA and are provisioned by an owner.
+- **Staff:** roles `support`, `finance`, `admin`, `owner` with explicit permissions (`users.read`, `tickets.reply`, `billing.refund`, `pricing.write`, `flags.write`). Staff accounts will require two-factor authentication (Better Auth plugin) and are provisioned by an owner.
 - Staff endpoints are separate, permission-checked, rate-limited and write an audit row for every read or change of user data.
+
+### Security settings we own
+
+Password minimum length 8 and a breached-password check when available, rate limits
+on sign-in and sign-up, secure and `HttpOnly` cookies, CSRF protection, a long random
+`BETTER_AUTH_SECRET` per environment, trusted origins limited to our domains, and a
+database role for the web server limited to the `auth_*` tables once deployed.
 
 ## 7. Subscriptions, billing and payments
 
@@ -379,41 +398,121 @@ flowchart LR
 - Alerts: failed webhooks, stuck queue, error spike, AI daily spend over budget.
 - Health: `GET /healthz` (process) and `GET /readyz` (database, storage).
 
-## 15. Environments and deployment
+## 15. Environments, hosting and deployment
 
-- Environments: local (`docker compose`), staging, production. Provider test modes in non-production.
-- Containers: `web`, `api`, `worker`, Postgres, object storage.
-- Hosting: one small cloud platform with managed Postgres. Pick a region close to Kenyan users that offers managed Postgres (for example AWS Cape Town or a Johannesburg region). **Verify** latency and availability when choosing.
+**Target: about 100 users within a couple of months, at the lowest sensible cost, with a clear path to grow.**
+
+### Recommendation for the first 100 users
+
+Run everything on **one small virtual server** with Docker Compose, put Cloudflare in front, and keep files and backups off the box.
+
+| Piece | Choice | Why |
+|---|---|---|
+| Compute | One VPS, 2 vCPU, 4 GB RAM, 40 GB or more disk, running Caddy (automatic HTTPS), `web`, `api`, `worker` and PostgreSQL | One bill, one place to debug, no per-service minimums |
+| Edge | Cloudflare free plan for DNS, caching of static files, DDoS protection | Free, and shields the single server |
+| Files and backups | S3-compatible object storage (Cloudflare R2 or Backblaze B2) | Pennies at our size. **Verify** current free tier and fees |
+| Database backups | Nightly encrypted `pg_dump` to object storage, plus the VPS provider's weekly snapshot, and a restore drill before launch | Cheap and testable |
+| Deploys | CI builds images, pushes them to a registry, then `docker compose pull && up -d` over SSH (Kamal or Dokploy are alternatives) | Simple, repeatable, no platform lock-in |
+| Monitoring | Sentry free tier, an uptime check, Docker logs with rotation | $0 to start |
+| Region | A provider region closest to Kenya that fits the budget. Expect roughly 150 to 200 ms to Europe, which is acceptable for this app. **Verify** with a latency test | Africa regions cost more |
+
+**VPS provider.** Candidates are Hetzner (cheapest per spec, but sources report 2026
+price rises and uneven stock, **Verify** on their site), DigitalOcean, Vultr and Akamai
+Linode (slightly dearer, steadier availability), and AWS Lightsail in Cape Town (best
+latency to Kenya, dearer). Pick on price, stock and latency on the day. The design has
+no provider-specific parts, so moving later is a redeploy.
+
+**Why not a managed platform first.** Render, Fly.io and Railway remove server work,
+but one comparison puts a small app with Postgres at roughly 35 to 65 US dollars a
+month, about two to three times the VPS route. They are a fair choice if your time
+is worth more than the difference. Managed Postgres is the usual first thing to buy
+later (stage 2).
+
+**What the single server handles.** 100 registered users is perhaps 30 to 60 active in
+a week. That is a few requests a second at peak. Job discovery is shared across
+users, so it grows with sources, not users. The slow part is AI calls, which wait on
+the provider and use little CPU. We expect low CPU use on a 2 vCPU server (**Verify**
+with a short load test before launch).
+
+**Production web build.** The scaffold builds for development. A Node server adapter
+(for example Nitro's Node preset) is chosen when the deployment feature is built.
+
+### Environments
+
+- Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
+- Config only through environment variables. Secrets never enter the repository or logs.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_JWKS_URL`, `BETTER_AUTH_ISSUER`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `POSTMARK_SERVER_TOKEN`, `POSTMARK_INBOUND_SECRET`, `TELEGRAM_BOT_TOKEN`, `AI_PROVIDER_KEYS`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
-- Config by environment variable names: `DATABASE_URL`, `STORAGE_*`, `AUTH_*`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `POSTMARK_SERVER_TOKEN`, `POSTMARK_INBOUND_SECRET`, `TELEGRAM_BOT_TOKEN`, `AI_PROVIDER_KEYS`, `SENTRY_DSN`.
 
-## 16. Cost drivers
+## 16. Cost and scaling plan
 
-No figures are promised here. Watch these, and let the admin overview show them:
-AI inference per active user (the largest variable cost), email volume, auth
-provider tier, payment fees (Paystack and merchant of record fees differ by
-method and region), hosting and database, object storage, error tracking.
+### Monthly cost at about 100 users (estimates, US dollars)
+
+| Item | Estimate | Notes |
+|---|---|---|
+| VPS | 5 to 20 | Provider and size dependent. **Verify** |
+| Object storage and backups | 0 to 2 | R2 or B2 |
+| Email (Postmark) | 0 to 15 | Free developer tier covers tiny volume; the 10k plan is 15. A cheaper provider is an option while volume is small |
+| Authentication | 0 | Better Auth is open source |
+| Error tracking and uptime | 0 | Free tiers |
+| Domain | about 1 | Per month equivalent |
+| Telegram | 0 | |
+| Payment fees | percentage of revenue | Paystack and the merchant of record charge per transaction. **Verify** rates |
+| **Fixed total** | **about 10 to 40** | |
+| AI inference | variable, the largest cost | Depends on credits used. Budget per user and per plan |
+
+**AI cost control is the real cost lever.** Credits cap what each user can spend.
+Dealbreaker gates and cached results run before any model call, a cheap model
+screens, the strong model only handles shortlisted jobs, and research per evaluation
+is capped. Plan prices should keep AI cost at a small share of revenue (a target of
+25 to 30 percent is a hypothesis to test). The admin overview shows AI cost against
+revenue from day one, with a daily spend alert and a kill switch.
+
+### Scaling path
+
+Scale in steps, triggered by measurements, not by user counts alone.
+
+| Stage | Roughly | Setup | Typical added cost |
+|---|---|---|---|
+| 0 | up to 300 users | One VPS as above | baseline |
+| 1 | 300 to 2,000 | Bigger VPS, or move PostgreSQL to its own server or a managed instance with point-in-time recovery, add PgBouncer | modest |
+| 2 | 2,000 to 10,000 | Two `web` and `api` nodes behind a load balancer, a separate `worker` node, managed Postgres with a standby, Redis only if the queue needs it | noticeable |
+| 3 | 10,000 and up | Read replica, a queue service, regional edge, autoscaling or Kubernetes only if the team and load justify it | significant |
+
+| Signal | Threshold (starting point) | Action |
+|---|---|---|
+| CPU or memory | over 60 percent CPU or 75 percent memory sustained | Move up a server size |
+| Database | over half the disk, or connections near the limit | Separate database server, add PgBouncer |
+| Latency | API p95 over 800 ms | Profile first, then add a node |
+| Queue | oldest waiting job over 5 minutes | Move the worker to its own node, raise concurrency |
+| Availability | deploys or restarts visible to users | Second app node behind a load balancer |
+| AI spend | over daily budget | Tighten credits and caching, route more work to the cheap model |
+
+**Why this scales without a rewrite.** `web` and `api` are stateless (sessions live in
+the database, files in object storage), the worker pulls jobs from a table so more
+workers can share it, everything runs in containers configured by environment
+variables, and every provider is behind an interface.
 
 ## 17. Decisions and open questions
 
 | Decision | Choice | Status |
 |---|---|---|
 | Architecture | Modular monolith, one worker process | Decided |
-| Auth | Clerk behind `AuthVerifier` | Proposed. **Verify** free-tier limits |
+| Auth | Better Auth in the web server, JWT to the API, behind `AuthProvider` | Decided |
 | Email | Postmark, two streams, inbound for support | Proposed |
 | Kenya billing | Paystack (cards auto-renew, M-Pesa prepaid with renewal prompt) | Proposed. **Verify** M-Pesa recurring |
 | International billing | Paddle as merchant of record, Polar as fallback | Proposed. **Verify** Kenyan payout |
 | Support desk | In-house in the admin panel, Postmark inbound | Proposed |
 | Languages | English first, Swahili next | Proposed |
 | Pricing levels | Kenya and international prices | Open: business decision |
-| Hosting region and provider | Close to Kenya, managed Postgres | Open |
+| Hosting | One VPS with Docker Compose and Cloudflare to start (section 15), scale by stages (section 16) | Proposed. Pick provider and region on price, stock and latency |
 | Company and tax setup (VAT, KRA, ODPC) | Needs accountant and lawyer | Open |
 
 ## 18. Impact on the build plan
 
 New or expanded work (added to `blueprint/build-plan.md`):
 
-- Foundation: auth integration with Clerk, `AuthVerifier`, staff roles and the audit log skeleton.
+- Foundation: Better Auth in the web server, the `AuthProvider` JWT interface, staff roles and the audit log skeleton.
 - Billing and entitlements: regional price book, Paystack and Paddle providers, webhooks, entitlements, M-Pesa renewal prompts, dunning, invoices.
 - Localisation: i18n catalogs, locale and timezone settings, regional formatting.
 - Email: Postmark provider, templates, bounce handling, inbound support.

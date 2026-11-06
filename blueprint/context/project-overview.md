@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 4012a2af4530e075f40cf6ff66c21541f432998221dc006b08d4b4cdcb678b28 -->
+<!-- blueprint:source-hash 94465409b5defdf4730be88bf9abf5303fd4bd4dd50da8dcf330a0b48a204dc9 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 
@@ -32,7 +32,7 @@ Principles for every feature:
 
 Build order from `build-plan.md`. The first ten form the vertical slice usable by the founder; the **headline feature is #8, AI job evaluation**.
 
-1. **Foundation and app shell** - sign-up/sign-in via Clerk behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
+1. **Foundation and app shell** - sign-up/sign-in via Better Auth (web server, JWT to the API) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
 2. **AI gateway and usage ledger** - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
 3. **CV upload and parsing** - PDF/DOCX to private storage, text extraction, AI parse into a profile draft.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
@@ -139,7 +139,7 @@ Modular monolith, no microservices.
 - **Postgres-backed job table + worker + scheduler** - background work; Redis/Celery only when volume or retries justify it
 - **Private S3-compatible object storage** - CVs and exports via signed URLs
 - **AI gateway** - provider-independent; per-task model routing, prompt versioning, schema-validated outputs, content-hash caching, usage ledger. Managed keys by default; BYOK later through the same interface
-- **Clerk** - identity (email, Google, MFA) behind an auth interface; we store `auth_subject` only
+- **Better Auth** - in the web server, data in our PostgreSQL (`auth_*` tables), email and Google sign-in, issues 15-minute JWTs the API verifies via JWKS, behind an auth interface; the application `user` stores `auth_subject` only
 - **Postmark** - transactional, broadcast and inbound support email behind an email interface
 - **Paystack (Kenya, KES, M-Pesa and cards) and Paddle (international, USD, merchant of record)** - behind one billing interface
 - **i18n catalogs** - English first, Swahili next
@@ -180,7 +180,7 @@ Screens (route names proposed):
 ## Deployment
 
 - Containers: `web` (TanStack Start), `api` (FastAPI), `worker` (jobs and scheduler), Postgres, object storage.
-- Host: single small cloud platform with managed Postgres. > TODO decide at the foundation feature (Render, Fly.io or similar).
+- Host: one small VPS with Docker Compose behind Cloudflare, object storage for files and backups; staged scaling path in `docs/technical-design.md` (sections 15 and 16). Provider and region chosen on price, stock and Kenya latency.
 - Env vars (see `docs/technical-design.md`): `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_KEY`, `STORAGE_SECRET`, `AUTH_SECRET`, `AI_PROVIDER_KEYS`, `TELEGRAM_BOT_TOKEN`, `STRIPE_SECRET_KEY` (later).
 - Health check: `GET /healthz` on the API.
 - Cron: daily discovery and digest run by the worker scheduler.

@@ -126,7 +126,7 @@ Modular monolith, no microservices.
   routing, prompt versioning, schema-validated structured outputs, caching,
   usage and cost ledger). Managed keys by default; BYOK later via the same
   interface
-- **Auth:** Clerk (managed identity, email and Google sign-in, MFA) behind a provider interface
+- **Auth:** Better Auth (open source, in the web server, data in our PostgreSQL; email and Google sign-in, two-factor for staff later) issuing short-lived JWTs that the API verifies, behind a provider interface
 - **Email:** Postmark (transactional, broadcast and inbound support email) behind a provider interface
 - **Billing:** Paystack for Kenya (KES; M-Pesa and cards) and Paddle as merchant of record for international (USD), behind one billing interface
 - **Admin and support:** staff-only `/admin` area with roles, audit log and an in-house support inbox
@@ -207,10 +207,13 @@ status are always conveyed by text labels, never colour alone.
 
 - Containers: `web` (TanStack Start), `api` (FastAPI), `worker` (jobs and scheduler),
   Postgres, object storage
-- Early host: a single small cloud platform (Render, Fly.io or similar) with
-  managed Postgres; decide at the foundation feature
+- Early host: one small VPS running Docker Compose behind Cloudflare, with object
+  storage for files and backups (about 10 to 40 USD a month fixed, plus AI cost);
+  scale in stages (see `docs/technical-design.md` sections 15 and 16). Target: about
+  100 users within a couple of months.
 - Env vars by name: `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`,
-  `STORAGE_KEY`, `STORAGE_SECRET`, `CLERK_SECRET_KEY`, `AI_PROVIDER_KEYS`,
+  `STORAGE_KEY`, `STORAGE_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
+  `BETTER_AUTH_JWKS_URL`, `BETTER_AUTH_ISSUER`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER_KEYS`,
   `TELEGRAM_BOT_TOKEN`, `POSTMARK_SERVER_TOKEN`, `POSTMARK_INBOUND_SECRET`,
   `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `SENTRY_DSN`
 - Health check: `GET /healthz` on the API

@@ -10,7 +10,7 @@ Scaffolding the app (TanStack Start web, FastAPI api, Postgres, Docker) and appl
 
 ## Slice 1: usable by the founder
 
-- [ ] 1. Foundation and app shell - sign-up and sign-in through Clerk behind an auth interface, per-user data scoping, staff roles skeleton and audit log, app shell with sidebar and theme, health check
+- [x] 1. Foundation and app shell - sign-up and sign-in through Better Auth (web server, JWT to the API) behind an auth interface, per-user data scoping, staff roles skeleton and audit log, app shell with sidebar and theme, health check
 - [ ] 2. AI gateway and usage ledger - one provider interface, task-based model routing, prompt versions, schema-validated outputs, cost and cache logging
 - [ ] 3. CV upload and parsing - PDF/DOCX to private storage, text extraction, AI parse into a structured profile draft
 - [ ] 4. Profile review and track variants - edit extracted experience, skills and achievements, confirm facts, create variants for the three tracks
