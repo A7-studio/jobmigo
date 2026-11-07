@@ -29,13 +29,13 @@ export function Hero() {
         <div className="flex flex-wrap gap-3">
           <a
             href="#waitlist"
-            className="inline-flex min-h-12 items-center rounded-md bg-accent-strong px-6 text-base font-bold text-white transition-colors hover:bg-accent-strong-hover"
+            className="inline-flex min-h-12 items-center rounded-full bg-accent-strong px-6 text-base font-bold text-white transition-colors hover:bg-accent-strong-hover"
           >
             Join the waitlist
           </a>
           <a
             href="#how"
-            className="inline-flex min-h-12 items-center rounded-md border border-border-strong bg-surface px-6 text-base font-bold text-ink hover:bg-surface-muted"
+            className="inline-flex min-h-12 items-center rounded-full border border-border-strong bg-surface px-6 text-base font-bold text-ink hover:bg-surface-muted"
           >
             See how it works
           </a>

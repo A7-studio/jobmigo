@@ -32,7 +32,7 @@ export function Nav() {
         </Link>
         <a
           href="#waitlist"
-          className="inline-flex min-h-11 items-center rounded-md bg-accent-strong px-4 text-sm font-bold text-white transition-colors hover:bg-accent-strong-hover"
+          className="inline-flex min-h-11 items-center rounded-full bg-accent-strong px-4 text-sm font-bold text-white transition-colors hover:bg-accent-strong-hover"
         >
           Join the waitlist
         </a>

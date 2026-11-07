@@ -77,7 +77,7 @@ function AppShell() {
           <button
             type="button"
             onClick={signOut}
-            className="min-h-11 rounded-md border border-border-strong bg-surface px-3 font-bold text-ink hover:bg-surface-muted"
+            className="min-h-11 rounded-full border border-border-strong bg-surface px-3 font-bold text-ink hover:bg-surface-muted"
           >
             Sign out
           </button>
@@ -105,7 +105,7 @@ function RouteError({ error, reset }: ErrorComponentProps) {
       <button
         type="button"
         onClick={reset}
-        className="mt-4 min-h-11 rounded-md bg-accent-strong px-4 font-bold text-white hover:bg-accent-strong-hover"
+        className="mt-4 min-h-11 rounded-full bg-accent-strong px-4 font-bold text-white hover:bg-accent-strong-hover"
       >
         Try again
       </button>

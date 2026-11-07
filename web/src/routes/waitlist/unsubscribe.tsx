@@ -62,7 +62,7 @@ function Unsubscribe() {
         type="button"
         onClick={onClick}
         disabled={state === 'working'}
-        className="min-h-11 rounded-md bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover disabled:opacity-70"
+        className="min-h-11 rounded-full bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover disabled:opacity-70"
       >
         {state === 'working' ? 'Unsubscribing…' : 'Unsubscribe'}
       </button>

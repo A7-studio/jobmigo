@@ -26,4 +26,4 @@ export function MessagePage({
 }
 
 export const LINK_BUTTON =
-  'inline-flex min-h-11 items-center justify-center rounded-md bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover'
+  'inline-flex min-h-11 items-center justify-center rounded-full bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover'

@@ -201,7 +201,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
           <button
             type="submit"
             disabled={busy}
-            className="min-h-11 rounded-md bg-accent-strong px-4 font-bold text-white transition-colors hover:bg-accent-strong-hover disabled:opacity-70"
+            className="min-h-11 rounded-full bg-accent-strong px-4 font-bold text-white transition-colors hover:bg-accent-strong-hover disabled:opacity-70"
           >
             {busy ? copy.busy : copy.submit}
           </button>
@@ -212,7 +212,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
             type="button"
             onClick={onGoogle}
             disabled={busy}
-            className="mt-3 min-h-11 w-full rounded-md border border-border-strong bg-surface px-4 font-bold text-ink hover:bg-surface-muted disabled:opacity-70"
+            className="mt-3 min-h-11 w-full rounded-full border border-border-strong bg-surface px-4 font-bold text-ink hover:bg-surface-muted disabled:opacity-70"
           >
             {copy.google}
           </button>

@@ -46,7 +46,7 @@ function Dashboard() {
           type="button"
           onClick={() => void me.refetch()}
           disabled={me.isFetching}
-          className="mt-4 min-h-11 rounded-md bg-accent-strong px-4 font-bold text-white hover:bg-accent-strong-hover disabled:opacity-70"
+          className="mt-4 min-h-11 rounded-full bg-accent-strong px-4 font-bold text-white hover:bg-accent-strong-hover disabled:opacity-70"
         >
           {me.isFetching ? 'Retrying…' : 'Retry'}
         </button>

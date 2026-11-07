@@ -163,7 +163,7 @@ export function WaitlistForm() {
       <button
         type="submit"
         disabled={busy}
-        className="min-h-12 rounded-md bg-ink px-6 text-base font-bold text-white transition-colors hover:bg-body disabled:opacity-70"
+        className="min-h-12 rounded-full bg-ink px-6 text-base font-bold text-white transition-colors hover:bg-body disabled:opacity-70"
       >
         {busy ? 'Joining…' : 'Join the waitlist'}
       </button>
