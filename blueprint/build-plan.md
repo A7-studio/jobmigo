@@ -20,7 +20,7 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 - [x] 28. Waitlist and launch
   - [x] 28a. Homepage and waitlist - public homepage from the design (waitlist-honest copy), working waitlist (consented email capture, validation, duplicate handling, rate limit, confirmation page), confirmation email through Resend behind a mail interface with unsubscribe, privacy notice, owner-scoping and auth-wiring test fixes carried from review (F-05, F-06)
   - [x] 28b. Production deploy - production build and image, one VPS with Docker Compose and Caddy behind Cloudflare, HTTPS, migrations at start, health check, nightly Postgres backups to object storage with a tested restore
-- [ ] 32. Animated homepage - scripted "paste a job" hero demo (sample job, fit score counting up, flags, tailored CV lines, labelled Preview), floating cards and Migo reactions, scroll reveals on the journey and honesty sections, sticky pill nav, reduced-motion support, no new animation library, no outcome claims
+- [ ] 32. Animated homepage and design sync - scripted "paste a job" hero demo (sample job, fit score counting up, flags, tailored CV lines, labelled Preview), floating cards and Migo reactions, scroll reveals on the journey and honesty sections, sticky pill nav, reduced-motion support, no new animation library, no outcome claims; then sync the design canvas with what is built (pill buttons, new homepage, honest-copy fixes on Home, Signup, Onboarding and Dashboard boards, onboarding step 4 as first evaluation), published only with explicit approval
 
 ## Slice 1: paste-a-job loop, usable by the founder
 

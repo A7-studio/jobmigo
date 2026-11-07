@@ -1,8 +1,8 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 589583226bedb1bba81d01b6725efbf306dbd06a157b8c952b7766f78d0f17f8 -->
+<!-- blueprint:source-hash ca2acffcf96b17ed23a6b31abf97540fb7f017e548f20ab922407000a8a0b7a7 -->
 
-> AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
+> AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
 ## Problem
 
@@ -32,7 +32,7 @@ Principles for every feature:
 
 Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
-0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups; 32 animated homepage (scripted demo, scroll reveals, reduced-motion support).
+0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups; 32 animated homepage and design sync (scripted demo, scroll reveals, reduced motion; canvas update published only with approval).
 
 _Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
