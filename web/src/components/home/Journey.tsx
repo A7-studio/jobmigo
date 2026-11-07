@@ -1,3 +1,5 @@
+import { Reveal } from './Reveal'
+
 const STEPS = [
   'Discover',
   'Verify',
@@ -20,15 +22,17 @@ export function Journey() {
       </h2>
       <ol className="flex flex-wrap justify-center gap-2.5">
         {STEPS.map((step, index) => (
-          <li
+          <Reveal
+            as="li"
             key={step}
+            delay={index * 70}
             className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-bold"
           >
             <span className="grid size-6 place-items-center rounded-full bg-accent-soft text-xs font-extrabold text-accent-soft-ink">
               {index + 1}
             </span>
             {step}
-          </li>
+          </Reveal>
         ))}
       </ol>
     </section>

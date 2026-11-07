@@ -1,3 +1,5 @@
+import { Reveal } from './Reveal'
+
 const STEPS = [
   {
     title: 'Find live jobs',
@@ -33,47 +35,49 @@ const STEPS = [
 
 export function AiSteps() {
   return (
-    <section
-      id="features"
-      aria-labelledby="aih"
-      className="flex flex-col gap-6 pb-20 md:pb-24"
-    >
-      <div className="flex max-w-3xl flex-col gap-3">
-        <span className="text-sm font-bold text-accent-strong">
-          AI-powered, human-approved
-        </span>
-        <h2 id="aih" className="text-3xl leading-tight font-bold md:text-4xl">
-          AI that helps your application stand out from the pile.
-        </h2>
-        <p className="text-base leading-relaxed text-body md:text-lg">
-          Most applications vanish into a ghost pipeline: filtered out by
-          software, buried under hundreds of others, or sent to a job that was
-          already closed. Jobmigo is being built to go after that problem, step
-          by step. We help you apply better. The hiring decision is the
-          employer's.
-        </p>
-      </div>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {STEPS.map((step) => (
-          <li
-            key={step.title}
-            className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold">{step.title}</h3>
-              <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-extrabold text-accent-soft-ink">
-                AI
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-body">
-              <strong className="text-ink">AI will:</strong> {step.does}
-            </p>
-            <p className="text-sm leading-relaxed text-body">
-              <strong className="text-ink">You decide:</strong> {step.you}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Reveal>
+      <section
+        id="features"
+        aria-labelledby="aih"
+        className="flex flex-col gap-6 pb-20 md:pb-24"
+      >
+        <div className="flex max-w-3xl flex-col gap-3">
+          <span className="text-sm font-bold text-accent-strong">
+            AI-powered, human-approved
+          </span>
+          <h2 id="aih" className="text-3xl leading-tight font-bold md:text-4xl">
+            AI that helps your application stand out from the pile.
+          </h2>
+          <p className="text-base leading-relaxed text-body md:text-lg">
+            Most applications vanish into a ghost pipeline: filtered out by
+            software, buried under hundreds of others, or sent to a job that was
+            already closed. Jobmigo is being built to go after that problem,
+            step by step. We help you apply better. The hiring decision is the
+            employer's.
+          </p>
+        </div>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {STEPS.map((step) => (
+            <li
+              key={step.title}
+              className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold">{step.title}</h3>
+                <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-extrabold text-accent-soft-ink">
+                  AI
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-body">
+                <strong className="text-ink">AI will:</strong> {step.does}
+              </p>
+              <p className="text-sm leading-relaxed text-body">
+                <strong className="text-ink">You decide:</strong> {step.you}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </Reveal>
   )
 }

@@ -6,7 +6,7 @@ const LINK =
 
 export function Nav() {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-7 gap-y-3 py-5">
+    <header className="z-40 flex flex-wrap items-center justify-between gap-x-7 gap-y-3 py-5 lg:sticky lg:top-3 lg:my-3 lg:rounded-full lg:border lg:border-border lg:bg-surface/90 lg:px-6 lg:py-2 lg:shadow-sm lg:backdrop-blur">
       <a
         href="#top"
         aria-label="Jobmigo home"

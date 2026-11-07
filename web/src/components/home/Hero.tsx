@@ -1,7 +1,4 @@
-import { Migo } from '#/components/Migo'
-
-const CHIP =
-  'pop absolute rounded-xl border border-border bg-surface px-4 py-3 text-sm font-bold shadow-md'
+import { HeroDemo } from './HeroDemo'
 
 export function Hero() {
   return (
@@ -45,34 +42,12 @@ export function Hero() {
         </p>
       </div>
 
-      <div
-        aria-hidden="true"
-        className="relative h-[460px] min-w-[300px] flex-[1_1_380px]"
-      >
-        <div className="absolute top-1/2 left-1/2 aspect-square w-[min(380px,100%)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-soft" />
-        <div className="floaty absolute top-1/2 left-1/2 -mt-[120px] -ml-[120px]">
-          <Migo size={240} />
-        </div>
-        <div className={`${CHIP} top-8 left-0`}>
-          Preview: live job, posted 2 days ago
-        </div>
+      <div className="relative flex min-h-[460px] min-w-[300px] flex-[1_1_380px] items-center justify-center py-8">
         <div
-          className={`${CHIP} top-36 right-0`}
-          style={{ animationDelay: '0.3s' }}
-        >
-          <span className="block text-sm font-extrabold text-good-ink">
-            CV check: 5 of 6 passed
-          </span>
-          <span className="font-semibold text-faint">
-            1 keyword to add, if true
-          </span>
-        </div>
-        <div
-          className={`${CHIP} bottom-8 left-4`}
-          style={{ animationDelay: '0.6s' }}
-        >
-          Preview: hiring team contact found
-        </div>
+          aria-hidden="true"
+          className="absolute top-1/2 left-1/2 aspect-square w-[min(380px,100%)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-soft"
+        />
+        <HeroDemo />
       </div>
     </section>
   )

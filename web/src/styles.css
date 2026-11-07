@@ -98,6 +98,13 @@ html {
   scroll-margin-top: 1.5rem;
 }
 
+/* The nav floats from the lg breakpoint up, so anchors must clear it. */
+@media (min-width: 64rem) {
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
 @keyframes bob {
   0%,
   100% {
@@ -172,4 +179,45 @@ html {
 
 .rise {
   animation: rise 0.55s ease-out both;
+}
+
+/* One-shot nod used by the hero mascot when the demo lands on its band. */
+@keyframes nod {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(4px) rotate(-5deg);
+  }
+  60% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+
+.nod {
+  animation: nod 0.9s ease-in-out both;
+  animation-delay: var(--nod-delay, 0s);
+}
+
+/*
+ * Scroll reveals. Content is always visible in the server HTML. Reveal.tsx marks an
+ * element "pending" only after hydration, only when motion is allowed and only when it
+ * is below the fold, then flips it to "in" when it scrolls into view.
+ */
+[data-reveal='pending'] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-reveal='in'] {
+  animation: rise 0.55s ease-out both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

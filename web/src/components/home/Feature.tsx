@@ -1,3 +1,4 @@
+import { Reveal } from './Reveal'
 import type { ReactNode } from 'react'
 
 export function PreviewCard({
@@ -64,32 +65,41 @@ export function FeatureSection({
   flip?: boolean
 }) {
   return (
-    <section
-      id={id}
-      aria-labelledby={`${eyebrow}-h`}
-      className={`flex flex-wrap items-center gap-10 pb-20 md:pb-24 ${flip ? 'flex-row-reverse' : ''}`}
-    >
-      <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
-        <span className="text-sm font-bold text-accent-strong">{eyebrow}</span>
-        <h2
-          id={`${eyebrow}-h`}
-          className="text-3xl leading-tight font-bold md:text-4xl"
-        >
-          {title}
-        </h2>
-        <p className="text-base leading-relaxed text-body md:text-lg">{body}</p>
-        <ul className="flex flex-col gap-2 text-base text-body">
-          {points.map((point) => (
-            <li key={point} className="flex gap-2">
-              <span aria-hidden="true" className="font-bold text-accent-strong">
-                ✓
-              </span>
-              {point}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="min-w-0 flex-[1_1_360px]">{children}</div>
-    </section>
+    <Reveal>
+      <section
+        id={id}
+        aria-labelledby={`${eyebrow}-h`}
+        className={`flex flex-wrap items-center gap-10 pb-20 md:pb-24 ${flip ? 'flex-row-reverse' : ''}`}
+      >
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
+          <span className="text-sm font-bold text-accent-strong">
+            {eyebrow}
+          </span>
+          <h2
+            id={`${eyebrow}-h`}
+            className="text-3xl leading-tight font-bold md:text-4xl"
+          >
+            {title}
+          </h2>
+          <p className="text-base leading-relaxed text-body md:text-lg">
+            {body}
+          </p>
+          <ul className="flex flex-col gap-2 text-base text-body">
+            {points.map((point) => (
+              <li key={point} className="flex gap-2">
+                <span
+                  aria-hidden="true"
+                  className="font-bold text-accent-strong"
+                >
+                  ✓
+                </span>
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="min-w-0 flex-[1_1_360px]">{children}</div>
+      </section>
+    </Reveal>
   )
 }
