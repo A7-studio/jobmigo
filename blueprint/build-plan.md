@@ -67,3 +67,4 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 - Additional job sources and regional boards
 - Browser-assisted application filling, only if it can be done within site terms
 - Read-only email scan to detect application status changes (no sending from the user's mailbox)
+- Upwork MCP source and proposal drafting for freelancers, only if beta access opens and its terms allow it (the user reviews and submits every proposal)
