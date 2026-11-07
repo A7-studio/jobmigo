@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash fe56ee3bad7155d7fdb83c506a6d13a711b7c1106252b27504c6ee07a1eca67f -->
+<!-- blueprint:source-hash 589583226bedb1bba81d01b6725efbf306dbd06a157b8c952b7766f78d0f17f8 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 
@@ -16,7 +16,7 @@ Principles for every feature:
 ## Users
 
 - **Initial ICP (hypothesis):** experienced, remote-seeking technology professionals running a multi-track search, applying to 5+ roles a week, valuing quality over volume.
-- **Also served:** career changers, freelancers, remote seekers; not engineer-specific.
+- **Also served:** career changers, freelancers, remote seekers.
 - **First user:** the founder (Flutter/mobile engineer) with three tracks: Flutter and mobile; AI coding evaluation and AI training; AI application engineering and product engineering, each with its own profile variant and criteria.
 - **Validation:** 4 weeks of daily self-use, 10-15 interviews, concierge pilot with 5-10 people, $19 founding-member waitlist; milestone 10 paying customers.
 
@@ -30,9 +30,9 @@ Principles for every feature:
 
 ## Features
 
-Build order from `build-plan.md`. Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
+Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
-0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups.
+0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups; 32 animated homepage (scripted demo, scroll reveals, reduced-motion support).
 
 _Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
