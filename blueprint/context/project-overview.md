@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash dab52c2f61c40de94cff2abcfb030432a9803a9ae472340f46d5361487489c55 -->
+<!-- blueprint:source-hash 2fce097eda3f748d032ab7154066197f49c2f0336fccb556817fb3e42f8d0ffd -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio; the founder's own search is the first real use case.
 
@@ -32,7 +32,7 @@ Principles for every feature:
 
 Build order from `build-plan.md`. Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
-0. **Waitlist launch (features 27 and 28)** - first: TypeScript full-stack switch, then public homepage with a consented waitlist, confirmation email, production deploy behind Cloudflare.
+0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups.
 
 _Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.

@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReadyzRouteImport } from './routes/readyz'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
+import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -30,6 +33,11 @@ const AppRoute = AppRouteImport.update({
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReadyzRoute = ReadyzRouteImport.update({
@@ -52,6 +60,16 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const WaitlistConfirmRoute = WaitlistConfirmRouteImport.update({
+  id: '/waitlist/confirm',
+  path: '/waitlist/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaitlistUnsubscribeRoute = WaitlistUnsubscribeRouteImport.update({
+  id: '/waitlist/unsubscribe',
+  path: '/waitlist/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -61,19 +79,25 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/readyz': typeof ReadyzRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
+  '/waitlist/confirm': typeof WaitlistConfirmRoute
+  '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/readyz': typeof ReadyzRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
+  '/waitlist/confirm': typeof WaitlistConfirmRoute
+  '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -81,10 +105,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/readyz': typeof ReadyzRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/waitlist/confirm': typeof WaitlistConfirmRoute
+  '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -92,29 +119,38 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/healthz'
+    | '/privacy'
     | '/readyz'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard'
+    | '/waitlist/confirm'
+    | '/waitlist/unsubscribe'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/healthz'
+    | '/privacy'
     | '/readyz'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard'
+    | '/waitlist/confirm'
+    | '/waitlist/unsubscribe'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/healthz'
+    | '/privacy'
     | '/readyz'
     | '/sign-in'
     | '/sign-up'
     | '/_app/dashboard'
+    | '/waitlist/confirm'
+    | '/waitlist/unsubscribe'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -122,9 +158,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   HealthzRoute: typeof HealthzRoute
+  PrivacyRoute: typeof PrivacyRoute
   ReadyzRoute: typeof ReadyzRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  WaitlistConfirmRoute: typeof WaitlistConfirmRoute
+  WaitlistUnsubscribeRoute: typeof WaitlistUnsubscribeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -149,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/healthz'
       fullPath: '/healthz'
       preLoaderRoute: typeof HealthzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/readyz': {
@@ -179,6 +225,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/waitlist/confirm': {
+      id: '/waitlist/confirm'
+      path: '/waitlist/confirm'
+      fullPath: '/waitlist/confirm'
+      preLoaderRoute: typeof WaitlistConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/waitlist/unsubscribe': {
+      id: '/waitlist/unsubscribe'
+      path: '/waitlist/unsubscribe'
+      fullPath: '/waitlist/unsubscribe'
+      preLoaderRoute: typeof WaitlistUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -203,9 +263,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   HealthzRoute: HealthzRoute,
+  PrivacyRoute: PrivacyRoute,
   ReadyzRoute: ReadyzRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  WaitlistConfirmRoute: WaitlistConfirmRoute,
+  WaitlistUnsubscribeRoute: WaitlistUnsubscribeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

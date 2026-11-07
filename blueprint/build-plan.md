@@ -7,7 +7,7 @@ the core of the product and needs no job scraping. Automatic discovery and alert
 premium slice (3) and reuse the same evaluator. Everything after is ordered by commercial value.
 
 The stack is TypeScript end to end: TanStack Start (web and server code), Postgres with
-Drizzle, a Node worker on the same codebase. Features 27 and 28 come first so the public
+Drizzle, a Node worker on the same codebase. Features 27 and 28 (28a, 28b) come first so the public
 waitlist can go live; slice 1 resumes at feature 2 afterwards.
 
 Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not features.
@@ -15,7 +15,9 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 ## Slice 0: launch (waitlist live)
 
 - [x] 27. TypeScript full-stack switch - replace the separate Python API with TanStack Start server code: Drizzle schema and migrations carrying over the user, staff, audit log and Better Auth tables, Better Auth sessions used directly by server functions, per-user data scoping helper, staff permissions, audit log recorder, health check, Vitest tests, remove `api/`, update compose, docs and design docs
-- [ ] 28. Waitlist and launch - public homepage from the design with a working waitlist (consented email capture, duplicate handling, rate limit, confirmation email through Resend behind a mail interface, privacy notice), production deploy on one VPS behind Cloudflare with HTTPS, backups and a health check
+- [ ] 28. Waitlist and launch
+  - [x] 28a. Homepage and waitlist - public homepage from the design (waitlist-honest copy), working waitlist (consented email capture, validation, duplicate handling, rate limit, confirmation page), confirmation email through Resend behind a mail interface with unsubscribe, privacy notice, owner-scoping and auth-wiring test fixes carried from review (F-05, F-06)
+  - [ ] 28b. Production deploy - production build and image, one VPS with Docker Compose and Caddy behind Cloudflare, HTTPS, migrations at start, health check, nightly Postgres backups to object storage with a tested restore
 
 ## Slice 1: paste-a-job loop, usable by the founder
 

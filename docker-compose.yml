@@ -21,6 +21,12 @@ services:
       DATABASE_URL: postgresql://jobmigo:jobmigo@db:5432/jobmigo
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-0123456789abcdef}
       BETTER_AUTH_URL: http://localhost:3000
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:

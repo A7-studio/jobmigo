@@ -82,3 +82,94 @@
     transition: none !important;
   }
 }
+
+/* Landing page motion (ported from the Jobmigo design). Reduced motion is handled above. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+[id] {
+  scroll-margin-top: 1.5rem;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+}
+
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.migo {
+  animation: bob 3.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.migo-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5s infinite;
+}
+
+.floaty {
+  animation: floaty 4s ease-in-out infinite;
+}
+
+.pop {
+  animation: pop 0.5s ease-out both;
+}
+
+.rise {
+  animation: rise 0.55s ease-out both;
+}

@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -153,4 +154,32 @@ export const authVerification = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('auth_verification_identifier_idx').on(t.identifier)],
+)
+
+// Waitlist (feature 28a) ---------------------------------------------------
+
+export const waitlistSignup = pgTable(
+  'waitlist_signup',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull().unique(),
+    status: text('status').notNull().default('pending'),
+    consentTextVersion: text('consent_text_version').notNull(),
+    consentedAt: timestamp('consented_at', { withTimezone: true }).notNull(),
+    source: text('source'),
+    tokenHash: text('token_hash').notNull(),
+    tokenSentAt: timestamp('token_sent_at', { withTimezone: true }).notNull(),
+    emailsSent: integer('emails_sent').notNull().default(1),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check(
+      'ck_waitlist_signup_status',
+      sql`${t.status} in ('pending', 'confirmed', 'unsubscribed')`,
+    ),
+    index('waitlist_signup_token_hash_idx').on(t.tokenHash),
+  ],
 )

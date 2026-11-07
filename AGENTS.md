@@ -95,6 +95,7 @@ Run these in `web/` unless noted:
 - Lint: `npm run lint`
 - Type check: `npm run typecheck`
 - Test: `npm test` (Vitest; needs the database running; uses `TEST_DATABASE_URL`, whose name must end in `_test`)
+- Waitlist: with `RESEND_API_KEY` unset and `ENVIRONMENT=local`, the confirmation email is printed to the dev server log (grep for `console provider`). See signups: `docker compose exec db psql -U jobmigo -d jobmigo -c "select email, status, source, created_at from waitlist_signup order by created_at"`
 - Verify: `npm run lint && npm run typecheck && npm run build && npm test`
 - Full local stack: `docker compose up --build` (development images; the production build is chosen with the hosting decision)
 

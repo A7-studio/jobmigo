@@ -12,6 +12,17 @@ export function ownedBy(table: OwnedTable, userId: string) {
   return eq(table.userId, userId)
 }
 
+const PROTECTED_COLUMNS = ['id', 'userId']
+
+/** Drop the columns that decide ownership, so no caller can reassign a row. */
+function withoutOwnership<TValues extends Record<string, unknown>>(
+  values: TValues,
+): TValues {
+  return Object.fromEntries(
+    Object.entries(values).filter(([key]) => !PROTECTED_COLUMNS.includes(key)),
+  ) as TValues
+}
+
 function ownRow(table: OwnedTable, userId: string, id: string) {
   return and(eq(table.id, id), ownedBy(table, userId))
 }
@@ -51,7 +62,7 @@ export async function updateOwned<T extends OwnedTable>(
   const t: OwnedTable = table
   const rows: unknown[] = await db
     .update(t)
-    .set(values)
+    .set(withoutOwnership(values))
     .where(ownRow(t, userId, id))
     .returning()
   return (rows.at(0) as Row<T> | undefined) ?? null

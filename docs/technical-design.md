@@ -290,6 +290,8 @@ Localisation covers language, currency, payment methods, tax, time and email.
 
 ## 9. Email service
 
+**Waitlist mail (feature 28a):** `web/src/server/mail.ts` defines `EmailProvider` with a Resend implementation (one `fetch` call, no SDK) and a console provider for local development. Waitlist emails use double opt-in with `List-Unsubscribe`.
+
 **Choice: Resend first** (free tier, transactional email, behind the `EmailProvider`
 interface). Postmark or another provider can take over inbound support mail and
 broadcast later, with separate streams for transactional and broadcast mail.

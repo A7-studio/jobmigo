@@ -515,3 +515,21 @@ trigger). Every staff action that reads or changes a user's data writes a row.
 - Data export produces a downloadable archive of the user's own rows and files.
 - `billing_event` payloads and `email_log` are pruned after a retention period. `audit_log` is kept longer.
 - Support tickets are retained for a set period after resolution, then anonymised.
+
+## Waitlist (feature 28a)
+
+`waitlist_signup` holds public waitlist signups before any account exists. It is not tenant data, so it has no `user_id`.
+
+| Column | Notes |
+|---|---|
+| `id` | uuid pk |
+| `email` | unique, lowercase, at most 254 characters |
+| `status` | `pending`, `confirmed` or `unsubscribed` (check constraint) |
+| `consent_text_version` | which consent wording the person saw (`waitlist-v1`) |
+| `consented_at` | when they agreed; reset when someone re-joins after unsubscribing |
+| `source` | optional campaign tag from `utm_source` or `ref`, at most 64 characters of `[a-z0-9_.-]` |
+| `token_hash` | SHA-256 of the emailed token; the raw token is never stored. Indexed |
+| `token_sent_at`, `emails_sent` | resend limits: one email per 10 minutes, at most five |
+| `confirmed_at`, `unsubscribed_at` | lifecycle timestamps |
+
+No IP address is stored. Unsubscribed rows are kept (email only) so an unsubscribe is honoured. The confirm link is valid for 7 days after the latest email; the unsubscribe link has no expiry.

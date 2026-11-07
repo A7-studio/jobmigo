@@ -15,6 +15,7 @@ export async function resetData() {
   await db.execute(sql`delete from staff_member`)
   await db.execute(sql`delete from "user"`)
   await db.execute(sql`delete from auth_user`)
+  await db.execute(sql`delete from waitlist_signup`)
 }
 
 export async function closeDb() {

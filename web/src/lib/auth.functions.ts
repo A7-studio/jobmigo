@@ -17,7 +17,6 @@ export const getAuthConfig = createServerFn({ method: 'GET' }).handler(
 )
 
 export const getMe = createServerFn({ method: 'GET' }).handler(async () => {
-  const { auth } = await import('./auth')
-  const { buildMe } = await import('#/server/me')
-  return buildMe(await auth.api.getSession({ headers: getRequestHeaders() }))
+  const { meFromHeaders } = await import('#/server/me')
+  return meFromHeaders(getRequestHeaders())
 })

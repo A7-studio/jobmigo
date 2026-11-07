@@ -39,3 +39,9 @@ export async function buildMe(
     return { ok: false, code, message }
   }
 }
+
+/** What the `getMe` server function runs: read the session from the request, then build. */
+export async function meFromHeaders(headers: Headers): Promise<MeResult> {
+  const { auth } = await import('#/lib/auth')
+  return buildMe(await auth.api.getSession({ headers }))
+}
