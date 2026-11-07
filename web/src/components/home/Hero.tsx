@@ -49,7 +49,7 @@ export function Hero() {
         aria-hidden="true"
         className="relative h-[460px] min-w-[300px] flex-[1_1_380px]"
       >
-        <div className="absolute top-1/2 left-1/2 -mt-[190px] -ml-[190px] size-[380px] rounded-full bg-accent-soft" />
+        <div className="absolute top-1/2 left-1/2 aspect-square w-[min(380px,100%)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-soft" />
         <div className="floaty absolute top-1/2 left-1/2 -mt-[120px] -ml-[120px]">
           <Migo size={240} />
         </div>
