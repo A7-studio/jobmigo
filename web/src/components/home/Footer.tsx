@@ -7,6 +7,10 @@ export function Footer({ contactEmail }: { contactEmail: string }) {
       <div className="flex flex-col gap-1">
         <Wordmark />
         <span>A product of A7Studio</span>
+        <span className="max-w-md">
+          Jobmigo does not guarantee interviews or jobs. Employers make hiring
+          decisions.
+        </span>
       </div>
       <nav aria-label="Footer" className="flex flex-wrap gap-x-6">
         <Link

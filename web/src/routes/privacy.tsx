@@ -30,7 +30,7 @@ function Privacy() {
           </li>
           <li>
             Where you came from, if the link you used carried a source tag (for
-            example a campaign name). We do not store your IP address.
+            example a campaign name). We do not store your IP address ourselves.
           </li>
         </ul>
       </section>
@@ -48,14 +48,17 @@ function Privacy() {
         <h2 className="text-xl font-semibold">Who handles it</h2>
         <p className="text-body">
           Our email provider, Resend, sends our emails for us. They process your
-          address only to deliver them.
+          address only to deliver them. The pages load fonts from Google Fonts,
+          so your browser contacts Google when you visit, and Google can see
+          your IP address.
         </p>
       </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">How long we keep it</h2>
         <p className="text-body">
-          Until you unsubscribe. After that we keep only your email address, so
+          Until you unsubscribe. After that we keep a small record (your email
+          address, the dates you agreed and unsubscribed, and any source tag) so
           we can make sure we never email you again. Every email has an
           unsubscribe link.
         </p>

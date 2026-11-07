@@ -1,0 +1,11 @@
+[Unit]
+Description=Jobmigo nightly database backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Adjust User and the path to match the runbook (docs/deploy.md).
+User=jobmigo
+WorkingDirectory=/opt/jobmigo
+ExecStart=/opt/jobmigo/deploy/backup.sh

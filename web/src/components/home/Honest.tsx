@@ -1,19 +1,19 @@
 const PRINCIPLES = [
   {
-    title: 'We never invent experience',
-    body: 'Every sentence in a CV or letter comes from facts you confirmed. New claims wait for your yes.',
+    title: 'We will never invent experience',
+    body: 'Every sentence in a CV or letter will come from facts you confirmed. New claims will wait for your yes.',
   },
   {
-    title: 'We never auto-apply',
-    body: 'You review and send everything yourself. No spam to employers, no surprises.',
+    title: 'We will never auto-apply',
+    body: 'You will review and send everything yourself. No spam to employers, no surprises.',
   },
   {
     title: 'Your data is yours',
-    body: 'Your CV is private. Export it or delete it whenever you like.',
+    body: 'Your CV will be private, and you will be able to export or delete it whenever you like.',
   },
   {
     title: 'AI proposes, you decide',
-    body: 'AI output is always labelled and shows its evidence. You approve before anything leaves Jobmigo.',
+    body: 'AI output will be labelled and show its evidence. You approve before anything leaves Jobmigo.',
   },
 ]
 

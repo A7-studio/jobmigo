@@ -18,13 +18,13 @@ export function Hero() {
           className="text-5xl leading-none font-extrabold tracking-tight md:text-7xl"
         >
           Skip the ghost pipeline.{' '}
-          <span className="text-accent-strong">Get the interview.</span>
+          <span className="text-accent-strong">Apply with your best case.</span>
         </h1>
         <p className="max-w-xl text-lg leading-relaxed text-body md:text-xl">
-          Jobmigo is being built as your AI job assistant. It will find jobs
-          that are really open, make your CV readable by hiring systems, and
-          help you reach the people who decide. We aim to get you to the
-          interview. You ace it.
+          Jobmigo is being built as your AI job assistant. It will check whether
+          jobs look really open, make your CV readable by hiring systems, and
+          help you reach the people who decide. We help you apply better.
+          Employers make the hiring decision.
         </p>
         <div className="flex flex-wrap gap-3">
           <a
@@ -41,7 +41,7 @@ export function Hero() {
           </a>
         </div>
         <p className="text-sm text-faint">
-          Early access · AI proposes, you decide · Your CV stays private
+          Early access · AI proposes, you decide · Your CV will stay private
         </p>
       </div>
 

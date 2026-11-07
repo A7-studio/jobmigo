@@ -56,15 +56,6 @@ Re-examined 2026-11-07 by independent review (a3dfe45): `requireUser`, `requireP
 **Suggested fix:** Select first and insert only on a miss (keep the conflict handling), and require a limit argument in `listOwned` when the first list feature lands.
 **Resolution:**
 
-### F-11 [P2] open - Join rate limit key is spoofable, shared when absent, and the map is unbounded
-
-**File:** web/src/server/waitlist-api.ts:24, web/src/server/rate-limit.ts:12
-**Found:** 2026-11-07 by /audit (scope: current; lens: security)
-**Why it matters:** `clientIp` trusts `cf-connecting-ip`, then the first `x-forwarded-for` entry, from any caller. Where no proxy overwrites them, a client rotates the header to get a fresh 5-per-10-minutes bucket per request, so the limit that protects the sender domain from being used to mail arbitrary addresses is bypassed. With no header at all every visitor shares the single `unknown` bucket, so five joins in ten minutes lock out all real users. Each distinct key adds a map entry; the sweep runs only above 10,000 entries and removes only expired ones, so a rotating-header flood grows memory for the window and costs an O(n) scan per request. The spec defers header trust to 28b, but the code ships with no fail-closed behaviour and no test for the absent-header case.
-**Suggested fix:** Decide the trusted source in 28b and read only that header (for Caddy behind Cloudflare, `cf-connecting-ip`, and ignore `x-forwarded-for`). Do not fall back to a shared bucket silently: log a warning or use a stricter global cap. Hard-cap the map size (reject or evict oldest). Must land before the public launch.
-**Resolution:** Step 8: `clientIp` reads `cf-connecting-ip` only when `TRUST_PROXY_HEADERS=true` and never `x-forwarded-for`; without a trusted address the per-IP limit is skipped and a global cap of 60 joins per 10 minutes applies; the limiter hard-caps its keys at 10,000. Tests cover each case.
-Re-examined 2026-11-07 by independent review (28b4397): the original defects are gone (`x-forwarded-for` never read, `cf-connecting-ip` only with `TRUST_PROXY_HEADERS=true`, no shared `unknown` bucket, keys hard-capped at 10,000 with expired-first then oldest eviction, tests for each). The repair adds a new defect, so this is reopened rather than closed: `handleJoin` (`waitlist-api.ts:56-58`) takes from the global limiter BEFORE the per-IP limiter, and before the email is validated. A single address that is already over its own 5-per-10-minutes limit still spends the global budget on every rejected request, so 60 requests from one client lock every visitor out of the waitlist for 10 minutes. The per-IP limit therefore does not isolate abusers even when the header is trusted, and the global cap becomes a cheap denial of service. Fix: check the per-IP limiter first and only spend a global token for requests that pass it (and ideally after the honeypot/validation checks); add a test that a limited IP does not consume global tokens.
-
 ### F-14 [P3] open - Waitlist state changes are not atomic
 
 **File:** web/src/server/waitlist.ts:114, web/src/server/waitlist.ts:204
@@ -81,13 +72,13 @@ Re-examined 2026-11-07 by independent review (28b4397): the original defects are
 **Suggested fix:** Reset the counter after a longer window (for example 24 hours) or when the last token has expired.
 **Resolution:**
 
-### F-16 [P3] open - Privacy notice does not match what is kept or loaded
+### F-16 [P3] fixed - Privacy notice does not match what is kept or loaded
 
 **File:** web/src/routes/privacy.tsx:60, web/src/routes/__root.tsx:28
 **Found:** 2026-11-07 by /audit (scope: current; lens: quality)
 **Why it matters:** The notice says that after unsubscribing "we keep only your email address", but the row keeps source, consent timestamps and the token hash. Pages also load fonts from Google (`fonts.googleapis.com`), sending visitors' IP addresses to a third party that the notice does not name while it says it does not store IPs. A legal read is already an open decision; these are concrete items for it. Re-joining by anyone who knows the address also reopens an opted-out address (it only becomes pending and needs confirmation, so this is accepted by design).
 **Suggested fix:** Either null the extra columns on unsubscribe, or reword the notice; self-host the fonts or mention Google Fonts.
-**Resolution:**
+**Resolution:** Privacy notice now names Google Fonts and the retained record (email, consent and unsubscribe dates, source tag). Pending re-review.
 
 ### F-17 [P3] open - Waitlist form accessibility gaps after submit
 
@@ -97,13 +88,13 @@ Re-examined 2026-11-07 by independent review (28b4397): the original defects are
 **Suggested fix:** Render the status container always and fill it, or move focus to the success heading (`tabIndex={-1}`); drop `aria-live` from the alert.
 **Resolution:**
 
-### F-18 [P3] open - Some homepage claims are in present tense for unbuilt features
+### F-18 [P3] fixed - Some homepage claims are in present tense for unbuilt features
 
 **File:** web/src/components/home/Honest.tsx:12, web/src/components/home/Hero.tsx:50
 **Found:** 2026-11-07 by /audit (scope: current; lens: quality)
 **Why it matters:** The spec says to write claims in future wording. Most sections do ("will", "is being built", Preview labels). But "Your CV is private. Export it or delete it whenever you like." and "We never invent experience" / "Your CV stays private" describe an upload, export and delete flow and an AI that do not exist yet, with no tense or "will".
 **Suggested fix:** "Your CV will be private, and you will be able to export or delete it." or similar for those lines.
-**Resolution:**
+**Resolution:** Homepage principles reworded in future tense; hero, section and footer copy no longer promise interviews. Pending re-review.
 
 ### F-19 [P3] open - Waitlist tests miss the server-function layer and some stated guarantees
 
@@ -135,4 +126,76 @@ Re-examined 2026-11-07 by independent review (28b4397): the original defects are
 **Found:** 2026-11-07 by /audit (scope: current; lens: tests)
 **Why it matters:** The "does not confirm on load" test greps the route source for `loader:` and counts `confirmWaitlistFn(` occurrences, so a `useEffect` or `beforeLoad` that confirms on load would still pass; it proves wording, not behaviour. The global-cap test uses `trustProxy: false` only, so nothing covers the order of the global and per-IP limiters (F-11), the global cap with a trusted address, or `TRUST_PROXY_HEADERS` being read from the environment by default. The unconfigured-provider path (every send rejected) has no test.
 **Suggested fix:** Test the page with a rendered component (no server function call on mount, one call after click) or a browser test; add the limiter-order test with F-11; add a default-argument test for `clientIp`.
+**Resolution:**
+
+### F-30 [P3] open - Backup failure paths can leave a bad object and the server holds delete rights to the bucket
+
+**File:** deploy/backup.sh:53, deploy/backup.sh:57
+**Found:** 2026-11-07 by /audit (scope: current; lens: security)
+**Why it matters:** The partial-upload cleanup is an `ERR` trap, so the later `die` branches (listing mismatch, size under 100 bytes) exit without deleting the bad object, and a failed `deletefile` is ignored, which leaves a truncated object with a valid name. The `>100 bytes` check cannot tell a truncated dump from a complete one. Separately, the rclone remote on the server holds a read and write token, so anyone who gets the server can delete every backup (retention uses the same credentials). Only the encryption keeps contents safe.
+**Suggested fix:** Verify with `gzip -t` after decrypting in a periodic drill, or write to a temp name and rename on success; document a write-only or versioned bucket token for the server.
+**Resolution:**
+
+### F-31 [P3] unverified - Cloudflare-only guard admits any Cloudflare customer; Docker source address not tested on Linux
+
+**File:** deploy/cloudflare-ips.caddy:6, deploy/Caddyfile:9
+**Found:** 2026-11-07 by /audit (scope: current; lens: security)
+**Why it matters:** Allowing the Cloudflare ranges means anyone with their own Cloudflare zone can proxy requests to the origin IP with `Host: jobmigo.com`. `cf-connecting-ip` then carries that sender's real address, so the limiter stays per-client, but the guard is weaker than the runbook claims and no authenticated origin pulls or secret header are used. The guard also depends on Caddy seeing Cloudflare's real peer address through Docker's published port (true for IPv4 with default iptables NAT; a userland-proxy or IPv6 path shows the bridge gateway and returns 403). Only a local macOS 403 was verified, so the pass-through for real Cloudflare traffic is covered only by the runbook checklist.
+**Suggested fix:** State the limitation in the runbook; add authenticated origin pulls later; run the checklist after step 9.4 including a proxied request.
+**Resolution:**
+
+### F-33 [P2] open - deploy.sh can roll back a healthy deploy because `caddy reload` runs the instant Caddy starts
+
+**File:** deploy/deploy.sh:68-71
+**Found:** 2026-11-07 by /audit (scope: current; lens: quality, independent review of e84d143..b1de666)
+**Why it matters:** `start_stack` runs `up -d --build` and then immediately `exec caddy caddy reload`. When Caddy was just created or restarted (first deploy, an image bump, a changed compose file, an env change), its admin API is not yet listening. I reproduced it: `docker run -d caddy:2` followed at once by `docker exec ... caddy reload` failed with `dial tcp [::1]:2019: connection refused` on the first try. A failed reload makes `start_stack` return 1, which `deploy.sh` reads as an unhealthy release: it logs "did not become healthy", hard-resets the checkout to the previous commit and rebuilds, even though the web container was healthy (compose already waits for web before starting Caddy). On a first deploy it exits 1 with a working stack and a misleading message.
+**Suggested fix:** Retry the reload for a few seconds, or skip it when the Caddy container was just recreated (a start already reads the files), and treat a reload failure separately from a health failure so it never triggers the git rollback. Nothing is lost.
+**Resolution:**
+
+### F-34 [P3] unverified - Runbook SSH hardening may not take effect on Ubuntu cloud images
+
+**File:** docs/deploy.md:52
+**Found:** 2026-11-07 by /audit (scope: current; lens: security, independent review of e84d143..b1de666)
+**Why it matters:** The step edits only `/etc/ssh/sshd_config`. Ubuntu 24.04 cloud images read `/etc/ssh/sshd_config.d/*.conf` first (the first value wins), and some providers ship a drop-in such as `50-cloud-init.conf` with `PasswordAuthentication yes`. The founder would believe password login is off when it is not. Not reproduced here (no server touched); it depends on the provider image.
+**Suggested fix:** After restarting ssh, add `sshd -T | grep -E 'passwordauthentication|permitrootlogin'` to the runbook with the expected values, and write the settings to a `sshd_config.d/00-jobmigo.conf` drop-in instead.
+**Resolution:**
+
+### F-35 [P3] open - Privacy notice does not name Cloudflare, which will proxy all traffic
+
+**File:** web/src/routes/privacy.tsx:48-55
+**Found:** 2026-11-07 by /audit (scope: current; lens: quality, independent review of e84d143..b1de666)
+**Why it matters:** The "Who handles it" section was corrected to mention Resend and Google Fonts, but the deployment this feature ships puts Cloudflare in front of every request (it sees visitors' IP addresses and the join request body) and stores the encrypted backups in Cloudflare R2 in the runbook's default setup. The notice also says "We do not store your IP address ourselves" and stays silent about who does. The earlier honesty review of this page was the reason for those edits, so the same standard applies here.
+**Suggested fix:** Add one sentence naming Cloudflare (DNS, proxy, email forwarding for the contact address) and the hosting provider as processors, and keep it in step with the provider actually chosen.
+**Resolution:**
+
+### F-36 [P3] open - After a rollback the next routine deploy silently re-applies the rolled-back commit; a second rollback is a no-op
+
+**File:** deploy/deploy.sh:76-97, docs/deploy.md:264-277
+**Found:** 2026-11-07 by /audit (scope: current; lens: quality, independent review of e84d143..b1de666)
+**Why it matters:** `--rollback` does `git reset --hard <previous>` on the branch, so `origin` is still ahead. The next `./deploy/deploy.sh` runs `git pull --ff-only` and redeploys the commit that was just rolled back, with no warning, unless the founder first reverts or fixes it upstream. After a rollback `.previous-good-commit` is left equal to the commit now running, so running `--rollback` again changes nothing and reports success. The runbook does not say either.
+**Suggested fix:** State in the runbook that a rollback must be followed by a revert or fix pushed to the branch before the next deploy; print that reminder at the end of `--rollback`. Nothing is lost.
+**Resolution:**
+
+### F-37 [P3] open - A failed nightly backup is silent
+
+**File:** deploy/jobmigo-backup.service:6-11, docs/deploy.md:187-198
+**Found:** 2026-11-07 by /audit (scope: current; lens: security, independent review of e84d143..b1de666)
+**Why it matters:** `backup.sh` exits non-zero on failure, but nothing tells the founder: no `OnFailure=` unit, no ping to a monitor, no check of the newest object's age. The uptime monitor watches `/healthz` only. A rotated rclone token, a full bucket or a changed remote would leave the project without backups for weeks while every check in the runbook stays green, and the restore drill is a few-months affair.
+**Suggested fix:** Ping a dead-man's-switch URL (for example a Healthchecks.io check) at the end of a successful run and have it email when the ping stops, or add a weekly "newest backup is younger than 36 hours" check to the runbook. Nothing is lost.
+**Resolution:**
+
+### F-38 [P3] unverified - No container log size cap and a growing image cache on a 40 GB server
+
+**File:** deploy/docker-compose.prod.yml:5-61, deploy/deploy.sh:68
+**Found:** 2026-11-07 by /audit (scope: current; lens: performance, independent review of e84d143..b1de666)
+**Why it matters:** Services use Docker's default `json-file` logging with no `max-size`, and every deploy builds a new image on the server without pruning the old ones. The web container logs per request errors (including failed sends), so a noisy period or a flood can fill the disk, which would also stop Postgres. The runbook has a "disk is full" row but nothing prevents it. Unverified: no long run was measured.
+**Suggested fix:** Add `logging: {driver: json-file, options: {max-size: 10m, max-file: "3"}}` to each service (or the Docker daemon default) and run `docker image prune -f` after a successful deploy.
+**Resolution:**
+
+### F-39 [P3] open - Backup, restore and deploy logic has no repeatable test, only one-off drills
+
+**File:** deploy/backup.sh, deploy/restore.sh, deploy/deploy.sh, web/docker-entrypoint.sh
+**Found:** 2026-11-07 by /audit (scope: current; lens: tests, independent review of e84d143..b1de666)
+**Why it matters:** The two P1 findings in this feature were in `restore.sh` and the password handling, and their repairs are verified by manual drills recorded only in prose. The scripts contain the only code path that can replace the live database, and no committed script reproduces the drills (the rclone stand-in, the wrong-name, corrupt-file and web-running cases, the `/` password refusal, the trust-flag refusal). A later edit can reintroduce the same defect with a green `npm test`. `shellcheck` was also not available to this reviewer, so no static check ran on any script.
+**Suggested fix:** Add one `deploy/test-drill.sh` (or a Vitest file that spawns the scripts) that runs the restore failure cases against a throwaway Postgres container with a directory-backed `RCLONE` stand-in, and add `shellcheck` to the documented Verify steps once installed. Keep it small; no CI is needed.
 **Resolution:**

@@ -15,9 +15,9 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 ## Slice 0: launch (waitlist live)
 
 - [x] 27. TypeScript full-stack switch - replace the separate Python API with TanStack Start server code: Drizzle schema and migrations carrying over the user, staff, audit log and Better Auth tables, Better Auth sessions used directly by server functions, per-user data scoping helper, staff permissions, audit log recorder, health check, Vitest tests, remove `api/`, update compose, docs and design docs
-- [ ] 28. Waitlist and launch
+- [x] 28. Waitlist and launch
   - [x] 28a. Homepage and waitlist - public homepage from the design (waitlist-honest copy), working waitlist (consented email capture, validation, duplicate handling, rate limit, confirmation page), confirmation email through Resend behind a mail interface with unsubscribe, privacy notice, owner-scoping and auth-wiring test fixes carried from review (F-05, F-06)
-  - [ ] 28b. Production deploy - production build and image, one VPS with Docker Compose and Caddy behind Cloudflare, HTTPS, migrations at start, health check, nightly Postgres backups to object storage with a tested restore
+  - [x] 28b. Production deploy - production build and image, one VPS with Docker Compose and Caddy behind Cloudflare, HTTPS, migrations at start, health check, nightly Postgres backups to object storage with a tested restore
 
 ## Slice 1: paste-a-job loop, usable by the founder
 

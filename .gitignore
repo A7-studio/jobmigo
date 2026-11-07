@@ -9,6 +9,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # blueprint transient state
 blueprint/.state/run.json
@@ -19,3 +20,8 @@ blueprint/.state/staging/
 .DS_Store
 .idea/
 .vscode/
+
+# deploy state on the server
+deploy/.last-good-commit
+
+deploy/.previous-good-commit

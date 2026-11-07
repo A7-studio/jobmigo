@@ -16,7 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs migrate",
     "test": "node --env-file-if-exists=../.env node_modules/vitest/vitest.mjs run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -27,6 +28,7 @@
     "@tanstack/react-start": "1.169.4",
     "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
+    "nitro": "^3.0.261103-rc",
     "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

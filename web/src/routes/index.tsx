@@ -16,9 +16,9 @@ import {
 } from '#/components/home/Sections'
 import { getSiteConfig } from '#/lib/site.functions'
 
-const TITLE = 'Jobmigo: skip the ghost pipeline, get the interview'
+const TITLE = 'Jobmigo: apply to the right jobs with a CV that fits'
 const DESCRIPTION =
-  'Jobmigo is an AI job-application assistant being built to help you find live jobs, fit your CV to them honestly, and reach the hiring team. Join the early-access waitlist.'
+  'Jobmigo is an AI job-application assistant being built to help you check whether jobs are really open, fit your CV to them honestly, and apply with confidence. It does not guarantee interviews or jobs. Join the early-access waitlist.'
 
 export const Route = createFileRoute('/')({
   loader: () => getSiteConfig(),

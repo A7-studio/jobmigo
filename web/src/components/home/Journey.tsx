@@ -16,7 +16,7 @@ export function Journey() {
       className="flex flex-col items-center gap-5 pb-16 text-center md:pb-20"
     >
       <h2 id="journey" className="text-xl font-bold md:text-2xl">
-        From job post to interview invite
+        From job post to a stronger application
       </h2>
       <ol className="flex flex-wrap justify-center gap-2.5">
         {STEPS.map((step, index) => (

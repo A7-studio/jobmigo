@@ -430,8 +430,15 @@ users, so it grows with sources, not users. The slow part is AI calls, which wai
 the provider and use little CPU. We expect low CPU use on a 2 vCPU server (**Verify**
 with a short load test before launch).
 
-**Production web build.** The scaffold builds for development. A Node server adapter
-(for example Nitro's Node preset) is chosen when the deployment feature is built.
+**Production layout (feature 28b).** The app is built with Nitro for plain Node
+(`.output/server/index.mjs`) and shipped as a multi-stage Docker image that runs as a
+non-root user and applies Drizzle migrations before the server starts. `deploy/` holds
+the production Compose file (db, web, Caddy; only Caddy publishes ports), the Caddyfile
+(automatic HTTPS, security headers, an optional Cloudflare-only guard), nightly
+encrypted backups to object storage with a restore script, and `deploy.sh`, which
+builds, waits for health and rolls back on failure. `docs/deploy.md` is the runbook.
+`TRUST_PROXY_HEADERS=true` (the waitlist rate limit trusts `cf-connecting-ip`) is only
+allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the header.
 
 ### Environments
 

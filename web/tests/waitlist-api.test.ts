@@ -132,6 +132,32 @@ describe('handleJoin', () => {
     })
   })
 
+  it('does not spend the global budget on requests the per-IP limit rejects', async () => {
+    const limiter = createRateLimiter({ max: 1, windowMs: 600_000 })
+    const globalLimiter = createRateLimiter({ max: 3, windowMs: 600_000 })
+    const options = { limiter, globalLimiter, trustProxy: true, deps }
+    const noisy = headers({ 'cf-connecting-ip': '5.5.5.5' })
+    expect(
+      await handleJoin(input({ email: 'n0@example.com' }), noisy, options),
+    ).toEqual({ ok: true })
+    for (let i = 1; i <= 20; i++) {
+      expect(
+        await handleJoin(input({ email: `n${i}@example.com` }), noisy, options),
+      ).toMatchObject({ code: 'rate_limited' })
+    }
+    // Only one unit of the global budget was spent, so others still get through.
+    for (const ip of ['6.6.6.6', '7.7.7.7']) {
+      expect(
+        await handleJoin(
+          input({ email: `${ip}@example.com` }),
+          headers({ 'cf-connecting-ip': ip }),
+          options,
+        ),
+      ).toEqual({ ok: true })
+    }
+    await flushPendingSends()
+  })
+
   it('skips the per-IP limit without a trusted address and caps everyone globally', async () => {
     const globalLimiter = createRateLimiter({ max: 60, windowMs: 600_000 })
     const h = headers({ 'x-forwarded-for': '7.7.7.7' })

@@ -43,13 +43,14 @@ export function AiSteps() {
           AI-powered, human-approved
         </span>
         <h2 id="aih" className="text-3xl leading-tight font-bold md:text-4xl">
-          AI that gets your application out of the pile.
+          AI that helps your application stand out from the pile.
         </h2>
         <p className="text-base leading-relaxed text-body md:text-lg">
           Most applications vanish into a ghost pipeline: filtered out by
           software, buried under hundreds of others, or sent to a job that was
           already closed. Jobmigo is being built to go after that problem, step
-          by step. We aim to get you to the interview. Winning it is up to you.
+          by step. We help you apply better. The hiring decision is the
+          employer's.
         </p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -51,10 +51,11 @@ export async function handleJoin(
     code: 'rate_limited',
     message: 'Too many attempts. Please try again in a few minutes.',
   }
-  // A flood cap across everyone, so abuse cannot use the sender domain freely.
-  if (!(options.globalLimiter ?? globalLimiter).take('all')) return limited
+  // Per-IP first: a request this limit rejects must not spend the global budget.
   const ip = clientIp(headers, options.trustProxy)
   if (ip && !(options.limiter ?? joinLimiter).take(ip)) return limited
+  // A flood cap across everyone, so abuse cannot use the sender domain freely.
+  if (!(options.globalLimiter ?? globalLimiter).take('all')) return limited
 
   return joinWaitlist(
     { email: input.email, consent: input.consent, source: input.source },

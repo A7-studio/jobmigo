@@ -16,7 +16,9 @@ services:
       retries: 10
 
   web:
-    build: ./web
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
     environment:
       DATABASE_URL: postgresql://jobmigo:jobmigo@db:5432/jobmigo
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-me-0123456789abcdef}

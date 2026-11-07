@@ -1,0 +1,21 @@
+# Caddy terminates HTTPS and proxies to the app. SITE_ADDRESS is the domain
+# (e.g. jobmigo.com); use :80 for local testing. Variables come from .env.production.
+import /etc/caddy/cloudflare-ips.caddy
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Refuse requests that did not come through Cloudflare when CLOUDFLARE_ONLY=true.
+	import cloudflare_guard
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	reverse_proxy web:3000
+}
