@@ -3,12 +3,14 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authClient } from '#/lib/auth-client'
+import { AuthShell } from './AuthShell'
 
 type Mode = 'sign-in' | 'sign-up'
 type Errors = {
   name?: string
   email?: string
   password?: string
+  consent?: string
   form?: string
 }
 
@@ -26,12 +28,12 @@ const COPY = {
     switchTo: '/sign-up',
   },
   'sign-up': {
-    title: 'Create your account',
-    lead: 'Get your applications out of the ghost pipeline.',
-    submit: 'Create account',
+    title: 'Let’s make job hunting feel lighter.',
+    lead: 'Create your free account. It takes under a minute.',
+    submit: 'Create my free account',
     busy: 'Creating account…',
-    google: 'Sign up with Google',
-    switchText: 'Already have an account?',
+    google: 'Continue with Google',
+    switchText: 'No card needed. Already have an account?',
     switchLink: 'Sign in',
     switchTo: '/sign-in',
   },
@@ -71,12 +73,14 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
   const nameRef = useRef<HTMLInputElement>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
+  const consentRef = useRef<HTMLInputElement>(null)
 
   function fail(next: Errors) {
     setErrors(next)
     if (next.name) nameRef.current?.focus()
     else if (next.email) emailRef.current?.focus()
     else if (next.password) passwordRef.current?.focus()
+    else if (next.consent) consentRef.current?.focus()
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -94,6 +98,9 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
         mode === 'sign-up'
           ? 'Use at least 8 characters.'
           : 'Enter your password.'
+    }
+    if (mode === 'sign-up' && data.get('consent') !== 'on') {
+      next.consent = 'Agree to the Privacy Policy to create your account.'
     }
     if (Object.keys(next).length) return fail(next)
 
@@ -126,114 +133,164 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 px-4 py-10">
-      <Link to="/" className="font-display text-2xl font-semibold text-ink">
-        Jobmigo
-      </Link>
-      <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">{copy.title}</h1>
-        <p className="mt-1 text-muted">{copy.lead}</p>
+    <AuthShell mode={mode}>
+      <div>
+        <h1 className="text-4xl leading-[1.1] font-bold sm:text-[42px]">
+          {copy.title}
+        </h1>
+        <p className="mt-3 text-[17px] leading-normal text-muted">
+          {copy.lead}
+        </p>
+      </div>
 
-        <div role="alert" aria-live="polite" className="mt-4 empty:hidden">
-          {errors.form && (
-            <p className="rounded-md bg-bad-bg px-3 py-2 text-sm font-semibold text-bad-ink">
-              {errors.form}
-            </p>
-          )}
-        </div>
+      <div role="alert" aria-live="polite" className="empty:hidden">
+        {errors.form && (
+          <p className="rounded-md bg-bad-bg px-3 py-2 text-sm font-semibold text-bad-ink">
+            {errors.form}
+          </p>
+        )}
+      </div>
 
-        <form
-          onSubmit={onSubmit}
-          noValidate
-          className="mt-4 flex flex-col gap-4"
-        >
-          {mode === 'sign-up' && (
-            <Field id="name" label="Name" error={errors.name}>
-              <input
-                ref={nameRef}
-                id="name"
-                name="name"
-                autoComplete="name"
-                aria-invalid={Boolean(errors.name)}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-                className={INPUT}
-              />
-            </Field>
-          )}
-          <Field id="email" label="Email" error={errors.email}>
-            <input
-              ref={emailRef}
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? 'email-error' : undefined}
-              className={INPUT}
-            />
-          </Field>
-          <Field
-            id="password"
-            label="Password"
-            error={errors.password}
-            hint={mode === 'sign-up' ? 'At least 8 characters.' : undefined}
-          >
-            <input
-              ref={passwordRef}
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={
-                mode === 'sign-up' ? 'new-password' : 'current-password'
-              }
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={
-                [
-                  errors.password ? 'password-error' : null,
-                  mode === 'sign-up' ? 'password-hint' : null,
-                ]
-                  .filter(Boolean)
-                  .join(' ') || undefined
-              }
-              className={INPUT}
-            />
-          </Field>
-          <button
-            type="submit"
-            disabled={busy}
-            className="min-h-11 rounded-full bg-accent-strong px-4 font-bold text-white transition-colors hover:bg-accent-strong-hover disabled:opacity-70"
-          >
-            {busy ? copy.busy : copy.submit}
-          </button>
-        </form>
-
-        {google && (
+      {google && (
+        <>
           <button
             type="button"
             onClick={onGoogle}
             disabled={busy}
-            className="mt-3 min-h-11 w-full rounded-full border border-border-strong bg-surface px-4 font-bold text-ink hover:bg-surface-muted disabled:opacity-70"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-surface px-5 text-[15px] font-bold text-ink hover:bg-surface-muted disabled:opacity-70"
           >
+            <span aria-hidden="true" className="font-display text-lg font-bold">
+              G
+            </span>
             {copy.google}
           </button>
-        )}
+          <div className="flex items-center gap-3 text-[13px] text-faint">
+            <span className="h-px flex-1 bg-border" />
+            or use your email
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
-        <p className="mt-6 text-sm text-muted">
-          {copy.switchText}{' '}
-          <Link
-            to={copy.switchTo}
-            className="font-bold text-accent-strong underline"
-          >
-            {copy.switchLink}
-          </Link>
-        </p>
-      </div>
-    </main>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        {mode === 'sign-up' && (
+          <Field id="name" label="Name" error={errors.name}>
+            <input
+              ref={nameRef}
+              id="name"
+              name="name"
+              autoComplete="name"
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? 'name-error' : undefined}
+              className={INPUT}
+            />
+          </Field>
+        )}
+        <Field id="email" label="Email" error={errors.email}>
+          <input
+            ref={emailRef}
+            id="email"
+            name="email"
+            type="email"
+            placeholder="you@email.com"
+            autoComplete="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            className={INPUT}
+          />
+        </Field>
+        <Field
+          id="password"
+          label="Password"
+          error={errors.password}
+          hint={
+            mode === 'sign-up'
+              ? 'Use a phrase you will remember. Longer is stronger.'
+              : undefined
+          }
+        >
+          <input
+            ref={passwordRef}
+            id="password"
+            name="password"
+            type="password"
+            placeholder={
+              mode === 'sign-up' ? 'At least 8 characters' : undefined
+            }
+            autoComplete={
+              mode === 'sign-up' ? 'new-password' : 'current-password'
+            }
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={
+              [
+                errors.password ? 'password-error' : null,
+                mode === 'sign-up' ? 'password-hint' : null,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
+            className={INPUT}
+          />
+        </Field>
+        {mode === 'sign-up' && (
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="consent"
+              className="flex min-h-11 items-start gap-2.5 text-[13px] leading-normal text-muted"
+            >
+              <input
+                ref={consentRef}
+                id="consent"
+                name="consent"
+                type="checkbox"
+                aria-invalid={Boolean(errors.consent)}
+                aria-describedby={errors.consent ? 'consent-error' : undefined}
+                className="mt-px size-5 shrink-0 accent-accent-strong"
+              />
+              <span>
+                I agree to the{' '}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-accent-strong"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </label>
+            {errors.consent && (
+              <p
+                id="consent-error"
+                className="text-sm font-semibold text-alert"
+              >
+                {errors.consent}
+              </p>
+            )}
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={busy}
+          className="min-h-12 w-full rounded-full bg-accent-strong px-5 text-base font-bold text-white transition-colors hover:bg-accent-strong-hover disabled:opacity-70"
+        >
+          {busy ? copy.busy : copy.submit}
+        </button>
+      </form>
+
+      <p className="text-[13px] leading-normal text-faint">
+        {copy.switchText}{' '}
+        <Link to={copy.switchTo} className="font-bold text-accent-strong">
+          {copy.switchLink}
+        </Link>
+      </p>
+    </AuthShell>
   )
 }
 
 const INPUT =
-  'min-h-11 w-full rounded-md border border-border-strong bg-surface px-3 text-ink aria-[invalid=true]:border-alert'
+  'min-h-12 w-full rounded-md border-[1.5px] border-border-strong bg-surface px-3.5 text-base text-ink aria-[invalid=true]:border-alert'
 
 function Field({
   id,
@@ -250,12 +307,12 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-bold text-ink">
+      <label htmlFor={id} className="text-sm font-bold text-muted">
         {label}
       </label>
       {children}
       {hint && (
-        <p id={`${id}-hint`} className="text-sm text-faint">
+        <p id={`${id}-hint`} className="text-xs font-medium text-faint">
           {hint}
         </p>
       )}

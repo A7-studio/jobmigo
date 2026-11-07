@@ -2,11 +2,14 @@ export function Migo({
   size = 48,
   label,
   className = '',
+  joy = false,
 }: {
   size?: number
   /** Accessible name; omit when the mascot is decorative. */
   label?: string
   className?: string
+  /** Open-mouth smile with sparkles, for welcome moments. */
+  joy?: boolean
 }) {
   return (
     <svg
@@ -32,13 +35,30 @@ export function Migo({
         <circle cx="18.3" cy="26.4" r="2" fill="#1A1A18" />
         <circle cx="31.3" cy="26.4" r="2" fill="#1A1A18" />
       </g>
-      <path
-        d="M19.5 34.5q4.5 4 9 0"
-        fill="none"
-        stroke="#1A1A18"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
+      {joy ? (
+        <>
+          <path d="M18.5 33.5q5.5 9 11 0z" fill="#1A1A18" />
+          <path
+            d="M21.5 36.6q2.5 2 5 0"
+            fill="none"
+            stroke="#F1CBBA"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M42 7l1.2 2.6 2.6 1.2-2.6 1.2L42 14.6l-1.2-2.6-2.6-1.2 2.6-1.2zM5 4l.9 1.9 1.9.9-1.9.9L5 9.6l-.9-1.9-1.9-.9 1.9-.9z"
+            fill="#D97757"
+          />
+        </>
+      ) : (
+        <path
+          d="M19.5 34.5q4.5 4 9 0"
+          fill="none"
+          stroke="#1A1A18"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+      )}
       <circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8" />
       <circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8" />
     </svg>
