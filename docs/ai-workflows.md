@@ -29,6 +29,9 @@ service, not by reusing its CLI or prompts.
 | Track | Pipeline and follow-ups | Canonical stages, reminders | None | tracker, `states.yml` | User moves stages |
 | Follow up | Silent applications caught and nudged | Silence timer (10+ days), reminders | Draft the follow-up note: strong model | tracker, patterns | User sends it |
 
+Code for these rules lives in `web/src/server/ai/` (see `docs/technical-design.md`
+section 11).
+
 ## Rules for every AI task
 
 - **Inputs:** only confirmed profile facts and public posting text. No other user's data.

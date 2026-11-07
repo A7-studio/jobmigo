@@ -326,6 +326,14 @@ model for evaluation and drafting), prompts are versioned, outputs validated
 against schemas, results cached by content hash, and every call writes a
 `usage_event` with cost. Dealbreaker gates and caching run before any model call.
 
+Code: `web/src/server/ai/`. `gateway.ts` exposes `runTask(task, input, { userId })`;
+`config.ts` holds the provider registry (DeepSeek, Moonshot, OpenRouter through one
+OpenAI-compatible adapter in `openai-compatible.ts`) and reads the two tiers from
+`AI_CHEAP_MODEL` and `AI_STRONG_MODEL` (`provider/model-id`). Tasks are defined with
+`defineTask` in `tasks.ts` (prompt `version`, input and output zod schemas). The cache
+(`ai_cache`) is scoped per user. The ledger (`usage_event`) never stores prompt or
+output text. Credits and spend caps arrive with billing (feature 16).
+
 ## 12. Admin panel and support desk
 
 Part of the same web app under `/admin`, backed by the `admin` and `support`
@@ -444,7 +452,7 @@ allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the head
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `AI_PROVIDER_KEYS`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan

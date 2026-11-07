@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -182,4 +183,62 @@ export const waitlistSignup = pgTable(
     ),
     index('waitlist_signup_token_hash_idx').on(t.tokenHash),
   ],
+)
+
+// AI gateway ------------------------------------------------------------
+
+export const AI_WORKFLOWS = [
+  'parse',
+  'screen',
+  'evaluate',
+  'tailor',
+  'reach_check',
+  'outreach',
+] as const
+
+/** One row per model response received, plus one per cache hit. Holds no text. */
+export const usageEvent = pgTable(
+  'usage_event',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    workflow: text('workflow').notNull(),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    tokensIn: integer('tokens_in').notNull(),
+    tokensOut: integer('tokens_out').notNull(),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }),
+    cacheHit: boolean('cache_hit').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check(
+      'ck_usage_event_workflow',
+      sql`${t.workflow} in ('parse', 'screen', 'evaluate', 'tailor', 'reach_check', 'outreach')`,
+    ),
+    check(
+      'ck_usage_event_tokens',
+      sql`${t.tokensIn} >= 0 and ${t.tokensOut} >= 0`,
+    ),
+    index('usage_event_user_created_idx').on(t.userId, t.createdAt),
+  ],
+)
+
+/** Validated model output, keyed per user so results are never shared. */
+export const aiCache = pgTable(
+  'ai_cache',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    cacheKey: text('cache_key').notNull(),
+    task: text('task').notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    output: jsonb('output').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.cacheKey] })],
 )

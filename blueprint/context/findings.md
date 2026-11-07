@@ -199,3 +199,51 @@ Re-examined 2026-11-07 by independent review (a3dfe45): `requireUser`, `requireP
 **Why it matters:** The two P1 findings in this feature were in `restore.sh` and the password handling, and their repairs are verified by manual drills recorded only in prose. The scripts contain the only code path that can replace the live database, and no committed script reproduces the drills (the rclone stand-in, the wrong-name, corrupt-file and web-running cases, the `/` password refusal, the trust-flag refusal). A later edit can reintroduce the same defect with a green `npm test`. `shellcheck` was also not available to this reviewer, so no static check ran on any script.
 **Suggested fix:** Add one `deploy/test-drill.sh` (or a Vitest file that spawns the scripts) that runs the restore failure cases against a throwaway Postgres container with a directory-backed `RCLONE` stand-in, and add `shellcheck` to the documented Verify steps once installed. Keep it small; no CI is needed.
 **Resolution:**
+
+### F-42 [P3] open - Canonical JSON collapses Date, Map, Set and non-finite numbers, so different inputs can share a cache key
+
+**File:** web/src/server/ai/gateway.ts:34
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: security, quality)
+**Why it matters:** `canonicalJson` treats any non-array object by its own enumerable entries. Verified: `{d: new Date(1)}` and `{d: new Date(99999)}` both serialise to `{"d":{}}`, and `NaN` serialises to `null`. A task whose input schema contains `z.date()`, a Set, a Map or a non-finite number would be served another input's cached answer for the same user and be billed as a cache hit. No current task does this, but the key contract is generic and the first real tasks are written later. Cross-user isolation is unaffected (the user id is a separate key column).
+**Suggested fix:** Make the canonical form throw (or convert via `toJSON`) for anything that is not a plain object, array, string, finite number, boolean or null, so an unsupported input fails visibly; add a test for a Date and for NaN.
+**Resolution:**
+
+### F-45 [P3] unverified - `ai_cache` has no expiry and non-2xx response bodies are left unread
+
+**File:** web/drizzle/0002_late_harpoon.sql:1, web/src/server/ai/openai-compatible.ts:96
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: performance)
+**Why it matters:** One row holding the full validated output is stored per distinct input and never removed except with the user; a prompt-version or model change orphans every older row. At early volume this is small, so it is a lead. Separately, a non-OK response returns without consuming or cancelling `response.body`, which can keep the connection open until garbage collection when 429 or 5xx replies are frequent. Neither was profiled.
+**Suggested fix:** Plan a periodic delete of `ai_cache` rows older than a set age (the `created_at` column exists) when the job table arrives, and call `await response.body?.cancel()` on the failure paths.
+**Resolution:**
+
+### F-46 [P3] unverified - Cached output is stored after schema transforms and revalidated against the same schema
+
+**File:** web/src/server/ai/gateway.ts:107
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: quality, tests)
+**Why it matters:** The cache stores `parsed.value` (the schema's output type) and reads it back through `task.output.safeParse`. For a schema with a `transform`, `coerce.date` or a defaulted field, the stored value may not parse again, so every call would be a cache miss that pays the provider and overwrites the row, silently defeating caching and cost control. No test task uses a transform, so this is unverified for real tasks.
+**Suggested fix:** Document that task output schemas must be idempotent under re-parse (or store the raw validated JSON and parse on read), and add one gateway test with a transforming schema.
+**Resolution:**
+
+### F-47 [P2] open - A failed cache write throws away a good, paid answer and a raw Drizzle error can carry the model output
+
+**File:** web/src/server/ai/gateway.ts:155
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: security, quality)
+**Why it matters:** The `ai_cache` upsert runs after the usage row is written and its failure propagates out of `runTask`. The caller then gets no result for a reply it already paid for (the ledger shows the spend, the user sees an error), although the cache is only an optimisation. The thrown value is a `DrizzleQueryError` whose message is "Failed query: ... params: ..." (drizzle-orm 0.45.4, `errors.js:11`); for this insert the params include the validated `output` JSON, i.e. CV-derived text. Today `toResult` logs only the error name, but F-07 proposes logging a cause, and any future Sentry or caller log of `error.message` would put model output in logs, against "prompts, inputs, outputs ... never logged".
+**Suggested fix:** Make the cache write best effort: wrap it in try/catch, log only `{ task, provider, model, code: 'ai_cache_write_failed' }`, and return the validated output. Add a gateway test with a failing cache write (for example a stub `db` or dropping the table) asserting the result is still returned, the usage row exists and nothing from the output is logged.
+**Resolution:**
+
+### F-48 [P3] open - A 200 reply that carries an error body or array content is treated as invalid output, not unavailable
+
+**File:** web/src/server/ai/openai-compatible.ts:101
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Some OpenAI-compatible gateways (OpenRouter among them) can answer HTTP 200 with a top-level `error` object, or return `message.content` as an array of parts. Both collapse to `text: ''` with zero tokens, so the gateway writes a zero-token usage row, spends a second provider call, and throws `ai_output_invalid` instead of `ai_unavailable`. This misleads callers and later credit logic about whether the model answered. Not exercised by any test.
+**Suggested fix:** If the payload has a truthy `error` field and no `choices[0].message`, return a non-transient failure (status only logged); join array content parts of type text. Add provider tests for both shapes.
+**Resolution:**
+
+### F-49 [P3] open - Gateway tests miss mixed retry paths and weak spots in the cache key contract
+
+**File:** web/tests/ai-gateway.test.ts:96, web/tests/ai-gateway.test.ts:236
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: tests)
+**Why it matters:** (1) No test covers a billed invalid first reply followed by a provider failure on the retry; it is the path that decides whether attempt one stays in the ledger while `ai_unavailable` is thrown. (2) The canonicalisation test checks only key order and one differing value: it would still pass if arrays were sorted, `undefined` handling changed, or nested values were dropped. (3) The "never logs" gateway test passes a reply with no schema-mismatch shape, so the retry-prompt reason is only guarded by the json unit tests. The tested behaviours would otherwise fail if broken (per-user scope, version and model misses, empty billed reply, stale shape).
+**Suggested fix:** Add a gateway test (invalid reply then `AiUnavailableError`) asserting one usage row and `ai_unavailable`; extend the canonical test with array order, nested objects and equal-after-`undefined` cases; make the logging test use a schema-mismatch reply with a secret value.
+**Resolution:**

@@ -22,7 +22,7 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 ## Slice 1: paste-a-job loop, usable by the founder
 
 - [x] 1. Foundation and app shell - sign-up and sign-in through Better Auth (web server, JWT to the API) behind an auth interface, per-user data scoping, staff roles skeleton and audit log, app shell with sidebar and theme, health check
-- [ ] 2. AI gateway and usage ledger - one provider interface, task-based model routing, prompt versions, schema-validated outputs, cost and cache logging
+- [x] 2. AI gateway and usage ledger - one provider interface, task-based model routing, prompt versions, schema-validated outputs, cost and cache logging
 - [ ] 3. CV upload and parsing - PDF/DOCX to private storage, text extraction, AI parse into a structured profile draft
 - [ ] 4. Profile review and track variants - edit extracted experience, skills and achievements, confirm facts, create variants for the three tracks
 - [ ] 5. Job preferences and track criteria - roles, salary floor, location, eligibility, must-have vs nice-to-have per track, dealbreakers and a do-not-apply list

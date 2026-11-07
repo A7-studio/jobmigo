@@ -96,6 +96,7 @@ Run these in `web/` unless noted:
 - Type check: `npm run typecheck`
 - Test: `npm test` (Vitest; needs the database running; uses `TEST_DATABASE_URL`, whose name must end in `_test`)
 - Waitlist: with `RESEND_API_KEY` unset and `ENVIRONMENT=local`, the confirmation email is printed to the dev server log (grep for `console provider`). See signups: `docker compose exec db psql -U jobmigo -d jobmigo -c "select email, status, source, created_at from waitlist_signup order by created_at"`
+- AI gateway: set `AI_CHEAP_MODEL` (and its provider key) in `.env`, then `AI_LIVE_TEST=1 npm test -- tests/ai-live.test.ts` makes one real call and checks the usage ledger. Without `AI_LIVE_TEST=1` that test is skipped
 - Production: `npm run build` then `npm start` (Node, `.output/server/index.mjs`). Server deploy, backups and rollback live in `deploy/` and are explained in `docs/deploy.md` (`deploy/deploy.sh`, `deploy/backup.sh`, `deploy/restore.sh`)
 - Verify: `npm run lint && npm run typecheck && npm run build && npm test`
 - Full local stack: `docker compose up --build` (development image `web/Dockerfile.dev`; the production image is `web/Dockerfile`)
