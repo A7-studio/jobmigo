@@ -28,9 +28,11 @@ flowchart LR
   WEB --> OBJ[(Private object storage)]
   WRK[Worker and scheduler<br/>same codebase] --> DB
   WRK --> OBJ
-  WEB --> AIG[AI gateway]
-  WRK --> AIG
-  AIG --> LLM[Model providers]
+  WEB -- internal HTTP --> ENG[AI engine<br/>Python FastAPI]
+  WRK --> ENG
+  ENG --> LLM[Model providers]
+  ENG --> DB
+  ENG --> OBJ
   WRK --> SRC[Public job sources]
   WEB --> PAY[Payment providers<br/>Paystack and merchant of record]
   PAY -- webhooks --> WEB
@@ -43,14 +45,16 @@ flowchart LR
 
 ## 3. Architecture overview
 
-One TypeScript app (modular monolith) built on TanStack Start: the UI and the
-server code live together. Background work runs in a second Node process from the
-same codebase.
+Two services over one Postgres. The web app is TypeScript on TanStack Start: the UI
+and the server code live together, and background work runs in a second Node process
+from the same codebase. The AI engine is a Python FastAPI service that owns everything
+that calls a model or parses a file (see "The AI engine" below).
 
 | Container | Technology | Responsibility |
 |---|---|---|
 | `web` | TanStack Start, React, TypeScript, Tailwind, Better Auth, Drizzle | Public site, app UI, admin UI, and all server code: sign-up, sign-in and sessions (Better Auth), business logic, validation, authorisation, billing logic, webhooks, in `web/src/server/` |
 | `worker` | Same code as `web` (separate Node process) | Background jobs, schedules, retries, email sending, AI calls, job-source ingestion |
+| `engine` | Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic | AI gateway and usage ledger, CV storage and extraction, parsing, evaluation, application kit. Internal network only |
 | `db` | PostgreSQL | System of record, job queue, audit trail |
 | `storage` | S3-compatible private bucket | CVs, generated documents, invoice PDFs |
 
@@ -76,6 +80,26 @@ another only through that module's service functions, never its tables.
 | `admin` | Staff-only operations, RBAC, audit log, feature flags, announcements |
 | `platform` | Config, logging, errors, jobs, health, i18n helpers |
 
+### The AI engine
+
+Boundary rule: if it calls a model or parses a file, it lives in the engine with its data;
+everything else stays in the web app. The modules `ai` and the AI and document parts of
+`profiles`, `evaluation`, `documents` and `outreach` belong to the engine.
+
+- **Auth between services:** the web server calls the engine with
+  `Authorization: Bearer <ENGINE_TOKEN>` and `X-User-Id`, set from the verified session. The
+  engine never sees cookies and has no public port. Every engine query is scoped by that user
+  id. A missing or wrong token is 401.
+- **Data:** one Postgres, two schemas. Drizzle owns `public`; the engine owns schema `engine`
+  through Alembic. No cross-schema foreign keys; account deletion calls an engine endpoint that
+  removes a user's rows and stored files. Backups cover both because they are one database.
+- **Uploads:** the browser posts to a web route that streams the body to the engine. The engine
+  stores the file in private object storage and extracts text in a subprocess with memory and CPU
+  limits and a wall-clock timeout, reading archives with byte-counted limits.
+- **Background work:** in-process tasks with a status column to start; a Postgres job table and
+  worker later.
+- **Tooling:** `uv`, Ruff, a strict type checker and pytest, with commands in `AGENTS.md`.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
@@ -92,9 +116,9 @@ Every external service sits behind a small interface so it can be swapped.
 | `BillingProvider` | `create_checkout`, `change_plan`, `cancel`, `pause`, `refund`, `parse_webhook` | Paystack (Kenya), Paddle (international) |
 | `EmailProvider` | `send(template, to, locale, data)`, `parseInbound` | Resend first; Postmark or another later |
 | `NotificationChannel` | `deliver(user, message)` | In-app, Telegram, email |
-| `AIProvider` | `complete(task, input, schema)` | Chosen per task in config |
+| `AIProvider` (engine) | `complete(task, input, schema)` | Chosen per task in config |
 | `JobSourceAdapter` | `detect`, `fetch` | Public career pages and job APIs |
-| `ObjectStore` | `put`, `signed_url`, `delete` | S3-compatible |
+| `ObjectStore` (engine) | `put`, `signed_url`, `delete` | S3-compatible |
 
 ## 4. Backend behaviour
 
@@ -326,13 +350,13 @@ model for evaluation and drafting), prompts are versioned, outputs validated
 against schemas, results cached by content hash, and every call writes a
 `usage_event` with cost. Dealbreaker gates and caching run before any model call.
 
-Code: `web/src/server/ai/`. `gateway.ts` exposes `runTask(task, input, { userId })`;
-`config.ts` holds the provider registry (DeepSeek, Moonshot, OpenRouter through one
-OpenAI-compatible adapter in `openai-compatible.ts`) and reads the two tiers from
-`AI_CHEAP_MODEL` and `AI_STRONG_MODEL` (`provider/model-id`). Tasks are defined with
-`defineTask` in `tasks.ts` (prompt `version`, input and output zod schemas). The cache
-(`ai_cache`) is scoped per user. The ledger (`usage_event`) never stores prompt or
-output text. Credits and spend caps arrive with billing (feature 16).
+Code: the gateway currently lives in `web/src/server/ai/` (TypeScript, feature 2). Feature 31
+ports it to the Python engine with parity tests and then removes the TypeScript version and its
+two tables. The design is unchanged by the move: `runTask`-style entry point, two model
+tiers set by `AI_CHEAP_MODEL` and `AI_STRONG_MODEL` (`provider/model-id`) with the DeepSeek,
+Moonshot and OpenRouter providers over one OpenAI-compatible adapter, task definitions with a
+prompt `version` and input and output schemas, a per-user cache, and a ledger that never stores
+prompt or output text. Credits and spend caps arrive with billing (feature 16).
 
 ## 12. Admin panel and support desk
 
@@ -452,7 +476,7 @@ allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the head
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan
@@ -509,7 +533,7 @@ variables, and every provider is behind an interface.
 | Decision | Choice | Status |
 |---|---|---|
 | Architecture | Modular monolith, one worker process | Decided |
-| Stack | TypeScript end to end: TanStack Start, Drizzle, Better Auth, Vitest | Decided |
+| Stack | Hybrid: TanStack Start, Drizzle, Better Auth and Vitest for the web app; Python FastAPI, SQLAlchemy, Alembic and pytest for the AI engine (revised 2026-11-08) | Decided |
 | Auth | Better Auth in the web server, sessions read by server functions, behind `AuthProvider` | Decided |
 | Email | Resend first behind `EmailProvider`; Postmark or similar later for inbound and broadcast | Proposed |
 | Kenya billing | Paystack (cards auto-renew, M-Pesa prepaid with renewal prompt) | Proposed. **Verify** M-Pesa recurring |

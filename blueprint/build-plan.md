@@ -6,9 +6,11 @@ or paste -> evidence-based evaluation -> application kit -> tracking with outcom
 the core of the product and needs no job scraping. Automatic discovery and alerts are the
 premium slice (3) and reuse the same evaluator. Everything after is ordered by commercial value.
 
-The stack is TypeScript end to end: TanStack Start (web and server code), Postgres with
-Drizzle, a Node worker on the same codebase. Features 27 and 28 (28a, 28b) come first so the public
-waitlist can go live; slice 1 resumes at feature 2 afterwards.
+The stack is a hybrid: TanStack Start (web, sign-in and server code) with Drizzle on Postgres,
+plus a Python FastAPI AI engine in `engine/` that owns everything that calls a model or parses a
+file (gateway and ledger, CV storage and extraction, parsing, evaluation, kit). Features 27 and 28
+(28a, 28b) shipped first so the public waitlist can go live; slice 1 resumes with the engine
+(features 30 and 31) before CV upload.
 
 Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not features.
 
@@ -23,11 +25,15 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 
 - [x] 1. Foundation and app shell - sign-up and sign-in through Better Auth (web server, JWT to the API) behind an auth interface, per-user data scoping, staff roles skeleton and audit log, app shell with sidebar and theme, health check
 - [x] 2. AI gateway and usage ledger - one provider interface, task-based model routing, prompt versions, schema-validated outputs, cost and cache logging
-- [ ] 3. CV upload and parsing - PDF/DOCX to private storage, text extraction, AI parse into a structured profile draft
+- [ ] 30. Python AI engine foundation - FastAPI service in `engine/` (uv, Pydantic, Ruff, strict typing, pytest), Dockerfile and compose entry, health and readiness, internal-only bearer auth with the user id from the verified web session, engine-owned Postgres schema with Alembic, TypeScript client in the web server, commands in AGENTS.md
+- [ ] 31. Port the AI gateway and usage ledger to the engine - providers, tier routing, prompt versions, validated outputs, per-user cache and ledger in Python with parity tests against the TypeScript cases, then remove the TypeScript gateway and its two tables
+- [ ] 3. CV upload and parsing - in the engine: private storage, text extraction in a resource-limited subprocess, AI parse into a structured profile draft
+  - [ ] 3a. CV storage, upload and text extraction - S3-compatible storage (RustFS locally), web upload route streaming to the engine, isolated extraction with memory, CPU and time limits and byte-counted decompression, CV record, owner-scoped signed download and delete
+  - [ ] 3b. AI parse into a profile draft - background parse through the engine gateway into a structured draft (unconfirmed facts), upload and status screen, retry on failure
 - [ ] 4. Profile review and track variants - edit extracted experience, skills and achievements, confirm facts, create variants for the three tracks
 - [ ] 5. Job preferences and track criteria - roles, salary floor, location, eligibility, must-have vs nice-to-have per track, dealbreakers and a do-not-apply list
 - [ ] 29. Add a job by link or paste - paste a job link or the posting text; fetch the public page text when the site allows it and fall back to paste, normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan
-- [ ] 8. AI job evaluation - dealbreaker gates before any AI call, cheap screening, then evidence-based fit band that reads importance from the posting first (inferred importance capped), per-requirement evidence, gaps, salary and eligibility checks, research budget per evaluation, cached results; runs on a pasted job first (the same evaluator later runs on discovered jobs); a golden set of 30 to 50 real jobs with the founder's own verdicts is run before any model or prompt change ships
+- [ ] 8. AI job evaluation - dealbreaker gates before any AI call, cheap screening, then evidence-based fit band that reads importance from the posting first (inferred importance capped), per-requirement evidence, gaps, salary and eligibility checks, research budget per evaluation, cached results; runs on a pasted job first (the same evaluator later runs on discovered jobs); a golden set of 30 to 50 real jobs with the founder's own verdicts is run before any model or prompt change ships; the golden-set runner is a Python command (`uv run eval`) that prints a per-job report against the founder's verdicts
 - [ ] 11. Application kit - tailored CV, cover letter and application-question drafts from confirmed facts only, fact check, versions, PDF/DOCX export
 - [ ] 12. Application CRM - canonical stage list with terminal flags, dates, notes, interview stages, board view, free on every plan; each application records its outcome (no response, rejected, interview, offer) and the app shows interviews per application by track
 - [ ] 9. Dashboard - evaluated jobs, needs-action list, application progress, empty and loading states; discovery widgets arrive with feature 10
@@ -68,3 +74,4 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 - Browser-assisted application filling, only if it can be done within site terms
 - Read-only email scan to detect application status changes (no sending from the user's mailbox)
 - Upwork MCP source and proposal drafting for freelancers, only if beta access opens and its terms allow it (the user reviews and submits every proposal)
+- Python job-source adapters (including Scrapling) in the engine, only if scraping is ever approved within site terms

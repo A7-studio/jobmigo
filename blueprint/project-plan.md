@@ -113,10 +113,11 @@ a user's CV or preferences is private to that user.
 
 ## 5. Tech - What stack are we using?
 
-Modular monolith, no microservices.
+Two deployable services over one Postgres: the TanStack Start web app and a Python AI engine. No further microservices.
 
 - **Frontend:** TanStack Start (TanStack Router and Query), React, TypeScript, Tailwind CSS
-- **Backend:** TypeScript on the TanStack Start server (server functions and routes), Drizzle ORM and drizzle-kit migrations, Zod validation, Vitest
+- **Backend (web):** TypeScript on the TanStack Start server (server functions and routes), Drizzle ORM and drizzle-kit migrations for the `public` schema, Zod validation, Vitest
+- **AI engine:** Python 3.13 (uv), FastAPI, Pydantic v2, SQLAlchemy 2 (async) and Alembic for its own `engine` schema, httpx, pytest, Ruff and strict typing. It owns everything that calls a model or parses a file (AI gateway, CV storage and extraction in a resource-limited subprocess, parsing, evaluation and its golden-set runner, the application kit). It has no public port: the web server calls it over internal HTTP with a bearer token and the user id from the verified session
 - **Database:** PostgreSQL
 - **Background work:** start with a Postgres-backed queue (pg-boss) and a Node
   worker process on the same codebase plus a scheduler; add Redis only when
@@ -134,9 +135,12 @@ Modular monolith, no microservices.
 - **Notifications:** Telegram bot first, plus in-app
 - **Deployment:** Docker, one small cloud host
 
-Decision: one language (TypeScript) end to end, chosen because the founder maintains
-the code and AI work here is model-API calls, which TypeScript SDKs cover. A small
-Python service can be added later only for work that needs it.
+Decision (revised 2026-11-08): a hybrid. The web app stays TypeScript (UI, sign-in,
+waitlist, billing, CRM). AI and document work moves to a Python FastAPI engine, because
+the project is also a demonstration of AI engineering, Python is the expected language
+for it, and document parsing needs real process isolation. Boundary rule: if it calls a
+model or parses a file, it lives in the engine with its data; everything else stays in
+TypeScript. See `docs/python-engine-proposal.md`.
 
 **AI task routing:**
 - Conventional code: file text extraction, dedupe, expiry checks, filters,
@@ -210,8 +214,8 @@ status are always conveyed by text labels, never colour alone.
 
 ## 8. Deployment - Where and how will this ship?
 
-- Containers: `app` (TanStack Start Node server), `worker` (jobs and scheduler),
-  Postgres, object storage
+- Containers: `app` (TanStack Start Node server), `engine` (Python FastAPI, internal
+  network only, no published port), `worker` (jobs and scheduler), Postgres, object storage
 - Early host: one small VPS running Docker Compose behind Cloudflare, with object
   storage for files and backups (about 10 to 40 USD a month fixed, plus AI cost);
   scale in stages (see `docs/technical-design.md` sections 15 and 16). Target: about
@@ -220,7 +224,7 @@ status are always conveyed by text labels, never colour alone.
   `STORAGE_KEY`, `STORAGE_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER_KEYS`,
   `TELEGRAM_BOT_TOKEN`, `RESEND_API_KEY`, `MAIL_FROM`,
-  `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `SENTRY_DSN`
+  `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `SENTRY_DSN`, `ENGINE_URL`, `ENGINE_TOKEN`
 - Health check: `GET /healthz` on the app
 - Scheduled work: daily discovery and digest run by the worker scheduler
 - Backups: automated daily Postgres backups with a tested restore
