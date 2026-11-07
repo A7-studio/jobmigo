@@ -81,8 +81,9 @@ Skills: `adopt`, `audit`, `blueprint-doctor`, `blueprint-status`, `brief`,
 
 ## Commands
 
-Jobmigo is one TypeScript app: TanStack Start (`web/`) with the server code,
-Better Auth and Drizzle on PostgreSQL. Local ports: web 3000, Postgres 5442.
+Jobmigo is two services over one PostgreSQL: a TypeScript app, TanStack Start (`web/`) with
+the server code, Better Auth and Drizzle, and a Python AI engine (`engine/`, FastAPI, uv).
+Local ports: web 3000, Postgres 5442, engine 8100 (this machine only).
 Copy `.env.example` to `.env` first (the scripts below read it).
 
 Run these in `web/` unless noted:
@@ -98,7 +99,8 @@ Run these in `web/` unless noted:
 - Waitlist: with `RESEND_API_KEY` unset and `ENVIRONMENT=local`, the confirmation email is printed to the dev server log (grep for `console provider`). See signups: `docker compose exec db psql -U jobmigo -d jobmigo -c "select email, status, source, created_at from waitlist_signup order by created_at"`
 - AI gateway: set `AI_CHEAP_MODEL` (and its provider key) in `.env`, then `AI_LIVE_TEST=1 npm test -- tests/ai-live.test.ts` makes one real call and checks the usage ledger. Without `AI_LIVE_TEST=1` that test is skipped
 - Production: `npm run build` then `npm start` (Node, `.output/server/index.mjs`). Server deploy, backups and rollback live in `deploy/` and are explained in `docs/deploy.md` (`deploy/deploy.sh`, `deploy/backup.sh`, `deploy/restore.sh`)
-- Verify: `npm run lint && npm run typecheck && npm run build && npm test`
+- Verify: `(cd web && npm run lint && npm run typecheck && npm run build && npm test) && (cd engine && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run --env-file ../.env pytest)`
+- Engine (run in `engine/`; needs `uv`, which installs Python 3.13 itself, and the database running): `uv sync` once, then `uv run --env-file ../.env pytest`, `uv run ruff check .`, `uv run ruff format .`, `uv run mypy`. Start it on its own with `docker compose up -d --build engine` (repo root; port 8100) or `uv run --env-file ../.env uvicorn engine.main:create_app --factory --port 8100`. Set `ENGINE_TOKEN` (at least 32 characters, `openssl rand -hex 32`), `ENGINE_URL` and `ENGINE_TEST_DATABASE_URL` in `.env`. Live client check: `ENGINE_LIVE_TEST=1 npm test -- tests/engine-live.test.ts` in `web/`
 - Full local stack: `docker compose up --build` (development image `web/Dockerfile.dev`; the production image is `web/Dockerfile`)
 
 Browser testing is opt-in. Run `/tests browser` or `$tests browser` to add or

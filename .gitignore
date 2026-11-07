@@ -25,3 +25,11 @@ blueprint/.state/staging/
 deploy/.last-good-commit
 
 deploy/.previous-good-commit
+
+# Python (engine)
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

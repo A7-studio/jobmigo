@@ -99,6 +99,12 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Background work:** in-process tasks with a status column to start; a Postgres job table and
   worker later.
 - **Tooling:** `uv`, Ruff, a strict type checker and pytest, with commands in `AGENTS.md`.
+- **As built (feature 30):** `engine/` holds the app factory, internal auth (`/internal/*` needs the
+  bearer token and a UUID `X-User-Id`), `/healthz` and `/readyz`, JSON logs with a request id, and
+  an empty Alembic baseline in schema `engine`. The web side calls it through
+  `web/src/server/engine/client.ts` (`callEngine`), which sends the token, the verified user id and
+  the request id with a 30 s timeout. Locally the engine is published on `127.0.0.1:8100`; in the
+  production compose file it publishes no port. See `engine/README.md`.
 
 ### Layering inside a module
 

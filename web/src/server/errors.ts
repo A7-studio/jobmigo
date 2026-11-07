@@ -62,6 +62,18 @@ export class AiInputInvalidError extends DomainError {
   }
 }
 
+export class EngineNotConfiguredError extends DomainError {
+  constructor(message: string) {
+    super(503, 'engine_not_configured', message)
+  }
+}
+
+export class EngineUnavailableError extends DomainError {
+  constructor(message = 'The AI service is unavailable. Try again shortly.') {
+    super(502, 'engine_unavailable', message)
+  }
+}
+
 /** Map any thrown value to the stable `{ code, message }` shape. */
 export function toResult(error: unknown): ErrorResult {
   if (error instanceof DomainError) {

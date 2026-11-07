@@ -36,6 +36,10 @@ password="$(get_var POSTGRES_PASSWORD)"
 [ -n "$password" ] || die "POSTGRES_PASSWORD is empty"
 [[ "$password" =~ ^[A-Za-z0-9._~-]+$ ]] || die "POSTGRES_PASSWORD must use only letters, digits and . _ ~ - (generate one with: openssl rand -hex 24)"
 
+# The web app and the AI engine share this secret; the engine refuses to start without it.
+engine_token="$(get_var ENGINE_TOKEN)"
+[ "${#engine_token}" -ge 32 ] || die "ENGINE_TOKEN must be at least 32 characters (generate one with: openssl rand -hex 32)"
+
 # The waitlist rate limit may trust Cloudflare's header only when direct requests are refused.
 if [ "$(get_var TRUST_PROXY_HEADERS)" = "true" ] && [ "$(get_var CLOUDFLARE_ONLY)" != "true" ]; then
   die "TRUST_PROXY_HEADERS=true requires CLOUDFLARE_ONLY=true"
@@ -45,22 +49,23 @@ if ! $dry && [ -n "$(git -C "$root" status --porcelain)" ]; then
   die "the checkout has local changes; commit or discard them first"
 fi
 
-web_health() {
+service_health() {
   local id
-  id="$("${compose[@]}" ps -q web 2>/dev/null || true)"
+  id="$("${compose[@]}" ps -q "$1" 2>/dev/null || true)"
   [ -n "$id" ] || { echo "missing"; return; }
   docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id"
 }
 
 wait_healthy() {
-  $dry && { log "would wait up to ${timeout}s for the web container to be healthy"; return 0; }
-  local waited=0 status="unknown"
+  $dry && { log "would wait up to ${timeout}s for the web and engine containers to be healthy"; return 0; }
+  local waited=0 web="unknown" engine="unknown"
   while [ "$waited" -lt "$timeout" ]; do
-    status="$(web_health)"
-    [ "$status" = "healthy" ] && return 0
+    web="$(service_health web)"
+    engine="$(service_health engine)"
+    [ "$web" = "healthy" ] && [ "$engine" = "healthy" ] && return 0
     sleep 3; waited=$((waited + 3))
   done
-  log "web container is '$status' after ${timeout}s"
+  log "after ${timeout}s: web is '$web', engine is '$engine'"
   return 1
 }
 

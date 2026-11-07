@@ -4,6 +4,8 @@ PostgreSQL, Drizzle ORM schema, drizzle-kit migrations. This document is the
 design of record for how data is stored. Field lists are the starting point; the
 feature that first uses a table locks its final shape in its spec.
 
+> **Engine schema (feature 30):** the Python AI engine owns the Postgres schema `engine` (Alembic, no cross-schema foreign keys). It is empty so far; the AI-derived tables below (`usage_event`, cache, CV files, profile, evaluations, documents) move into it as features 31 and 3 land. Everything else stays in `public` (Drizzle).
+
 ## Conventions
 
 - Primary keys are UUIDs (`id`). Every table has `created_at`; mutable tables also have `updated_at`.

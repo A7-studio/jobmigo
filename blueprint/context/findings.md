@@ -247,3 +247,55 @@ Re-examined 2026-11-07 by independent review (a3dfe45): `requireUser`, `requireP
 **Why it matters:** (1) No test covers a billed invalid first reply followed by a provider failure on the retry; it is the path that decides whether attempt one stays in the ledger while `ai_unavailable` is thrown. (2) The canonicalisation test checks only key order and one differing value: it would still pass if arrays were sorted, `undefined` handling changed, or nested values were dropped. (3) The "never logs" gateway test passes a reply with no schema-mismatch shape, so the retry-prompt reason is only guarded by the json unit tests. The tested behaviours would otherwise fail if broken (per-user scope, version and model misses, empty billed reply, stale shape).
 **Suggested fix:** Add a gateway test (invalid reply then `AiUnavailableError`) asserting one usage row and `ai_unavailable`; extend the canonical test with array order, nested objects and equal-after-`undefined` cases; make the logging test use a schema-mismatch reply with a secret value.
 **Resolution:**
+
+### F-52 [P3] open - `callEngine` path guard is bypassed by encoded dot segments, and redirects are followed with the identity headers
+
+**File:** web/src/server/engine/client.ts:84, web/src/server/engine/client.ts:102
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: security)
+**Why it matters:** The guard `path.startsWith('/internal/') && !path.includes('..')` does not stop `/internal/%2e%2e/healthz`: `new URL(path, base)` normalises it to `http://engine:8000/healthz` (verified in Node). The reachable targets are the engine's unauthenticated routes, so impact is low today, but the guard is documented as "only /internal/ paths" and a later caller that interpolates an id into the path would inherit the hole (also `?` and `#` in a path are accepted). Separately, `fetch` follows redirects by default; the engine returns a 307 for `/internal/whoami/` (verified), and a redirect to another origin would forward `x-user-id` (undici strips only `authorization`).
+**Suggested fix:** Build the URL, then require `url.origin === base.origin` and `url.pathname.startsWith('/internal/')` on the parsed result (and reject `?`/`#` in `path`), and pass `redirect: 'error'` in the fetch init. Add tests for `%2e%2e`, `?` and the redirect option.
+**Resolution:** `callEngine` checks the path as the URL parser reads it (an encoded `..` is refused) and sets `redirect: error`. Tests added for `%2e%2e` in both cases and the redirect option.
+
+Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests). The code is repaired (verified in Node: `/internal/%2e%2e/healthz`, `%2E%2E` and `.%2e` all parse to `/healthz` and are refused by the parsed-pathname check). The claimed tests are not there: `web/tests/engine-client.test.ts:164` covers only `/healthz`, `/internal/../x` and an absolute URL, which the raw `includes('..')` guard and the prefix check already reject. Removing the `target.origin`/`target.pathname` check would fail no test. Still to do: add `/internal/%2e%2e/healthz` (and `%2E%2E`) to that list. `?` and `#` are still accepted in `path`; that is acceptable for query strings but undocumented.
+
+### F-55 [P3] open - Small engine hygiene gaps: unused setting, unreadable bad `LOG_LEVEL`, undeclared direct dependencies, no stack trace for 500s, dropped HTTP error headers
+
+**File:** engine/src/engine/config.py:27, engine/src/engine/jsonlog.py:39, engine/pyproject.toml:6, engine/src/engine/middleware.py:29, engine/src/engine/errors.py:44
+**Found:** 2026-11-07 by /audit independent (scope: current; lens: quality)
+**Why it matters:** (1) `Settings.environment` is read and passed by both compose files but used nowhere (dead configuration surface). (2) A bad `LOG_LEVEL` fails `setLevel` with a bare `ValueError: Unknown level: 'BOGUS'` traceback rather than the variable-naming message the spec requires for startup configuration failures. (3) The code imports `pydantic` and `starlette` directly but only `fastapi` is declared; they come in transitively, so a FastAPI release that changes its dependencies could break the import. (4) Unexpected errors log only the exception type, with no traceback or location, which makes a real 500 undebuggable; a stack trace can be logged safely if frames, not messages, are emitted (for example the file and line of the innermost frame) . (5) The Starlette `HTTPException` handler drops `error.headers`, so a 405 has no `Allow` header (verified live). (6) The `postgres://` URL with `?sslmode=` would be passed to asyncpg unchanged and fail; not a problem on the internal network.
+**Suggested fix:** Drop `environment` until something uses it (or use it, for example to refuse an empty `ENVIRONMENT=production` token mismatch); validate `LOG_LEVEL` in `load_settings` and raise `ConfigError` naming it; add `pydantic` and `starlette` to `dependencies`; log `error.__traceback__` location fields; pass `headers=error.headers` in the 405 response.
+**Resolution:** The unused `ENVIRONMENT` setting is removed, an invalid `LOG_LEVEL` names the variable, `pydantic` and `starlette` are declared dependencies and the 405 keeps its `Allow` header. Logging only the exception type on a 500 is kept on purpose (messages can carry request data).
+
+Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests). Verified fixed: items 2, 3 and 5 (a bad `LOG_LEVEL` names only the variable; `pydantic` and `starlette` are declared and `uv lock --check` passes; a 405 keeps `Allow`, seen live). Still open: (1) the setting was removed but both compose files still pass `ENVIRONMENT` to the engine (`docker-compose.yml:26`, `deploy/docker-compose.prod.yml:30`), which is now dead configuration; and (4) a real 500 logs only the exception class (`engine/src/engine/middleware.py:29`), so it cannot be located. Logging the innermost frame (file, function, line from `error.__traceback__`, no message, no locals) keeps the no-request-data rule. Declining (4) is the user's call, not the builder's; it needs an explicit decision to become `accepted`.
+
+### F-56 [P3] open - The 30 s default client timeout is not asserted by any test
+
+**File:** web/tests/engine-client.test.ts:54, web/src/server/engine/client.ts:21
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests)
+**Why it matters:** The spec's step 5 requires the 30 s timeout to be wired through the abort signal. The test passes `timeoutMs: 20`, so changing `DEFAULT_TIMEOUT_MS` to any value, or dropping the default, breaks no test. The abort wiring is proven, the contract value is not.
+**Suggested fix:** Spy on `AbortSignal.timeout` (or use fake timers) in a call without `timeoutMs` and assert it was called with 30000.
+**Resolution:**
+
+### F-57 [P3] open - `deploy.sh` measures the raw `ENGINE_TOKEN` line, not the value Compose reads
+
+**File:** deploy/deploy.sh:30, deploy/deploy.sh:40
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests)
+**Why it matters:** `get_var` takes the text after `=`. With scratch env files and `--dry-run`: `ENGINE_TOKEN="<31 chars>"` (quotes) and `ENGINE_TOKEN=<10 chars> # <30 chars>` (inline comment) both pass the 32-character check, but Compose strips the quotes and the comment, so the engine receives 31 and 10 characters and refuses to start. A CRLF file line also counts the carriage return. Because `wait_healthy` now requires the engine, such a deploy is caught after the build and rolled back, so the harm is a slow, confusing failure rather than a silent one.
+**Suggested fix:** Ask Compose for the value (`docker compose --env-file ... config` and read `ENGINE_TOKEN`, or `docker compose run`-free `config --format json`), or reject values containing quotes, spaces or `#` in the pre-flight check, as the `POSTGRES_PASSWORD` check does with its character class.
+**Resolution:**
+
+### F-58 [P3] open - First deploy of this release and a rollback past it are not covered by the new checks
+
+**File:** deploy/deploy.sh:88, deploy/deploy.sh:111, docs/deploy.md:136
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests)
+**Why it matters:** (1) The token check and the engine wait live in the script file, but on the first deploy that brings them the running script is the old one: it pulls, starts the new compose with no `ENGINE_TOKEN` (now tolerated by `:-`), waits only for web and records the commit as good while the engine crash-loops. Bash also reads a script incrementally, so replacing it mid-run by `git pull`/`reset --hard` is fragile (this predates the change). (2) `--rollback`, or the failure rollback, to a commit without the engine service runs `up -d` without `--remove-orphans`, so the engine container (holding the token and database access) keeps running unmanaged. The docs say deploy.sh "refuses to run without" the token, which is only true from the second deploy.
+**Suggested fix:** In `docs/deploy.md`, tell the operator to add `ENGINE_TOKEN` to `.env.production` before pulling this release (or run `git pull` then `deploy.sh`), and add `--remove-orphans` to `up -d` in `start_stack` or note the manual `docker compose rm` after a rollback past this feature. No code change is needed for (1) if the doc is explicit.
+**Resolution:**
+
+### F-59 [P3] open - `X-User-Id` accepts non-canonical UUID forms and echoes a rewritten id
+
+**File:** engine/src/engine/auth.py:35, web/src/server/engine/client.ts:97
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: quality, security, performance, tests)
+**Why it matters:** `UUID(raw)` also accepts `{uuid}`, `urn:uuid:uuid` and the 32-digit form without hyphens. Verified live: all three return the canonical `userId` with 200. The spec says the header holds a UUID, and later features will key every query on this value, so two spellings of one id reaching logs, caches or keys is an avoidable ambiguity (the web client only sends canonical ids, so today only a hand-made call is affected). Related: `callEngine` forwards `currentRequestId()` unchecked; the web `withRequestId` keeps any client-supplied `X-Request-Id`, and a value Node's `Headers` rejects (for example non-ASCII) makes `fetch` throw a `TypeError`, which maps to `engine_unavailable` 502 for that request only.
+**Suggested fix:** Require the canonical form in `require_user` (a hyphenated, case-insensitive regex, then `UUID`), with a test for the braces, `urn:` and bare-hex forms; in the client send `x-request-id` only when it matches a safe pattern (the engine already uses `[A-Za-z0-9._-]{1,64}`).
+**Resolution:**

@@ -18,6 +18,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # The AI engine: internal network only. Nothing here publishes a port.
+  engine:
+    build:
+      context: ../engine
+    image: jobmigo-engine:prod
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://jobmigo:${POSTGRES_PASSWORD}@db:5432/jobmigo
+      ENGINE_TOKEN: ${ENGINE_TOKEN:-}
+      ENVIRONMENT: production
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     build:
       context: ../web
@@ -29,6 +47,8 @@ services:
       # The entrypoint refuses TRUST_PROXY_HEADERS=true unless CLOUDFLARE_ONLY=true.
       TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
       CLOUDFLARE_ONLY: ${CLOUDFLARE_ONLY:-false}
+      ENGINE_URL: http://engine:8000
+      ENGINE_TOKEN: ${ENGINE_TOKEN:-}
     security_opt:
       - no-new-privileges:true
     cap_drop:

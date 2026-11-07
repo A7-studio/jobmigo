@@ -136,11 +136,13 @@ cd /opt/jobmigo/deploy
 cp .env.production.example .env.production
 chmod 600 .env.production
 openssl rand -hex 24    # run twice: one for POSTGRES_PASSWORD, one for BETTER_AUTH_SECRET
+openssl rand -hex 32    # once more: ENGINE_TOKEN, the secret the web app and the AI engine share
 nano .env.production
 ```
 
 Fill in: `SITE_ADDRESS=jobmigo.com`, `BETTER_AUTH_URL` and `PUBLIC_URL` as
-`https://jobmigo.com`, the two secrets, `RESEND_API_KEY`, `MAIL_FROM`,
+`https://jobmigo.com`, the three secrets (including `ENGINE_TOKEN`, at least 32
+characters; `deploy.sh` refuses to run without it), `RESEND_API_KEY`, `MAIL_FROM`,
 `CONTACT_EMAIL`, `BACKUP_REMOTE=r2:jobmigo-backups`, `AGE_RECIPIENT=age1...`. Leave
 `TRUST_PROXY_HEADERS=false` and `CLOUDFLARE_ONLY=false` for now.
 

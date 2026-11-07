@@ -15,6 +15,21 @@ services:
       timeout: 3s
       retries: 10
 
+  # The Python AI engine. Internal only in production; published on this machine
+  # alone here so the web dev server can reach it.
+  engine:
+    build:
+      context: ./engine
+    environment:
+      DATABASE_URL: postgresql://jobmigo:jobmigo@db:5432/jobmigo
+      ENGINE_TOKEN: ${ENGINE_TOKEN:-}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+    ports:
+      - "127.0.0.1:8100:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     build:
       context: ./web
@@ -31,6 +46,8 @@ services:
       TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ENGINE_URL: http://engine:8000
+      ENGINE_TOKEN: ${ENGINE_TOKEN:-}
     ports:
       - "3000:3000"
     depends_on:
