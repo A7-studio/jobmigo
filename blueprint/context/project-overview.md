@@ -36,9 +36,9 @@ Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is
 
 _Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
-2. **AI gateway and usage ledger** (done, TypeScript; moves to the engine in 31) - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
+2. **AI gateway and usage ledger** (done; lives in the engine since 31) - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
 30. **Python AI engine foundation** - FastAPI service in `engine/` (uv, Pydantic, Ruff, strict typing, pytest), Docker entry, health, internal bearer auth with the user id from the verified web session, own Postgres schema with Alembic, TypeScript client in the web server.
-31. **Port the AI gateway and ledger to the engine** - Python version with parity tests against the TypeScript cases, then remove the TypeScript gateway and its two tables.
+31. **Port the AI gateway and ledger to the engine** (done) - Python version with parity tests; the TypeScript gateway and its two tables are removed.
 3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft; 3a storage, upload and extraction, 3b AI parse and status screen.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
 5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-haves per track, dealbreakers, do-not-apply list.
