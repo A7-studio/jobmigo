@@ -38,30 +38,6 @@ export class ConflictError extends DomainError {
   }
 }
 
-export class AiNotConfiguredError extends DomainError {
-  constructor(message: string) {
-    super(503, 'ai_not_configured', message)
-  }
-}
-
-export class AiUnavailableError extends DomainError {
-  constructor(message = 'The AI service is unavailable. Try again shortly.') {
-    super(502, 'ai_unavailable', message)
-  }
-}
-
-export class AiOutputInvalidError extends DomainError {
-  constructor(message = 'The AI returned an answer we could not use.') {
-    super(502, 'ai_output_invalid', message)
-  }
-}
-
-export class AiInputInvalidError extends DomainError {
-  constructor(message = 'The input for this AI task is not valid.') {
-    super(400, 'ai_input_invalid', message)
-  }
-}
-
 export class EngineNotConfiguredError extends DomainError {
   constructor(message: string) {
     super(503, 'engine_not_configured', message)

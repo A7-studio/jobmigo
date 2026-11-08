@@ -77,27 +77,6 @@ const COLUMNS: Record<string, string[]> = {
     'created_at',
     'updated_at',
   ],
-  usage_event: [
-    'id',
-    'user_id',
-    'workflow',
-    'provider',
-    'model',
-    'prompt_version',
-    'tokens_in',
-    'tokens_out',
-    'cost_usd',
-    'cache_hit',
-    'created_at',
-  ],
-  ai_cache: [
-    'user_id',
-    'cache_key',
-    'task',
-    'prompt_version',
-    'output',
-    'created_at',
-  ],
   auth_verification: [
     'id',
     'identifier',
@@ -251,47 +230,5 @@ describe('audit_log', () => {
     expect(
       await dbError(db.execute(sql`delete from audit_log where id = ${id}`)),
     ).toMatch(/append-only/)
-  })
-})
-
-describe('ai ledger tables', () => {
-  async function makeUser() {
-    const rows = await db.execute(
-      sql`insert into "user" (auth_subject, email) values ('sub_ai', 'ai@example.com') returning id`,
-    )
-    return rows.rows[0].id as string
-  }
-  const insertEvent = (userId: string, workflow: string, tokensIn: number) =>
-    db.execute(
-      sql`insert into usage_event (user_id, workflow, provider, model, prompt_version, tokens_in, tokens_out, cache_hit)
-          values (${userId}, ${workflow}, 'p', 'm', 'v1', ${tokensIn}, 0, false)`,
-    )
-
-  it('rejects an unknown workflow', async () => {
-    const userId = await makeUser()
-    expect(await dbError(insertEvent(userId, 'chat', 1))).toContain(
-      'ck_usage_event_workflow',
-    )
-  })
-
-  it('rejects negative token counts', async () => {
-    const userId = await makeUser()
-    expect(await dbError(insertEvent(userId, 'parse', -1))).toContain(
-      'ck_usage_event_tokens',
-    )
-  })
-
-  it('allows a null cost and removes rows with the user', async () => {
-    const userId = await makeUser()
-    await insertEvent(userId, 'parse', 10)
-    await db.execute(
-      sql`insert into ai_cache (user_id, cache_key, task, prompt_version, output)
-          values (${userId}, 'k', 't', 'v1', '{}'::jsonb)`,
-    )
-    await db.execute(sql`delete from "user" where id = ${userId}`)
-    const events = await db.execute(sql`select 1 from usage_event`)
-    const cache = await db.execute(sql`select 1 from ai_cache`)
-    expect(events.rowCount).toBe(0)
-    expect(cache.rowCount).toBe(0)
   })
 })

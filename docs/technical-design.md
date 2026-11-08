@@ -356,13 +356,14 @@ model for evaluation and drafting), prompts are versioned, outputs validated
 against schemas, results cached by content hash, and every call writes a
 `usage_event` with cost. Dealbreaker gates and caching run before any model call.
 
-Code: the gateway currently lives in `web/src/server/ai/` (TypeScript, feature 2). Feature 31
-ports it to the Python engine with parity tests and then removes the TypeScript version and its
-two tables. The design is unchanged by the move: `runTask`-style entry point, two model
-tiers set by `AI_CHEAP_MODEL` and `AI_STRONG_MODEL` (`provider/model-id`) with the DeepSeek,
-Moonshot and OpenRouter providers over one OpenAI-compatible adapter, task definitions with a
-prompt `version` and input and output schemas, a per-user cache, and a ledger that never stores
-prompt or output text. Credits and spend caps arrive with billing (feature 16).
+Code: the gateway lives in the Python engine (`engine/src/engine/ai/`, feature 31); the
+earlier TypeScript version and its two tables were removed. Entry point `run_task(task, input,
+user_id=..., database=...)` with two model tiers set by `AI_CHEAP_MODEL` and `AI_STRONG_MODEL`
+(`provider/model-id`), the DeepSeek, Moonshot and OpenRouter providers over one
+OpenAI-compatible adapter (httpx), task definitions with a prompt `version` and Pydantic input
+and output models, a per-user cache (`engine.ai_cache`), and a ledger (`engine.usage_event`)
+that never stores prompt or output text. No HTTP route yet: the first task (CV parsing, 3b) adds
+one. Credits and spend caps arrive with billing (feature 16).
 
 ## 12. Admin panel and support desk
 

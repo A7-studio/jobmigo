@@ -24,6 +24,13 @@ services:
       DATABASE_URL: postgresql://jobmigo:jobmigo@db:5432/jobmigo
       ENGINE_TOKEN: ${ENGINE_TOKEN:-}
       ENVIRONMENT: ${ENVIRONMENT:-local}
+      AI_CHEAP_MODEL: ${AI_CHEAP_MODEL:-}
+      AI_STRONG_MODEL: ${AI_STRONG_MODEL:-}
+      AI_CHEAP_PRICE: ${AI_CHEAP_PRICE:-}
+      AI_STRONG_PRICE: ${AI_STRONG_PRICE:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     ports:
       - "127.0.0.1:8100:8000"
     depends_on:

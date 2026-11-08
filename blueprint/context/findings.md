@@ -299,3 +299,35 @@ Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, securi
 **Why it matters:** `UUID(raw)` also accepts `{uuid}`, `urn:uuid:uuid` and the 32-digit form without hyphens. Verified live: all three return the canonical `userId` with 200. The spec says the header holds a UUID, and later features will key every query on this value, so two spellings of one id reaching logs, caches or keys is an avoidable ambiguity (the web client only sends canonical ids, so today only a hand-made call is affected). Related: `callEngine` forwards `currentRequestId()` unchecked; the web `withRequestId` keeps any client-supplied `X-Request-Id`, and a value Node's `Headers` rejects (for example non-ASCII) makes `fetch` throw a `TypeError`, which maps to `engine_unavailable` 502 for that request only.
 **Suggested fix:** Require the canonical form in `require_user` (a hyphenated, case-insensitive regex, then `UUID`), with a test for the braces, `urn:` and bare-hex forms; in the client send `x-request-id` only when it matches a safe pattern (the engine already uses `[A-Za-z0-9._-]{1,64}`).
 **Resolution:**
+
+### F-60 [P3] open - Cached output is stored by field name, so an output model with aliases never hits the cache
+
+**File:** engine/src/engine/ai/gateway.py:125, engine/src/engine/ai/gateway.py:198
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: quality, performance)
+**Why it matters:** `_store` saves `output.model_dump(mode="json")`, which writes field names, and the cache read runs `task.output_model.model_validate(cached)`, which expects aliases by default. Verified: a model with `full_name: str = Field(alias="fullName")` dumps `{"full_name": ...}` and that dict fails `model_validate`. Any task whose output model uses aliases (likely for camelCase model JSON) would treat every cached row as a stale miss, pay the provider on every call and overwrite the row, with no error. A related, smaller effect: a `set` field in an input model dumps in hash order, so the same input can get a different cache key in another process (a miss, not a collision). No current task is affected; the first real tasks arrive in 3b. This is the Python form of F-46.
+**Suggested fix:** Store `output.model_dump(mode="json", by_alias=True)` and add one gateway test with an aliased output model that asserts the second call is a cache hit. Nothing is lost.
+**Resolution:**
+
+### F-61 [P3] open - Ported gateway tests keep the gaps of F-49: mixed retry path, weak canonical test, logging test without a schema mismatch
+
+**File:** engine/tests/test_ai_gateway.py:94, engine/tests/test_ai_gateway.py:446
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: tests)
+**Why it matters:** (1) No test covers an invalid first reply followed by `AiUnavailableError` on the retry, the path that keeps attempt one in the ledger while raising `ai_unavailable` (the code in `gateway.py:227-243` does this correctly today, but nothing pins it). (2) `test_canonical_hashing_ignores_key_order_and_differs_on_content` checks key order and one value only; it would still pass if list order were ignored or nested values dropped. (3) The never-logs test sends a non-JSON reply, so the schema-mismatch reason that goes into the `ai output rejected` log line and the retry prompt is guarded only by the JSON unit tests. All other ported cases fail when their behaviour is broken.
+**Suggested fix:** Add a gateway test with `Fake(reply("not json"), AiUnavailableError())` asserting one usage row and `ai_unavailable`; extend the canonical test with list order and a nested difference; make the logging test use a reply such as `{"name": 42, "secret-key": "reply-secret"}` against an output model with `extra="forbid"`.
+**Resolution:**
+
+### F-62 [P3] open - The production web container still receives the AI provider keys
+
+**File:** deploy/docker-compose.prod.yml:51, deploy/.env.production.example:28
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: security)
+**Why it matters:** The web service loads the whole `.env.production` with `env_file`, and this change adds `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY` and `OPENROUTER_API_KEY` to that file. The web app no longer calls a model, but its container environment still holds every provider key, so a web-side compromise (the internet-facing service) exposes keys that only the internal engine needs. The local `docker-compose.yml` lists web variables explicitly and does not have this problem.
+**Suggested fix:** Put the AI keys in a separate file read only by the engine service (for example `env_file: .env.engine` on `engine`), or replace the web `env_file` with an explicit variable list as in the local compose file; update `.env.production.example` and `docs/deploy.md` to match.
+**Resolution:**
+
+### F-63 [P3] unverified - A new HTTP client per provider attempt and a long worst-case task duration
+
+**File:** engine/src/engine/ai/openai_compatible.py:90, engine/src/engine/ai/gateway.py:227
+**Found:** 2026-11-08 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `create_provider` passes no client, so each attempt opens and closes its own `httpx.AsyncClient` (a new TCP and TLS connection to the provider every call and every retry). The total limit is per attempt, so one `run_task` can take up to two gateway attempts times two provider attempts at 60 s each, plus retry delays, about four minutes, before failing. Same semantics as the TypeScript version; no route calls it yet and nothing was profiled.
+**Suggested fix:** When the first route lands (3b), create one `httpx.AsyncClient` in the app lifespan and pass it to `create_provider`, and decide whether the task time limit should bound the whole `run_task` rather than each attempt.
+**Resolution:**
