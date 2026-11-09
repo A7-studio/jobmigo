@@ -27,6 +27,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 SCHEMA = "engine"
 
+CV_MIMES = ("pdf", "docx")
+CV_PARSE_STATUSES = ("extracted", "parsing", "parsed", "failed")
+
 AI_WORKFLOWS = ("parse", "screen", "evaluate", "tailor", "reach_check", "outreach")
 
 
@@ -78,5 +81,40 @@ class AiCache(Base):
     prompt_version: Mapped[str] = mapped_column(Text)
     output: Mapped[Any] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+def _in_list(column: str, values: tuple[str, ...]) -> str:
+    return "{} in ({})".format(column, ", ".join(f"'{v}'" for v in values))
+
+
+class CvFile(Base):
+    """An uploaded CV: the object lives in storage, its text is kept here."""
+
+    __tablename__ = "cv_file"
+    __table_args__ = (
+        CheckConstraint(_in_list("mime", CV_MIMES), name="ck_cv_file_mime"),
+        CheckConstraint(
+            _in_list("parse_status", CV_PARSE_STATUSES), name="ck_cv_file_parse_status"
+        ),
+        CheckConstraint("size_bytes >= 0", name="ck_cv_file_size"),
+        Index("cv_file_user_created_idx", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    storage_key: Mapped[str] = mapped_column(Text, unique=True)
+    filename: Mapped[str] = mapped_column(Text)
+    mime: Mapped[str] = mapped_column(Text)
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    extracted_text: Mapped[str] = mapped_column(Text)
+    parse_status: Mapped[str] = mapped_column(Text, server_default="extracted")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

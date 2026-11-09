@@ -38,6 +38,12 @@ export class ConflictError extends DomainError {
   }
 }
 
+export class CvTooLargeError extends DomainError {
+  constructor(message = 'This file is too large. The limit is 5 MB.') {
+    super(413, 'cv_too_large', message)
+  }
+}
+
 export class EngineNotConfiguredError extends DomainError {
   constructor(message: string) {
     super(503, 'engine_not_configured', message)

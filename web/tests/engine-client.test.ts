@@ -187,3 +187,31 @@ describe('callEngine', () => {
     expect(lines.join('\n')).not.toContain(TOKEN)
   })
 })
+
+describe('callEngine with a streamed body', () => {
+  it('sends the stream half-duplex and never lets extra headers replace auth', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(json({ ok: true }, 201))
+    const stream = new Blob(['abc']).stream()
+    await callEngine('/internal/cv', {
+      userId: USER,
+      env: ENV,
+      fetchFn,
+      method: 'POST',
+      stream,
+      headers: {
+        'x-filename': 'a.pdf',
+        authorization: 'Bearer attacker',
+        'x-user-id': 'someone-else',
+      },
+    })
+    const [, init] = fetchFn.mock.calls[0] as [string, RequestInit]
+    expect(init.body).toBe(stream)
+    expect((init as { duplex?: string }).duplex).toBe('half')
+    expect(init.headers).toMatchObject({
+      authorization: `Bearer ${TOKEN}`,
+      'x-user-id': USER,
+      'x-filename': 'a.pdf',
+      'content-type': 'application/octet-stream',
+    })
+  })
+})

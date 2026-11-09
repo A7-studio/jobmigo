@@ -331,3 +331,24 @@ Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, securi
 **Why it matters:** `create_provider` passes no client, so each attempt opens and closes its own `httpx.AsyncClient` (a new TCP and TLS connection to the provider every call and every retry). The total limit is per attempt, so one `run_task` can take up to two gateway attempts times two provider attempts at 60 s each, plus retry delays, about four minutes, before failing. Same semantics as the TypeScript version; no route calls it yet and nothing was profiled.
 **Suggested fix:** When the first route lands (3b), create one `httpx.AsyncClient` in the app lifespan and pass it to `create_provider`, and decide whether the task time limit should bound the whole `run_task` rather than each attempt.
 **Resolution:**
+
+### F-68 [P3] open - A deeply nested DOCX costs about 800 MB of memory for a 10 KB upload; nothing bounds element depth
+
+**File:** engine/src/engine/cv/extract.py:105
+**Found:** 2026-11-09 by /audit (scope: current; lens: performance)
+**Why it matters:** `_docx_text` keeps every open element in the tree and in `open_elements`, and has no depth limit. A 10 MiB `word/document.xml` of nested `<a>` tags compresses to about 10 KB; measured in-process it peaked at about 808 MB RSS and 2.9 s before returning `unreadable`. On Linux the child's `RLIMIT_AS` (512 MiB) kills it, so production is bounded and the user sees `cv_unreadable`. On macOS (no `RLIMIT_AS`) and for any in-process use, the limit does not hold, and the module docstring says each bound holds without the child.
+**Suggested fix:** Raise `too_large` (or `unreadable`) when `len(open_elements)` passes a small depth cap (real documents stay well under 100), and add a test with a nested-element DOCX.
+
+### F-69 [P3] open - The upload cleanup misses a cancelled `store.put` and deletes the object of a row that already committed
+
+**File:** engine/src/engine/cv/service.py:111
+**Found:** 2026-11-09 by /audit (scope: current; lens: quality)
+**Why it matters:** (1) `await store.put` runs before the `try`, and it runs in a thread, so cancelling the task during the put lets the write finish later with no row and no cleanup. (2) The `try` also covers `session.refresh` and `model_validate` after `commit`. A failure or cancellation there deletes the object while the committed row stays, so the row points at a missing object and the download link returns a 404 from storage. Starlette does not cancel a request task on client disconnect, so both need shutdown or an unusual error; the impact is a stray or a dangling object, not exposure.
+**Suggested fix:** Build the response from the values already in hand (or read them before commit) and put only `session.add` and `commit` under the delete-on-failure guard; leave a sweeper for the put window as a later item.
+
+### F-70 [P3] open - A lone surrogate in extracted PDF text reaches the database insert and returns a 500
+
+**File:** engine/src/engine/cv/extract.py:62
+**Found:** 2026-11-09 by /audit (scope: current; lens: quality)
+**Why it matters:** pypdf decodes `/ToUnicode` maps with `errors="surrogatepass"` (`_cmap.py`), and `normalise` strips control characters but not U+D800 to U+DFFF. Verified: such text survives the worker's JSON round trip and then fails `.encode()` with `UnicodeEncodeError`, which is what the Postgres driver does on insert. The upload returns a generic 500 (the object is cleaned up) instead of a 422 for a crafted or odd PDF. A full PDF reproduction was not built.
+**Suggested fix:** Remove surrogate code points in `normalise` (extend `_CONTROL` with `\ud800-\udfff`) and add a unit test.

@@ -87,11 +87,15 @@ erDiagram
   TRACK ||--o{ TRACK_PROFILE_ITEM : emphasises
   CV_FILE {
     uuid id PK
-    uuid user_id FK
-    text storage_key "private object"
+    uuid user_id "no FK: engine schema"
+    text storage_key "private object, unique, cv/userId/uuid4"
+    text filename "display only, 200 chars"
     text mime "pdf, docx"
-    text parse_status
-    text extracted_text
+    int size_bytes
+    text extracted_text "never empty, 200000 chars at most"
+    text parse_status "extracted, parsing, parsed, failed"
+    timestamptz created_at
+    timestamptz updated_at
   }
   PROFILE {
     uuid id PK
@@ -498,6 +502,10 @@ erDiagram
 
 `audit_log` is append-only (no updates or deletes, enforced by permissions and a
 trigger). Every staff action that reads or changes a user's data writes a row.
+
+> `engine.cv_file` (Alembic `0003`) is built as drawn here, with `user_id` a plain uuid
+> because the engine schema holds no foreign key to `public`. `parse_status` defaults to
+> `extracted`; the later values belong to feature 3b. Index: `(user_id, created_at)`.
 
 ## Storage map
 

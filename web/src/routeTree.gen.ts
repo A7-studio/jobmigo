@@ -20,6 +20,9 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
+import { Route as ApiCvIdIndexRouteImport } from './routes/api/cv/$id/index'
+import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/download'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -75,6 +78,21 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCvIndexRoute = ApiCvIndexRouteImport.update({
+  id: '/api/cv/',
+  path: '/api/cv/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCvIdIndexRoute = ApiCvIdIndexRouteImport.update({
+  id: '/api/cv/$id/',
+  path: '/api/cv/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCvIdDownloadRoute = ApiCvIdDownloadRouteImport.update({
+  id: '/api/cv/$id/download',
+  path: '/api/cv/$id/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +105,9 @@ export interface FileRoutesByFullPath {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cv/': typeof ApiCvIndexRoute
+  '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id/': typeof ApiCvIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +120,9 @@ export interface FileRoutesByTo {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cv': typeof ApiCvIndexRoute
+  '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id': typeof ApiCvIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +137,9 @@ export interface FileRoutesById {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cv/': typeof ApiCvIndexRoute
+  '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id/': typeof ApiCvIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +154,9 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/cv/'
+    | '/api/cv/$id/download'
+    | '/api/cv/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +169,9 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/cv'
+    | '/api/cv/$id/download'
+    | '/api/cv/$id'
   id:
     | '__root__'
     | '/'
@@ -152,6 +185,9 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/cv/'
+    | '/api/cv/$id/download'
+    | '/api/cv/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,6 +201,9 @@ export interface RootRouteChildren {
   WaitlistConfirmRoute: typeof WaitlistConfirmRoute
   WaitlistUnsubscribeRoute: typeof WaitlistUnsubscribeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCvIndexRoute: typeof ApiCvIndexRoute
+  ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
+  ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -246,6 +285,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cv/': {
+      id: '/api/cv/'
+      path: '/api/cv'
+      fullPath: '/api/cv/'
+      preLoaderRoute: typeof ApiCvIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cv/$id/': {
+      id: '/api/cv/$id/'
+      path: '/api/cv/$id'
+      fullPath: '/api/cv/$id/'
+      preLoaderRoute: typeof ApiCvIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cv/$id/download': {
+      id: '/api/cv/$id/download'
+      path: '/api/cv/$id/download'
+      fullPath: '/api/cv/$id/download'
+      preLoaderRoute: typeof ApiCvIdDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -270,6 +330,9 @@ const rootRouteChildren: RootRouteChildren = {
   WaitlistConfirmRoute: WaitlistConfirmRoute,
   WaitlistUnsubscribeRoute: WaitlistUnsubscribeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCvIndexRoute: ApiCvIndexRoute,
+  ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
+  ApiCvIdIndexRoute: ApiCvIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

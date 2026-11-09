@@ -15,6 +15,21 @@ services:
       timeout: 3s
       retries: 10
 
+  # Local S3-compatible object storage for CVs (production uses R2 or B2).
+  # RustFS replaces MinIO, whose images are no longer published. The engine creates the
+  # bucket on first write in local development. Pinned by digest and bound to this
+  # machine only (it holds real CV files).
+  storage:
+    image: rustfs/rustfs@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2
+    environment:
+      RUSTFS_ACCESS_KEY: jobmigo
+      RUSTFS_SECRET_KEY: jobmigo-dev-secret
+    ports:
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - storagedata:/data
+
   # The Python AI engine. Internal only in production; published on this machine
   # alone here so the web dev server can reach it.
   engine:
@@ -31,11 +46,20 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MOONSHOT_API_KEY: ${MOONSHOT_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Inside the compose network the store is `storage`; signed download links are built
+      # for the address the browser can reach.
+      STORAGE_ENDPOINT: http://storage:9000
+      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-http://localhost:9100}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-jobmigo}
+      STORAGE_KEY: ${STORAGE_KEY:-jobmigo}
+      STORAGE_SECRET: ${STORAGE_SECRET:-jobmigo-dev-secret}
     ports:
       - "127.0.0.1:8100:8000"
     depends_on:
       db:
         condition: service_healthy
+      storage:
+        condition: service_started
 
   web:
     build:
@@ -63,3 +87,4 @@ services:
 
 volumes:
   dbdata:
+  storagedata:

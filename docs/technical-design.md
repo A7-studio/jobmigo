@@ -106,6 +106,36 @@ everything else stays in the web app. The modules `ai` and the AI and document p
   the request id with a 30 s timeout. Locally the engine is published on `127.0.0.1:8100`; in the
   production compose file it publishes no port. See `engine/README.md`.
 
+### CV storage and extraction (feature 3a, as built)
+
+- **Routes.** The web server exposes `POST /api/cv` (raw file bytes as the body, name in
+  `X-Filename` percent-encoded), `GET /api/cv`, `GET /api/cv/:id/download` (302 to a signed
+  link) and `DELETE /api/cv/:id`. Each needs a session and calls the engine's
+  `/internal/cv` routes with the session user's id. The body is passed on as a stream through
+  a byte counter that stops at 5 MiB.
+- **Storage.** `engine/src/engine/storage/` holds an `ObjectStore` protocol, an S3 adapter
+  (boto3, Signature V4, path-style) and an in-memory store for tests. Settings are read at
+  call time from `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_KEY`, `STORAGE_SECRET`, optional
+  `STORAGE_REGION` (default `us-east-1`) and optional `STORAGE_PUBLIC_ENDPOINT` (the host signed
+  links are built for; needed when the engine reaches storage by an internal name, as in the full
+  compose stack). A missing bucket is created on first write only when `ENVIRONMENT=local`.
+  Keys are `cv/<userId>/<uuid4>`; links last 300 seconds. The local store is RustFS
+  (`docker compose up -d storage`, API on port 9100).
+- **Extraction.** The type comes from the first bytes. Parsing runs in a child process
+  (`python -I -m engine.cv.worker`) that limits itself to 512 MiB of address space (Linux only),
+  10 CPU seconds, no core files and 32 open files, while the parent enforces a 15 second wall
+  clock, caps the output it reads, passes an empty environment and runs at most two children at
+  once. DOCX bytes are counted as they are inflated (10 MiB for `word/document.xml`, never
+  trusting declared sizes); PDFs are limited to 50 pages; text to 200,000 characters. The child
+  is bounded, not sandboxed: it has no network or syscall filter.
+- **Limits** live in `engine/src/engine/cv/limits.py`. Errors are `cv_too_large` 413,
+  `cv_unsupported_type` 415, `cv_unreadable` 422, `storage_not_configured` 503,
+  `storage_unavailable` 502 and `not_found` 404. The web server reports engine 5xx as
+  `engine_unavailable`.
+- **Privacy.** Filenames, bytes, text, keys and signed links are never logged; the list never
+  returns text. Account deletion must delete each file (not built yet), and `readyz` does not
+  check storage yet.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
@@ -483,7 +513,7 @@ allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the head
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `STORAGE_PUBLIC_ENDPOINT`, `STORAGE_REGION`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan

@@ -12,6 +12,10 @@ export type EngineCall = {
   userId: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: unknown
+  /** A raw request body streamed as is (uploads). Mutually exclusive with `body`. */
+  stream?: ReadableStream<Uint8Array>
+  /** Extra headers; they never replace authorization, the user id or the request id. */
+  headers?: Record<string, string>
   signal?: AbortSignal
   timeoutMs?: number
   env?: Record<string, string | undefined>
@@ -95,12 +99,14 @@ export async function callEngine<TResult = unknown>(
   }
 
   const headers: Record<string, string> = {
+    ...call.headers,
     authorization: `Bearer ${token}`,
     'x-user-id': call.userId,
   }
   const requestId = currentRequestId()
   if (requestId) headers['x-request-id'] = requestId
   if (call.body !== undefined) headers['content-type'] = 'application/json'
+  if (call.stream) headers['content-type'] = 'application/octet-stream'
 
   const timeout = AbortSignal.timeout(call.timeoutMs ?? DEFAULT_TIMEOUT_MS)
   const signal = call.signal ? AbortSignal.any([call.signal, timeout]) : timeout
@@ -113,7 +119,13 @@ export async function callEngine<TResult = unknown>(
       headers,
       // A redirect would forward the token and user id elsewhere.
       redirect: 'error',
-      body: call.body === undefined ? undefined : JSON.stringify(call.body),
+      body: call.stream
+        ? call.stream
+        : call.body === undefined
+          ? undefined
+          : JSON.stringify(call.body),
+      // A streamed request body must be declared half-duplex.
+      ...(call.stream ? { duplex: 'half' } : {}),
       signal,
     })
   } catch {
