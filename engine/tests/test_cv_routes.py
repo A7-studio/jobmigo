@@ -30,7 +30,15 @@ USER_A = uuid.UUID("3f2b8c1e-7d4a-4c19-9a55-0b6f1d2e3a44")
 USER_B = uuid.UUID("9a1c2d3e-4b5f-4a6b-8c7d-0e1f2a3b4c5d")
 SECRET_NAME = "Jane-Secret-Name.pdf"
 SECRET_TEXT = "Jane-Secret-Text"
-FIELDS = {"id", "filename", "mime", "sizeBytes", "parseStatus", "createdAt"}
+FIELDS = {
+    "id",
+    "filename",
+    "mime",
+    "sizeBytes",
+    "parseStatus",
+    "parseError",
+    "createdAt",
+}
 Stack = tuple[FastAPI, MemoryStore]
 
 

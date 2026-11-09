@@ -136,6 +136,33 @@ everything else stays in the web app. The modules `ai` and the AI and document p
   returns text. Account deletion must delete each file (not built yet), and `readyz` does not
   check storage yet.
 
+### CV parse (feature 3b, as built)
+
+- **Flow.** `POST /api/cv/:id/parse` (web) calls `POST /internal/cv/:id/parse`. It claims the
+  row atomically (`extracted` or `failed` to `parsing`), starts an in-process task and answers
+  202; it answers 200 when the CV is already `parsed` and the same 202 if a parse is running.
+  `GET /api/cv/:id` returns the status (`parseStatus`, `parseError`) and
+  `GET /api/cv/:id/profile` the draft once `parsed`. Parse is explicit: upload does not start it.
+- **Task.** `engine/src/engine/cv/parse.py`: gateway task `cv-parse`, cheap tier, workflow
+  `parse`, prompt version `cv-parse-v1`, cache off (a parse only re-runs after a failure, and a
+  cache would keep a second copy of derived CV data). The CV text goes in a delimited block that
+  the prompt marks as data; the reply must match bounded Pydantic models (unknown keys, long
+  strings, too many rows and dates other than `YYYY` or `YYYY-MM` are rejected, and the gateway
+  retries once). Text over 60,000 characters fails instead of being cut.
+- **Draft.** One `engine.profile` per CV with `experience`, `skill`, `achievement`, `project`
+  and `education` children, all `status = extracted` (unconfirmed; feature 4 confirms or edits).
+  The draft and the `parsed` status are written in one transaction that only commits if the CV
+  is still `parsing`, so a CV deleted mid-parse leaves nothing. Deleting a CV cascades to its draft.
+- **Failures** are stored as a code in `cv_file.parse_error`: `ai_not_configured`,
+  `ai_unavailable`, `ai_output_invalid`, `ai_input_invalid`, `text_too_long`, `no_profile_found`,
+  `interrupted`, `internal`. A missing AI setting is refused with 503 before any claim. A retry is
+  the same `POST` from `failed`.
+- **One engine process.** The task runs in the engine process and a startup sweep turns rows left
+  in `parsing` by a restart into `failed` / `interrupted`. Running more than one engine replica
+  needs the background worker first.
+- **Privacy.** CV text goes to the cheap-tier provider (DeepSeek, named on `/privacy`) only when a
+  parse is requested. CV text, names and replies are never logged; `usage_event` holds no text.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
@@ -392,8 +419,8 @@ user_id=..., database=...)` with two model tiers set by `AI_CHEAP_MODEL` and `AI
 (`provider/model-id`), the DeepSeek, Moonshot and OpenRouter providers over one
 OpenAI-compatible adapter (httpx), task definitions with a prompt `version` and Pydantic input
 and output models, a per-user cache (`engine.ai_cache`), and a ledger (`engine.usage_event`)
-that never stores prompt or output text. No HTTP route yet: the first task (CV parsing, 3b) adds
-one. Credits and spend caps arrive with billing (feature 16).
+that never stores prompt or output text. The first task, CV parsing (feature 3b), is reached
+through the CV routes below. Credits and spend caps arrive with billing (feature 16).
 
 ## 12. Admin panel and support desk
 

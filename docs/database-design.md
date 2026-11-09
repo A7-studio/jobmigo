@@ -94,6 +94,7 @@ erDiagram
     int size_bytes
     text extracted_text "never empty, 200000 chars at most"
     text parse_status "extracted, parsing, parsed, failed"
+    text parse_error "stable code, only when failed"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -505,7 +506,16 @@ trigger). Every staff action that reads or changes a user's data writes a row.
 
 > `engine.cv_file` (Alembic `0003`) is built as drawn here, with `user_id` a plain uuid
 > because the engine schema holds no foreign key to `public`. `parse_status` defaults to
-> `extracted`; the later values belong to feature 3b. Index: `(user_id, created_at)`.
+> `extracted`. Index: `(user_id, created_at)`.
+>
+> Feature 3b (Alembic `0004`) adds `cv_file.parse_error` (a stable code, null unless
+> `parse_status = 'failed'`) and the draft tables `engine.profile` (`source_cv_id` unique, FK to
+> `cv_file` with `ON DELETE CASCADE`), `experience`, `skill`, `achievement` (`experience_id` FK, set
+> null on delete), `project` and `education`. Every row carries `user_id` as a plain uuid; each
+> child has `profile_id` (cascade), `position`, and `status` (`extracted | confirmed | edited`,
+> always `extracted` until feature 4). Experience and education dates are text (`YYYY` or
+> `YYYY-MM`). `Skill.evidence_ref` and `used_in_role` are not built yet; the feature that first
+> uses them adds them.
 
 ## Storage map
 

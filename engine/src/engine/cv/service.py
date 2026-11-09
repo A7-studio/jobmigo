@@ -45,6 +45,7 @@ class CvOut(BaseModel):
     mime: str
     size_bytes: int = Field(alias="sizeBytes")
     parse_status: str = Field(alias="parseStatus")
+    parse_error: str | None = Field(default=None, alias="parseError")
     created_at: datetime = Field(alias="createdAt")
 
 
@@ -76,7 +77,7 @@ def display_name(header: str | None) -> str:
     return cleaned or "cv"
 
 
-def _parse_id(raw: str) -> uuid.UUID:
+def parse_id(raw: str) -> uuid.UUID:
     try:
         return uuid.UUID(raw)
     except ValueError:
@@ -149,6 +150,7 @@ async def list_cvs(*, user_id: uuid.UUID, database: Database) -> CvList:
         CvFile.mime,
         CvFile.size_bytes,
         CvFile.parse_status,
+        CvFile.parse_error,
         CvFile.created_at,
     )
     async with AsyncSession(database.engine) as session:
@@ -166,7 +168,7 @@ async def list_cvs(*, user_id: uuid.UUID, database: Database) -> CvList:
 async def download_cv(
     *, user_id: uuid.UUID, cv_id: str, database: Database, store: ObjectStore
 ) -> DownloadOut:
-    wanted = _parse_id(cv_id)
+    wanted = parse_id(cv_id)
     async with AsyncSession(database.engine) as session:
         found = (
             await session.execute(
@@ -188,7 +190,7 @@ async def download_cv(
 async def delete_cv(
     *, user_id: uuid.UUID, cv_id: str, database: Database, store: ObjectStore
 ) -> None:
-    wanted = _parse_id(cv_id)
+    wanted = parse_id(cv_id)
     async with AsyncSession(database.engine) as session:
         key = (
             await session.execute(

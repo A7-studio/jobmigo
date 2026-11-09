@@ -4,6 +4,9 @@ import {
   handleDelete,
   handleDownload,
   handleList,
+  handleParse,
+  handleProfile,
+  handleStatus,
   handleUpload,
 } from '#/server/cv/http'
 import { UnauthorizedError } from '#/server/errors'
@@ -83,6 +86,9 @@ describe('without a session', () => {
       handleList(request('GET'), deps),
       handleDownload(request('GET'), CV, deps),
       handleDelete(request('DELETE'), CV, deps),
+      handleStatus(request('GET'), CV, deps),
+      handleParse(request('POST'), CV, deps),
+      handleProfile(request('GET'), CV, deps),
     ])
     for (const response of results) {
       expect(response.status).toBe(401)
@@ -350,5 +356,90 @@ describe('logging', () => {
     expect(output).not.toContain('Jane-Secret-Name')
     expect(output).not.toContain('sig-secret')
     expect(output).not.toContain(TOKEN)
+  })
+})
+
+describe('status, parse and profile', () => {
+  const request = (method: string) =>
+    new Request('http://app.test/x', { method })
+
+  it('forwards each call to the matching engine path for the session user', async () => {
+    const fetchFn = vi.fn<Fetch>(async () => jsonResponse({ ok: true }))
+    const deps = { requireUser: signedIn, fetchFn, env }
+    await handleStatus(request('GET'), CV, deps)
+    await handleParse(request('POST'), CV, deps)
+    await handleProfile(request('GET'), CV, deps)
+    expect(fetchFn.mock.calls.map(([url, init]) => [init.method, url])).toEqual(
+      [
+        ['GET', `http://engine.test:8000/internal/cv/${CV}`],
+        ['POST', `http://engine.test:8000/internal/cv/${CV}/parse`],
+        ['GET', `http://engine.test:8000/internal/cv/${CV}/profile`],
+      ],
+    )
+    for (const [, init] of fetchFn.mock.calls) {
+      expect(init.headers).toMatchObject({ 'x-user-id': USER })
+    }
+  })
+
+  it('answers parse 202 while it runs and 200 once parsed', async () => {
+    const deps = (parseStatus: string) => ({
+      requireUser: signedIn,
+      fetchFn: vi.fn<Fetch>(async () =>
+        jsonResponse({ id: CV, parseStatus, parseError: null }),
+      ),
+      env,
+    })
+    const running = await handleParse(request('POST'), CV, deps('parsing'))
+    expect(running.status).toBe(202)
+    expect((await running.json()).parseStatus).toBe('parsing')
+    const done = await handleParse(request('POST'), CV, deps('parsed'))
+    expect(done.status).toBe(200)
+    expect(done.headers.get('cache-control')).toBe('no-store')
+  })
+
+  it('answers 404 for a malformed id without calling the engine', async () => {
+    const fetchFn = vi.fn()
+    for (const handle of [handleStatus, handleParse, handleProfile]) {
+      const response = await handle(request('GET'), '../x', {
+        requireUser: signedIn,
+        fetchFn,
+        env,
+      })
+      expect(response.status).toBe(404)
+    }
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  it("passes the engine's stable client errors through", async () => {
+    const fetchFn = vi.fn<Fetch>(async () =>
+      jsonResponse({ code: 'not_found', message: 'Not found.' }, 404),
+    )
+    const deps = { requireUser: signedIn, fetchFn, env }
+    for (const handle of [handleStatus, handleParse, handleProfile]) {
+      const response = await handle(request('GET'), CV, deps)
+      expect(response.status).toBe(404)
+      expect(await response.json()).toEqual({
+        code: 'not_found',
+        message: 'Not found.',
+      })
+    }
+  })
+
+  it('reports an engine 5xx, including ai_not_configured, as engine_unavailable', async () => {
+    const fetchFn = vi.fn<Fetch>(async () =>
+      jsonResponse(
+        { code: 'ai_not_configured', message: 'AI is not configured: set X.' },
+        503,
+      ),
+    )
+    const response = await handleParse(request('POST'), CV, {
+      requireUser: signedIn,
+      fetchFn,
+      env,
+    })
+    expect(response.status).toBe(502)
+    const body = await response.json()
+    expect(body.code).toBe('engine_unavailable')
+    expect(JSON.stringify(body)).not.toContain('AI is not configured')
   })
 })

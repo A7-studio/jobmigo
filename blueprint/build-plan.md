@@ -30,7 +30,8 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
 - [x] 31. Port the AI gateway and usage ledger to the engine - providers, tier routing, prompt versions, validated outputs, per-user cache and ledger in Python with parity tests against the TypeScript cases, then remove the TypeScript gateway and its two tables
 - [ ] 3. CV upload and parsing - in the engine: private storage, text extraction in a resource-limited subprocess, AI parse into a structured profile draft
   - [x] 3a. CV storage, upload and text extraction - S3-compatible storage (RustFS locally), web upload route streaming to the engine, isolated extraction with memory, CPU and time limits and byte-counted decompression, CV record, owner-scoped signed download and delete
-  - [ ] 3b. AI parse into a profile draft - background parse through the engine gateway into a structured draft (unconfirmed facts), upload and status screen, retry on failure
+  - [ ] 3b. AI parse into a profile draft (engine) - background parse through the engine gateway into a structured draft (unconfirmed facts), draft tables, status and retry routes, web API routes
+  - [ ] 3c. CV upload and parse status screen - the `/onboarding` upload step and parse status from the design canvas: progress, success, failure with retry, plain AI disclosure on the upload step
 - [ ] 4. Profile review and track variants - edit extracted experience, skills and achievements, confirm facts, create variants for the three tracks
 - [ ] 5. Job preferences and track criteria - roles, salary floor, location, eligibility, must-have vs nice-to-have per track, dealbreakers and a do-not-apply list
 - [ ] 29. Add a job by link or paste - paste a job link or the posting text; fetch the public page text when the site allows it and fall back to paste, normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan

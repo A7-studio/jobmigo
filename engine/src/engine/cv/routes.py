@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, Response
 
 from engine.auth import CurrentUser
-from engine.cv import service
+from engine.cv import parse_service, service
 from engine.cv.runner import run_extraction
 from engine.db import Database
 from engine.storage import ObjectStore, S3Store, load_storage_config
@@ -51,6 +51,40 @@ async def upload(request: Request, user_id: CurrentUser) -> service.CvOut:
 @router.get("")
 async def list_files(request: Request, user_id: CurrentUser) -> service.CvList:
     return await service.list_cvs(user_id=user_id, database=_database(request))
+
+
+@router.get("/{cv_id}")
+async def status(request: Request, cv_id: str, user_id: CurrentUser) -> service.CvOut:
+    return await parse_service.get_cv(
+        user_id=user_id, cv_id=cv_id, database=_database(request)
+    )
+
+
+@router.post("/{cv_id}/parse")
+async def parse(
+    request: Request, response: Response, cv_id: str, user_id: CurrentUser
+) -> service.CvOut:
+    """Start a parse, or retry a failed one: 202 while it runs, 200 once parsed."""
+    state = request.app.state
+    out = await parse_service.start_parse(
+        user_id=user_id,
+        cv_id=cv_id,
+        database=_database(request),
+        jobs=state.parse_jobs,
+        env=getattr(state, "ai_env", None),
+        provider=getattr(state, "ai_provider", None),
+    )
+    response.status_code = 200 if out.parse_status == "parsed" else 202
+    return out
+
+
+@router.get("/{cv_id}/profile")
+async def profile(
+    request: Request, cv_id: str, user_id: CurrentUser
+) -> parse_service.DraftOut:
+    return await parse_service.get_draft(
+        user_id=user_id, cv_id=cv_id, database=_database(request)
+    )
 
 
 @router.get("/{cv_id}/download")

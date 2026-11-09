@@ -16,8 +16,8 @@ function Privacy() {
       </Link>
       <h1 className="text-3xl font-bold">Privacy notice</h1>
       <p className="text-body">
-        This notice covers the Jobmigo waitlist. Jobmigo is a product of
-        A7Studio.
+        This notice covers the Jobmigo waitlist and what happens to a CV if you
+        upload one. Jobmigo is a product of A7Studio.
       </p>
 
       <section className="flex flex-col gap-2">
@@ -51,6 +51,23 @@ function Privacy() {
           address only to deliver them. The pages load fonts from Google Fonts,
           so your browser contacts Google when you visit, and Google can see
           your IP address.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Your CV</h2>
+        <p className="text-body">
+          If you upload a CV (PDF or DOCX), we keep the file in private storage
+          and keep the text we read from it, both tied to your account. Only you
+          can open or delete them. Deleting a CV also deletes any profile draft
+          made from it.
+        </p>
+        <p className="text-body">
+          Only when you ask us to read your CV into a profile draft, we send the
+          CV text (not the file) to our AI provider, DeepSeek, which returns the
+          draft. We do not send it for any other reason. Our usage records keep
+          counts and costs only, never the text. How DeepSeek handles what it
+          receives is covered by its own privacy policy.
         </p>
       </section>
 

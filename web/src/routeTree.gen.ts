@@ -23,6 +23,8 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
 import { Route as ApiCvIdIndexRouteImport } from './routes/api/cv/$id/index'
 import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/download'
+import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
+import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +95,16 @@ const ApiCvIdDownloadRoute = ApiCvIdDownloadRouteImport.update({
   path: '/api/cv/$id/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCvIdParseRoute = ApiCvIdParseRouteImport.update({
+  id: '/api/cv/$id/parse',
+  path: '/api/cv/$id/parse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCvIdProfileRoute = ApiCvIdProfileRouteImport.update({
+  id: '/api/cv/$id/profile',
+  path: '/api/cv/$id/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -107,6 +119,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id/parse': typeof ApiCvIdParseRoute
+  '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -122,6 +136,8 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cv': typeof ApiCvIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id/parse': typeof ApiCvIdParseRoute
+  '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
 }
 export interface FileRoutesById {
@@ -139,6 +155,8 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
+  '/api/cv/$id/parse': typeof ApiCvIdParseRoute
+  '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -156,6 +174,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cv/'
     | '/api/cv/$id/download'
+    | '/api/cv/$id/parse'
+    | '/api/cv/$id/profile'
     | '/api/cv/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -171,6 +191,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cv'
     | '/api/cv/$id/download'
+    | '/api/cv/$id/parse'
+    | '/api/cv/$id/profile'
     | '/api/cv/$id'
   id:
     | '__root__'
@@ -187,6 +209,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cv/'
     | '/api/cv/$id/download'
+    | '/api/cv/$id/parse'
+    | '/api/cv/$id/profile'
     | '/api/cv/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -203,6 +227,8 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCvIndexRoute: typeof ApiCvIndexRoute
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
+  ApiCvIdParseRoute: typeof ApiCvIdParseRoute
+  ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
 }
 
@@ -306,6 +332,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCvIdDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cv/$id/parse': {
+      id: '/api/cv/$id/parse'
+      path: '/api/cv/$id/parse'
+      fullPath: '/api/cv/$id/parse'
+      preLoaderRoute: typeof ApiCvIdParseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cv/$id/profile': {
+      id: '/api/cv/$id/profile'
+      path: '/api/cv/$id/profile'
+      fullPath: '/api/cv/$id/profile'
+      preLoaderRoute: typeof ApiCvIdProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -332,6 +372,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCvIndexRoute: ApiCvIndexRoute,
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
+  ApiCvIdParseRoute: ApiCvIdParseRoute,
+  ApiCvIdProfileRoute: ApiCvIdProfileRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
 }
 export const routeTree = rootRouteImport

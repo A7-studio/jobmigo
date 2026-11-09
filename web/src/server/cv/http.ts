@@ -106,6 +106,64 @@ export async function handleList(
   }
 }
 
+/** Forward one owner-scoped engine call for a CV id the browser supplied. */
+async function forward(
+  request: Request,
+  id: string,
+  deps: CvHttpDeps,
+  suffix: string,
+  method: 'GET' | 'POST',
+): Promise<unknown> {
+  const user = await (deps.requireUser ?? requireUser)(request.headers)
+  if (!UUID.test(id)) throw new NotFoundError()
+  return callEngine(`/internal/cv/${id}${suffix}`, {
+    ...engineOptions(user, deps),
+    method,
+  })
+}
+
+export async function handleStatus(
+  request: Request,
+  id: string,
+  deps: CvHttpDeps = {},
+): Promise<Response> {
+  try {
+    return json(await forward(request, id, deps, '', 'GET'))
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/** Start a parse or retry a failed one: 202 while it runs, 200 once it is done. */
+export async function handleParse(
+  request: Request,
+  id: string,
+  deps: CvHttpDeps = {},
+): Promise<Response> {
+  try {
+    const result = await forward(request, id, deps, '/parse', 'POST')
+    const parsed =
+      typeof result === 'object' &&
+      result !== null &&
+      (result as { parseStatus?: unknown }).parseStatus === 'parsed'
+    return json(result, parsed ? 200 : 202)
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+export async function handleProfile(
+  request: Request,
+  id: string,
+  deps: CvHttpDeps = {},
+): Promise<Response> {
+  try {
+    return json(await forward(request, id, deps, '/profile', 'GET'))
+  } catch (error) {
+    return failure(error)
+  }
+}
+
 export async function handleDownload(
   request: Request,
   id: string,

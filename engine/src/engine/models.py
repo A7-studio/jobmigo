@@ -13,6 +13,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Index,
     Integer,
     MetaData,
@@ -29,6 +30,17 @@ SCHEMA = "engine"
 
 CV_MIMES = ("pdf", "docx")
 CV_PARSE_STATUSES = ("extracted", "parsing", "parsed", "failed")
+CV_PARSE_ERRORS = (
+    "ai_not_configured",
+    "ai_unavailable",
+    "ai_output_invalid",
+    "ai_input_invalid",
+    "text_too_long",
+    "no_profile_found",
+    "interrupted",
+    "internal",
+)
+FACT_STATUSES = ("extracted", "confirmed", "edited")
 
 AI_WORKFLOWS = ("parse", "screen", "evaluate", "tailor", "reach_check", "outreach")
 
@@ -99,6 +111,13 @@ class CvFile(Base):
             _in_list("parse_status", CV_PARSE_STATUSES), name="ck_cv_file_parse_status"
         ),
         CheckConstraint("size_bytes >= 0", name="ck_cv_file_size"),
+        CheckConstraint(
+            _in_list("parse_error", CV_PARSE_ERRORS), name="ck_cv_file_parse_error"
+        ),
+        CheckConstraint(
+            "parse_error is null or parse_status = 'failed'",
+            name="ck_cv_file_parse_error_status",
+        ),
         Index("cv_file_user_created_idx", "user_id", "created_at"),
     )
 
@@ -112,9 +131,108 @@ class CvFile(Base):
     size_bytes: Mapped[int] = mapped_column(Integer)
     extracted_text: Mapped[str] = mapped_column(Text)
     parse_status: Mapped[str] = mapped_column(Text, server_default="extracted")
+    parse_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+def _fact_status() -> Mapped[str]:
+    return mapped_column(Text, server_default="extracted")
+
+
+class Profile(Base):
+    """A draft of the facts parsed from one CV. Nothing in it is confirmed yet."""
+
+    __tablename__ = "profile"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    source_cv_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("engine.cv_file.id", ondelete="CASCADE"),
+        unique=True,
+    )
+    headline: Mapped[str | None] = mapped_column(Text)
+    summary: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class _Child:
+    """Columns every draft child shares."""
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.profile.id", ondelete="CASCADE")
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = _fact_status()
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+def _child_args(table: str) -> tuple[CheckConstraint, Index]:
+    return (
+        CheckConstraint(_in_list("status", FACT_STATUSES), name=f"ck_{table}_status"),
+        Index(f"{table}_profile_position_idx", "profile_id", "position"),
+    )
+
+
+class Experience(_Child, Base):
+    __tablename__ = "experience"
+    __table_args__ = _child_args("experience")
+
+    company: Mapped[str] = mapped_column(Text)
+    role: Mapped[str] = mapped_column(Text)
+    start: Mapped[str | None] = mapped_column(Text)
+    end: Mapped[str | None] = mapped_column(Text)
+    is_current: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    bullets: Mapped[list[str]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+
+
+class Skill(_Child, Base):
+    __tablename__ = "skill"
+    __table_args__ = _child_args("skill")
+
+    name: Mapped[str] = mapped_column(Text)
+
+
+class Achievement(_Child, Base):
+    __tablename__ = "achievement"
+    __table_args__ = _child_args("achievement")
+
+    text: Mapped[str] = mapped_column(Text)
+    experience_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.experience.id", ondelete="SET NULL")
+    )
+
+
+class Project(_Child, Base):
+    __tablename__ = "project"
+    __table_args__ = _child_args("project")
+
+    name: Mapped[str] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
+
+
+class Education(_Child, Base):
+    __tablename__ = "education"
+    __table_args__ = _child_args("education")
+
+    institution: Mapped[str] = mapped_column(Text)
+    qualification: Mapped[str | None] = mapped_column(Text)
+    start: Mapped[str | None] = mapped_column(Text)
+    end: Mapped[str | None] = mapped_column(Text)
