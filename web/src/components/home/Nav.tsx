@@ -63,7 +63,10 @@ export function Nav() {
         href="#waitlist"
         className="inline-flex min-h-11 items-center rounded-full bg-accent-strong px-3 text-sm font-bold text-white sm:px-4 transition-colors hover:bg-accent-strong-hover"
       >
-        Join<span className="max-[430px]:sr-only"> the waitlist</span>
+        {/* One flex item, so the space before "the waitlist" is not trimmed. */}
+        <span>
+          Join<span className="max-[430px]:sr-only"> the waitlist</span>
+        </span>
       </a>
       {ready && (
         <button
