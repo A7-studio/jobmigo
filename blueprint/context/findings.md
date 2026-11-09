@@ -352,3 +352,35 @@ Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, securi
 **Found:** 2026-11-09 by /audit (scope: current; lens: quality)
 **Why it matters:** pypdf decodes `/ToUnicode` maps with `errors="surrogatepass"` (`_cmap.py`), and `normalise` strips control characters but not U+D800 to U+DFFF. Verified: such text survives the worker's JSON round trip and then fails `.encode()` with `UnicodeEncodeError`, which is what the Postgres driver does on insert. The upload returns a generic 500 (the object is cleaned up) instead of a 422 for a crafted or odd PDF. A full PDF reproduction was not built.
 **Suggested fix:** Remove surrogate code points in `normalise` (extend `_CONTROL` with `\ud800-\udfff`) and add a unit test.
+
+### F-71 [P3] open - A parse stuck in `parsing` has no recovery until the engine restarts
+
+**File:** engine/src/engine/cv/parse_service.py:279
+**Found:** 2026-11-09 by /audit (scope: current; lens: quality)
+**Why it matters:** `run_parse` swallows a failed `mark_failed` (logged only), and shutdown cancellation deliberately leaves the row `parsing`. The only recovery is `sweep_interrupted` at the next start. If the status write fails once (a database blip) or the engine is stopped and not restarted promptly, the row stays `parsing`, `POST /parse` is idempotent for `parsing` so a retry changes nothing, and the user sees a spinner indefinitely. A provider hang is bounded by the adapter timeout, so this needs a database error or a stop. Not reproduced.
+**Suggested fix:** Treat `parsing` rows whose `updated_at` is older than a few minutes (well past the provider timeout) as claimable in `claim`, or fail them in the status read. Cheap and keeps one process.
+**Resolution:**
+
+### F-72 [P3] open - `achievement.experience_id` has no index, so deleting a CV scans `achievement` once per experience row
+
+**File:** engine/migrations/versions/0004_profile_draft.py:127
+**Found:** 2026-11-09 by /audit (scope: current; lens: performance)
+**Why it matters:** The `ON DELETE SET NULL` foreign key on `achievement.experience_id` is checked by Postgres for each deleted `experience` row (CV delete cascades to profile, then experience). With no index on the referencing column each check is a sequential scan of `achievement`. Harmless at launch volumes, but it grows with users times experiences and runs inside the delete request. Not measured.
+**Suggested fix:** Add an index on `achievement(experience_id)` in a later migration (or change 0004 before it ships), with the matching `Index` in the model.
+**Resolution:**
+
+### F-73 [P3] unverified - One out-of-bounds field fails the whole parse
+
+**File:** engine/src/engine/cv/parse.py:56
+**Found:** 2026-11-09 by /audit (scope: current; lens: quality)
+**Why it matters:** Bounds and the date pattern are rejections, not clamps. A model reply with one 600-character bullet, a date such as "Present" or "2020-1", a 31st experience, or an empty required name after cleaning fails validation; after the gateway's single retry the whole parse ends as `ai_output_invalid`, and a user retry reruns the same input. Real CVs with long bullets or "Present" end dates may hit this. The design choice is documented, but no live run with a real model has measured how often it happens (the live test was not run).
+**Suggested fix:** After the live run, decide whether to drop or truncate individual bad items (skip an experience with an invalid date, normalise "Present" to `is_current`) instead of failing everything.
+**Resolution:**
+
+### F-74 [P3] open - No test races two claims or proves the claim, draft write and failure write are owner-scoped on their own
+
+**File:** engine/tests/test_cv_parse_service.py:127
+**Found:** 2026-11-09 by /audit (scope: current; lens: tests)
+**Why it matters:** The idempotency test starts two parses one after the other, so it does not exercise the atomic claim under a real race, and owner scoping is tested only through `start_parse` and the routes (the pre-read `get_cv` already refuses another user). A regression that dropped `user_id` from the `claim` or `_write_draft` UPDATE, or from `mark_failed`, would still pass. These statements carry the trust boundary the spec names.
+**Suggested fix:** Add tests that call `claim`, `mark_failed` and `_write_draft` directly with a different user id and assert no row changes, and one that runs two `claim` calls with `asyncio.gather` and asserts exactly one returns True.
+**Resolution:**
