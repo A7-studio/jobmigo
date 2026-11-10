@@ -363,6 +363,7 @@ permission check.
 
 - TanStack Start: file-based routes, loaders that prefetch through TanStack Query, server rendering for the public site.
 - Routes: public (`/`, `/pricing`, `/signup`), onboarding, app (`/dashboard`, `/jobs`, `/applications`, `/documents`, `/outreach`, `/profile`), billing (`/plans`, `/checkout`), admin (`/admin/*`, staff only).
+- Founder edition navigation (design boards from feature 33a, built in 33b): the app has four places, `/today`, `/jobs`, `/profile` and `/settings`, plus one workspace per job at `/jobs/$jobId` with the steps Fit, CV and letter, Outreach and Track. `/dashboard`, `/applications`, `/documents` and `/outreach` are hidden. Below 720px the four places sit in a bar fixed to the bottom of the screen.
 - The web server also hosts Better Auth (`/api/auth/*`). Business logic lives in `web/src/server/` modules, called from thin server functions and routes; client components never import it.
 - Styling from the locked tokens in `prototypes/theme.css`. Motion respects reduced-motion settings.
 

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.who{margin-top:auto;border-top:1px solid #E8E5DA;padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.main{flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.nav:hover{background:#F0EEE6}
+.nav.on{background:#F8E3D8;color:#8A3B1E}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box}
+.h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s ease,box-shadow .15s ease}
+.btn:hover{box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.btn[disabled]{opacity:.6;cursor:default;box-shadow:none}
+.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.muted{color:#5E5D59}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#4A4944}
+.field input,.field select,.field textarea{font:inherit;font-size:15px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:10px 12px;min-height:44px;box-sizing:border-box;background:#fff;width:100%}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2}
+.line.first{border-top:0}
+.note{background:#F7F5EE;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#3D3D3A}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{border:1px solid #D9D5C7;background:#fff;border-radius:16px;padding:12px 16px;min-height:64px;box-sizing:border-box;text-align:left;display:flex;flex-direction:column;gap:4px;font-size:15px;font-weight:800;color:#1A1A18}
+.step.on{border-color:#B04A27;box-shadow:inset 0 0 0 1px #B04A27;background:#FDF3EE}
+.step small{font-size:12px;font-weight:700;color:#5E5D59}
+details.ev>summary{list-style:none;cursor:pointer}
+details.ev>summary::-webkit-details-marker{display:none}
+.sk{background:#EFECE2;border-radius:12px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:720px){
+.side{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-right:0;border-bottom:1px solid #E8E5DA}
+.side nav{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-direction:row;gap:4px;background:#fff;border-top:1px solid #E8E5DA;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav{flex:1 1 0;flex-direction:column;justify-content:center;gap:2px;padding:6px 2px;font-size:12px;min-width:0}
+.who{margin-top:0;border-top:0;padding-top:0;flex-direction:row;align-items:center}
+.who .name{display:none}
+.main{flex:1 1 100%;padding:20px 16px 104px;gap:16px}
+.card{padding:16px}
+.line{padding:14px 4px}
+.steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</helmet>
+<div class="shell">
+<aside class="side">
+  <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="disp" style="font-size:21px;font-weight:700;color:#1A1A18">job<span style="color:#B04A27">migo</span></span>
+  </div>
+  <nav aria-label="Main">
+    <a class="nav on" aria-current="page" href="Today.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M12 6h8M12 12h8M12 18h8"/></svg>Today</a>
+    <a class="nav" href="Jobs.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
+    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
+    <a class="nav" href="Settings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Settings</a>
+  </nav>
+  <div class="who">
+    <span class="name" style="font-size:13px;font-weight:700;color:#4A4944;padding:0 6px">Alex Sample</span>
+    <button class="btn" type="button">Sign out</button>
+  </div>
+</aside>
+<main class="main">
+  <header>
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.01em">Today</h1>
+    <p class="muted" style="margin:6px 0 0;font-size:14px">{{summary}}</p>
+  </header>
+
+  <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+    <section class="card" role="status" aria-label="Loading your queue" style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:14px;font-weight:700;color:#4A4944">Loading your queue…</div>
+      <div class="sk" style="height:68px"></div>
+      <div class="sk" style="height:68px"></div>
+      <div class="sk" style="height:68px"></div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+    <section class="card" role="alert" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:560px;border-color:#F0BDBD">
+      <span class="tag" style="background:#FADCDC;color:#8A1F1F">Could not load</span>
+      <h2 class="h2">We could not load your queue</h2>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#3D3D3A">Your jobs and applications are safe. Try again in a moment.</p>
+      <button class="btn pri" type="button" onClick="{{retry}}">Try again</button>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+    <section class="card" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:560px">
+      <h2 class="h2">Nothing needs you right now</h2>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#3D3D3A">New matches, applications to review, follow-ups and interviews will show up here. You can add a job yourself at any time.</p>
+      <a class="btn pri" href="Jobs.dc.html">Add a job</a>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{isQueue}}" hint-placeholder-val="{{true}}">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+      <section class="card" aria-label="{{g.title}}" style="padding:20px 8px 8px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;padding:0 16px 12px">
+          <h2 class="h2">{{g.title}}</h2>
+          <span class="muted" style="font-size:13px">{{g.hint}}</span>
+        </div>
+        <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+          <div class="line">
+            <a href="Job.dc.html" style="flex:1 1 260px;min-width:0">
+              <div style="font-size:15px;font-weight:700">{{r.title}}</div>
+              <div class="muted" style="font-size:13px;margin-top:3px">{{r.company}}</div>
+              <div style="font-size:13px;margin-top:6px;color:#3D3D3A">{{r.why}}</div>
+            </a>
+            <sc-if value="{{r.hasTag}}" hint-placeholder-val="{{true}}">
+              <span class="tag" style="background:{{r.tagBg}};color:{{r.tagInk}}">{{r.tag}}</span>
+            </sc-if>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-if value="{{r.isMatch}}" hint-placeholder-val="{{false}}">
+                <button class="btn ghost" type="button" onClick="{{r.skip}}" aria-label="{{r.skipLabel}}">Skip</button>
+              </sc-if>
+              <sc-if value="{{r.isMatch}}" hint-placeholder-val="{{false}}">
+                <button class="btn pri" type="button" onClick="{{r.keep}}" aria-label="{{r.keepLabel}}">Keep</button>
+              </sc-if>
+              <sc-if value="{{r.isLink}}" hint-placeholder-val="{{true}}">
+                <a class="btn pri" href="Job.dc.html" aria-label="{{r.actionLabel}}">{{r.action}}</a>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-for>
+  </sc-if>
+
+  <p class="muted" style="margin:0;font-size:12px;line-height:1.5">Jobmigo prepares drafts for you to check. Nothing is sent or submitted without you. Design board: every job, company and date here is sample data.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["Queue","Empty","Loading","Failed"],"default":"Queue"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const view = st.view ?? this.props.view ?? 'Queue';
+    const gone = st.gone ?? [];
+    const strong = { hasTag: true, tag: 'Strong fit', tagBg: '#DDF3EC', tagInk: '#0B5E50' };
+    const good = { hasTag: true, tag: 'Good fit', tagBg: '#E3EBF5', tagInk: '#1F4E79' };
+    const drop = (id) => () => this.setState({ gone: gone.concat(id) });
+    const match = (id, band, title, company, why) => ({
+      ...band, id, title, company, why, isMatch: true, isLink: false,
+      keep: drop(id), skip: drop(id),
+      keepLabel: 'Keep ' + title + ' at ' + company, skipLabel: 'Skip ' + title + ' at ' + company
+    });
+    const link = (title, company, why, action) => ({
+      hasTag: false, title, company, why, isMatch: false, isLink: true, action,
+      actionLabel: action + ': ' + title + ' at ' + company
+    });
+    const groups = [
+      { title: 'New matches', hint: 'Keep the ones worth your time. Skip the rest.', rows: [
+        match('m1', strong, 'AI Code Evaluator (Python)', 'Tidewater Labs · Remote, global · $40-55/hr', 'Main gap: none found. 5 of 5 must-haves have evidence.'),
+        match('m2', good, 'Mobile Engineer, Flutter', 'Fieldnote · Remote, UTC+3 to +1 · $60-75k', 'Main gap: no published app in their sector.')
+      ].filter((r) => gone.indexOf(r.id) < 0) },
+      { title: 'Ready to review', hint: 'Drafts wait for one approval from you.', rows: [
+        link('Senior Flutter Engineer', 'Lumen Health · Remote, EMEA · $70-90k', 'Fit check, tailored CV and cover letter are prepared.', 'Review')
+      ] },
+      { title: 'Follow-ups due', hint: 'You send these yourself.', rows: [
+        link('AI Application Engineer', 'Orbital Pay · Applied 9 days ago', 'No reply yet. A short follow-up draft is ready to copy.', 'Follow up'),
+        link('Flutter Developer', 'Kite Studio · Message sent 6 days ago', 'Follow-up date you set: today.', 'Follow up')
+      ] },
+      { title: 'Interviews coming up', hint: 'From dates you entered.', rows: [
+        link('Product Engineer, LLM Tools', 'Northwind · First interview on Thursday, 15:00', 'Your notes and the posting are in the job workspace.', 'Open')
+      ] }
+    ].filter((g) => g.rows.length > 0);
+    const count = groups.reduce((n, g) => n + g.rows.length, 0);
+    const isQueue = view === 'Queue' && count > 0;
+    return {
+      groups,
+      isQueue,
+      isEmpty: view === 'Empty' || (view === 'Queue' && count === 0),
+      isLoading: view === 'Loading',
+      isFailed: view === 'Failed',
+      retry: () => this.setState({ view: 'Queue' }),
+      summary: isQueue ? count + (count === 1 ? ' thing needs you.' : ' things need you.') : 'Your next actions, in one list.'
+    };
+  }
+}
+</script>
+</body>
+</html>

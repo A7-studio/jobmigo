@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Job workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.who{margin-top:auto;border-top:1px solid #E8E5DA;padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.main{flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.nav:hover{background:#F0EEE6}
+.nav.on{background:#F8E3D8;color:#8A3B1E}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box}
+.h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s ease,box-shadow .15s ease}
+.btn:hover{box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.btn[disabled]{opacity:.6;cursor:default;box-shadow:none}
+.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.muted{color:#5E5D59}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#4A4944}
+.field input,.field select,.field textarea{font:inherit;font-size:15px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:10px 12px;min-height:44px;box-sizing:border-box;background:#fff;width:100%}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2}
+.line.first{border-top:0}
+.note{background:#F7F5EE;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#3D3D3A}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{border:1px solid #D9D5C7;background:#fff;border-radius:16px;padding:12px 16px;min-height:64px;box-sizing:border-box;text-align:left;display:flex;flex-direction:column;gap:4px;font-size:15px;font-weight:800;color:#1A1A18}
+.step.on{border-color:#B04A27;box-shadow:inset 0 0 0 1px #B04A27;background:#FDF3EE}
+.step small{font-size:12px;font-weight:700;color:#5E5D59}
+details.ev>summary{list-style:none;cursor:pointer}
+details.ev>summary::-webkit-details-marker{display:none}
+.sk{background:#EFECE2;border-radius:12px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:720px){
+.side{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-right:0;border-bottom:1px solid #E8E5DA}
+.side nav{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-direction:row;gap:4px;background:#fff;border-top:1px solid #E8E5DA;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav{flex:1 1 0;flex-direction:column;justify-content:center;gap:2px;padding:6px 2px;font-size:12px;min-width:0}
+.who{margin-top:0;border-top:0;padding-top:0;flex-direction:row;align-items:center}
+.who .name{display:none}
+.main{flex:1 1 100%;padding:20px 16px 104px;gap:16px}
+.card{padding:16px}
+.line{padding:14px 4px}
+.steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</helmet>
+<div class="shell">
+<aside class="side">
+  <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="disp" style="font-size:21px;font-weight:700;color:#1A1A18">job<span style="color:#B04A27">migo</span></span>
+  </div>
+  <nav aria-label="Main">
+    <a class="nav" href="Today.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M12 6h8M12 12h8M12 18h8"/></svg>Today</a>
+    <a class="nav on" aria-current="page" href="Jobs.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
+    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
+    <a class="nav" href="Settings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Settings</a>
+  </nav>
+  <div class="who">
+    <span class="name" style="font-size:13px;font-weight:700;color:#4A4944;padding:0 6px">Alex Sample</span>
+    <button class="btn" type="button">Sign out</button>
+  </div>
+</aside>
+<main class="main">
+  <a href="Jobs.dc.html" style="font-size:13px;font-weight:700;color:#4A4944;display:inline-flex;align-items:center;gap:6px;min-height:44px;align-self:flex-start">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back to jobs
+  </a>
+
+  <header class="card" style="display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;justify-content:space-between">
+    <div style="display:flex;gap:16px;align-items:center;min-width:0;flex:1 1 320px">
+      <div aria-hidden="true" style="width:56px;height:56px;border-radius:16px;background:#F8E3D8;color:#8A3B1E;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex:0 0 56px">L</div>
+      <div style="min-width:0">
+        <h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.01em">Senior Flutter Engineer</h1>
+        <div style="font-size:14px;color:#4A4944;margin-top:4px">Lumen Health · Remote, EMEA · $70-90k · Full-time</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+          <span class="tag" style="background:#F8E3D8;color:#8A3B1E">Stage: {{stage}}</span>
+          <span class="tag" style="background:#F0EEE6;color:#4A4944">Posting checked 2 hours ago</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+      <sc-if value="{{ctaPrepare}}" hint-placeholder-val="{{false}}">
+        <button class="btn pri" type="button" onClick="{{prepare}}">Prepare application</button>
+      </sc-if>
+      <sc-if value="{{ctaWorking}}" hint-placeholder-val="{{false}}">
+        <button class="btn pri" type="button" disabled="disabled">Preparing…</button>
+      </sc-if>
+      <sc-if value="{{ctaReview}}" hint-placeholder-val="{{true}}">
+        <button class="btn" type="button" onClick="{{goCv}}">Read the drafts</button>
+      </sc-if>
+      <sc-if value="{{ctaApproved}}" hint-placeholder-val="{{false}}">
+        <button class="btn pri" type="button" onClick="{{goTrack}}">Go to apply</button>
+      </sc-if>
+      <span class="muted" style="font-size:12px;max-width:260px;line-height:1.45">{{ctaHint}}</span>
+    </div>
+  </header>
+
+  <nav aria-label="Steps" class="steps">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+      <button class="{{s.cls}}" type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}">{{s.label}}<small>{{s.status}}</small></button>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{showReview}}" hint-placeholder-val="{{true}}">
+    <section class="card" aria-labelledby="rev-h" style="background:#FDF3EE;border-color:#F1CBBA;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between">
+      <div style="flex:1 1 320px;min-width:0">
+        <h2 id="rev-h" class="h2">Ready for your review</h2>
+        <p style="margin:6px 0 0;font-size:14px;line-height:1.55;color:#3D3D3A">The fit check, tailored CV and cover letter are prepared. Read the Fit and CV and letter steps, then approve once. Approving sends nothing. It unlocks export and the apply step.</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn pri" type="button" onClick="{{approve}}">Approve application</button>
+        <button class="btn ghost" type="button" onClick="{{reset}}">Discard drafts</button>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showState}}" hint-placeholder-val="{{false}}">
+    <section class="card" role="status" aria-label="{{stepLabel}}" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:640px">
+      <span class="tag" style="background:{{state.tagBg}};color:{{state.tagInk}}">{{state.tag}}</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <sc-if value="{{state.spin}}" hint-placeholder-val="{{false}}">
+          <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B04A27" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 109 9"/></svg>
+        </sc-if>
+        <h2 class="h2">{{state.title}}</h2>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#3D3D3A">{{state.body}}</p>
+      <sc-if value="{{state.hasBtn}}" hint-placeholder-val="{{false}}">
+        <button class="btn pri" type="button" onClick="{{state.act}}">{{state.btn}}</button>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showFit}}" hint-placeholder-val="{{true}}">
+    <section class="card" aria-labelledby="fit-h" style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between">
+        <h2 id="fit-h" class="h2">Fit</h2>
+        <span class="muted" style="font-size:12px">AI evaluation of the posting against your approved profile. Check it yourself.</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px">
+        <div style="flex:0 1 200px;border-radius:16px;background:#DDF3EC;color:#0B5E50;padding:16px 20px">
+          <div style="font-size:12px;font-weight:800">Fit band</div>
+          <div class="disp" style="font-size:24px;font-weight:700;margin-top:2px">Strong</div>
+          <div style="font-size:13px;font-weight:700;margin-top:4px">6 of 7 must-haves have evidence</div>
+        </div>
+        <div style="flex:1 1 280px;min-width:0;border-radius:16px;background:#FFF1CC;color:#4A2F00;padding:16px 20px">
+          <div style="font-size:12px;font-weight:800">Main gap</div>
+          <div style="font-size:16px;font-weight:800;margin-top:2px">Native iOS (Swift) depth</div>
+          <div style="font-size:13px;line-height:1.5;margin-top:4px">The posting asks for platform channels in Swift. Nothing in your profile shows Swift.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+        <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+          <div style="border:1px solid #E8E5DA;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+            <div class="muted" style="font-size:12px;font-weight:700">{{c.label}}</div>
+            <div style="font-size:15px;font-weight:800">{{c.value}}</div>
+            <div style="font-size:12px;font-weight:800;color:{{c.ink}}">{{c.mark}}</div>
+            <div class="muted" style="font-size:12px;line-height:1.45">{{c.note}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <details class="ev">
+        <summary class="btn">Show the evidence for all 7 requirements</summary>
+        <div style="margin-top:8px">
+          <sc-for list="{{reqs}}" as="r" hint-placeholder-count="7">
+            <div class="line" style="align-items:flex-start;padding:14px 0">
+              <span class="tag" style="flex:0 0 76px;text-align:center;background:{{r.bg}};color:{{r.ink}}">{{r.status}}</span>
+              <div style="flex:1 1 220px;min-width:0">
+                <div style="font-size:14px;font-weight:700">{{r.need}}</div>
+                <div class="muted" style="font-size:12px;margin-top:3px">From the posting: “{{r.quote}}”</div>
+              </div>
+              <div class="note" style="flex:1.4 1 260px;min-width:0"><strong>Your evidence:</strong> {{r.evidence}}</div>
+            </div>
+          </sc-for>
+        </div>
+      </details>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showCv}}" hint-placeholder-val="{{false}}">
+    <section class="card" aria-labelledby="cv-h" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between">
+        <h2 id="cv-h" class="h2">CV and letter</h2>
+        <span class="muted" style="font-size:12px">Written by AI from your approved profile only. Read both before you use them.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+        <sc-for list="{{docs}}" as="d" hint-placeholder-count="2">
+          <div style="border:1px solid #E8E5DA;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:15px;font-weight:800">{{d.name}}</div>
+            <div style="font-size:13px;line-height:1.55;color:#3D3D3A">{{d.what}}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:auto">
+              <button class="btn" type="button" aria-label="{{d.previewLabel}}">Preview</button>
+              <button class="btn" type="button" disabled="{{exportOff}}" aria-label="{{d.exportLabel}}">Export PDF</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <p class="muted" style="margin:0;font-size:13px;line-height:1.5">{{exportNote}} For a freelance gig, the letter is replaced by a proposal.</p>
+      <div class="note">
+        <strong>Fact check:</strong> 14 of 15 statements trace to a line in your profile. 1 needs you: “led a team of four” is not in your profile. Confirm it in Profile or remove it before export.
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showOut}}" hint-placeholder-val="{{false}}">
+    <section class="card" aria-labelledby="out-h" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between">
+        <h2 id="out-h" class="h2">Outreach</h2>
+        <span class="tag" style="background:#F0EEE6;color:#4A4944">Nothing is sent without you</span>
+      </div>
+      <div>
+        <sc-for list="{{contacts}}" as="p" hint-placeholder-count="2">
+          <div class="line" style="padding:14px 0">
+            <div style="flex:1 1 240px;min-width:0">
+              <div style="font-size:14px;font-weight:800">{{p.role}}</div>
+              <div class="muted" style="font-size:13px;display:flex;align-items:center;gap:6px">Source: <a href="#out-h" style="color:#B04A27;font-weight:700;text-decoration:underline;min-height:44px;min-width:44px;display:inline-flex;align-items:center">{{p.source}}</a></div>
+            </div>
+            <span class="tag" style="background:{{p.bg}};color:{{p.ink}}">{{p.state}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#4A4944">Draft message, written by AI. Edit it before you send it.</div>
+        <div class="note" style="margin-top:8px;font-size:14px">Hello, I applied for the Senior Flutter Engineer role at Lumen Health. I have shipped offline-first Flutter apps for five years, including a sync layer with conflict handling, which looks close to your patient records work. I would be glad to share details if that is useful.</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn pri" type="button">Copy message</button>
+        <button class="btn" type="button">Mark as sent</button>
+        <span class="muted" style="font-size:13px">You send it yourself, from your own account.</span>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{showTrack}}" hint-placeholder-val="{{false}}">
+    <section class="card" aria-labelledby="ap-h" style="display:flex;flex-direction:column;gap:12px">
+      <h2 id="ap-h" class="h2">Apply</h2>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#3D3D3A">Jobmigo does not submit applications. Open the posting, apply with your exported CV and letter, then tell us how it went. Nothing is sent without you.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center">
+        <a class="btn pri" href="#ap-h">Open the posting and apply</a>
+        <span style="font-size:14px;font-weight:800">Did you apply?</span>
+        <button class="btn" type="button">Yes, I applied</button>
+        <button class="btn ghost" type="button">Not yet</button>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="tr-h" style="display:flex;flex-direction:column;gap:16px">
+      <h2 id="tr-h" class="h2">Track</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+        <label class="field">Stage<select><option>Preparing</option><option>Saved</option><option>Applied</option><option>Interviewing</option><option>Offer</option><option>Closed</option></select></label>
+        <label class="field">Follow-up date<input type="date"></label>
+        <label class="field">Outcome<select><option>No outcome yet</option><option>Not selected</option><option>Withdrawn by me</option><option>Offer accepted</option><option>Offer declined</option></select></label>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 28px;font-size:13px;color:#3D3D3A">
+        <span><strong>Added:</strong> 3 days ago</span>
+        <span><strong>Prepared:</strong> today</span>
+        <span><strong>Applied:</strong> not yet</span>
+      </div>
+      <label class="field">Notes<textarea rows="3" placeholder="Anything worth remembering about this job"></textarea></label>
+    </section>
+  </sc-if>
+
+  <p class="muted" style="margin:0;font-size:12px;line-height:1.5">Design board: the job, company, contacts and numbers here are sample data.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"demo":{"editor":"enum","options":["Not started","Working","Ready to review","Approved","Failed","Empty"],"default":"Ready to review"},"startStep":{"editor":"enum","options":["Fit","CV and letter","Outreach","Track"],"default":"Fit"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { clearTimeout(this.timer); }
+  renderVals() {
+    const st = this.state || {};
+    const map = { 'Not started': 'idle', 'Working': 'working', 'Ready to review': 'review', 'Approved': 'approved', 'Failed': 'failed', 'Empty': 'empty' };
+    const p = st.prep ?? map[this.props.demo] ?? 'review';
+    const step = st.step ?? this.props.startStep ?? 'Fit';
+    const prepare = () => {
+      this.setState({ prep: 'working' });
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => this.setState({ prep: 'review' }), 1600);
+    };
+    const ready = p === 'review' || p === 'approved';
+    const TAG = {
+      idle: { tag: 'Not started', tagBg: '#F0EEE6', tagInk: '#4A4944' },
+      working: { tag: 'Working', tagBg: '#E3EBF5', tagInk: '#1F4E79' },
+      failed: { tag: 'Failed', tagBg: '#FADCDC', tagInk: '#8A1F1F' },
+      empty: { tag: 'Nothing to show', tagBg: '#FFF1CC', tagInk: '#6B4300' }
+    };
+    const TEXT = {
+      'Fit': {
+        idle: ['No fit check yet', 'Prepare the application to check this posting against your profile and draft your CV and letter in one go.', 'Prepare application'],
+        working: ['Checking the fit…', 'Reading the posting and matching each requirement to your profile. This usually takes under a minute.', ''],
+        failed: ['The fit check did not finish', 'Nothing was lost and nothing was saved half done. Try again.', 'Try again'],
+        empty: ['Not enough to check', 'The saved posting has too little text to evaluate. Add the full posting text from Jobs, then prepare again.', '']
+      },
+      'CV and letter': {
+        idle: ['No drafts yet', 'Prepare the application to get a tailored CV and a cover letter built only from your approved profile.', 'Prepare application'],
+        working: ['Writing your CV and letter…', 'Drafting from your approved profile, then checking every statement against it.', ''],
+        failed: ['The drafts did not finish', 'Your profile and any earlier drafts are unchanged. Try again.', 'Try again'],
+        empty: ['Nothing to build from', 'Your profile has no approved facts yet. Review your profile first, then prepare again.', '']
+      },
+      'Outreach': {
+        idle: ['No contacts looked up yet', 'Contacts are looked up from public pages when you prepare the application.', 'Prepare application'],
+        working: ['Looking for public contacts…', 'Checking the company careers and team pages. Only sources you can open are kept.', ''],
+        failed: ['The contact lookup did not finish', 'No message was drafted and nothing was sent. Try again.', 'Try again'],
+        empty: ['No public contact found', 'We found no hiring contact with a source we can link to. You can still apply through the posting.', '']
+      },
+      'Track': {
+        idle: ['Not applied yet', 'Tracking starts once you approve the application or tell us you applied.', 'Prepare application'],
+        working: ['Saving…', 'Saving your change to this job.', ''],
+        failed: ['Your change was not saved', 'The stage, dates and notes are as they were before. Try again.', 'Try again'],
+        empty: ['No dates or notes yet', 'Stage changes, follow-up dates and notes for this job will be listed here.', '']
+      }
+    };
+    const names = ['Fit', 'CV and letter', 'Outreach', 'Track'];
+    const statusOf = (n) => {
+      if (p === 'idle') return 'Not started';
+      if (p === 'working') return 'Working';
+      if (p === 'failed') return 'Failed, retry';
+      if (p === 'empty') return 'Nothing to show';
+      if (n === 'Track') return p === 'approved' ? 'Ready to apply' : 'After approval';
+      if (n === 'Outreach') return 'Draft ready';
+      return p === 'approved' ? 'Approved' : 'Ready to review';
+    };
+    const t = TEXT[step][p];
+    const trackReady = step === 'Track' && ready;
+    const showState = !ready;
+    const good = { ink: '#0B5E50' }, warn = { ink: '#6B4300' };
+    const met = { status: 'Met', bg: '#DDF3EC', ink: '#0B5E50' };
+    const part = { status: 'Partial', bg: '#FFF1CC', ink: '#6B4300' };
+    const gap = { status: 'Gap', bg: '#FADCDC', ink: '#8A1F1F' };
+    const doc = (name, what) => ({ name, what, previewLabel: 'Preview ' + name, exportLabel: 'Export ' + name + ' as PDF' });
+    return {
+      stage: p === 'approved' ? 'Preparing, approved' : 'Preparing',
+      steps: names.map((n) => ({ label: n, status: statusOf(n), cls: n === step ? 'step on' : 'step', pressed: n === step ? 'true' : 'false', pick: () => this.setState({ step: n }) })),
+      stepLabel: step + ' status',
+      ctaPrepare: p === 'idle' || p === 'failed' || p === 'empty',
+      ctaWorking: p === 'working',
+      ctaReview: p === 'review',
+      ctaApproved: p === 'approved',
+      ctaHint: p === 'review' ? 'Ready to review. One approval covers the fit check, CV and letter.' : p === 'approved' ? 'Approved. You apply on the employer’s site yourself.' : 'One step: fit check, tailored CV and cover letter.',
+      prepare,
+      approve: () => this.setState({ prep: 'approved', step: 'Track' }),
+      reset: () => this.setState({ prep: 'idle' }),
+      goTrack: () => this.setState({ step: 'Track' }),
+      goCv: () => this.setState({ step: 'CV and letter' }),
+      showReview: p === 'review' && (step === 'Fit' || step === 'CV and letter'),
+      showState,
+      state: showState ? { ...TAG[p], title: t[0], body: t[1], btn: t[2], hasBtn: !!t[2], spin: p === 'working', act: prepare } : {},
+      showFit: ready && step === 'Fit',
+      showCv: ready && step === 'CV and letter',
+      showOut: ready && step === 'Outreach',
+      showTrack: trackReady,
+      exportOff: p !== 'approved',
+      exportNote: p === 'approved' ? 'Approved. Export is unlocked.' : 'Export unlocks after you approve.',
+      checks: [
+        { label: 'Salary', value: '$70-90k', mark: 'Within your target', ...good, note: 'Listed range, not confirmed by the employer.' },
+        { label: 'Location', value: 'Remote, EMEA', mark: 'Compatible', ...good, note: 'Your time zone is inside the stated overlap.' },
+        { label: 'Eligibility', value: 'Contractor or employee', mark: 'Confirm this', ...warn, note: 'The posting does not say how contractors outside the EU are paid.' }
+      ],
+      reqs: [
+        { ...met, need: '4+ years production Flutter', quote: 'at least 4 years building shipped Flutter apps', evidence: 'Five years on a fintech app (CV, Experience).' },
+        { ...met, need: 'State management (Riverpod or Bloc)', quote: 'comfortable with Riverpod or Bloc', evidence: 'Moved a 40-screen app from Provider to Riverpod (CV, Projects).' },
+        { ...met, need: 'Offline-first and sync', quote: 'offline-capable patient records', evidence: 'Built a local-first sync layer with conflict handling (CV, Achievements).' },
+        { ...met, need: 'CI/CD for mobile releases', quote: 'own our release pipeline', evidence: 'Set up release pipelines for two apps (CV, Experience).' },
+        { ...met, need: 'REST and GraphQL APIs', quote: 'integrate with GraphQL services', evidence: 'GraphQL client work listed under two roles.' },
+        { ...part, need: 'Health or regulated-data experience', quote: 'experience with sensitive user data', evidence: 'Payments data handling is close, but no health work is in your profile.' },
+        { ...gap, need: 'Native iOS (Swift) depth', quote: 'write platform channels in Swift', evidence: 'No Swift found in your profile. Add it in Profile if you have it.' }
+      ],
+      docs: [
+        doc('Tailored CV', 'Reorders 4 bullets to lead with offline sync and release work. Adds no new facts.'),
+        doc('Cover letter', 'Three short paragraphs. Names the Swift gap plainly instead of hiding it.')
+      ],
+      contacts: [
+        { role: 'Talent Acquisition Lead, Lumen Health', source: 'Company team page', state: 'Not contacted', bg: '#F0EEE6', ink: '#4A4944' },
+        { role: 'Engineering Manager, Mobile', source: 'Named in the job posting', state: 'Not contacted', bg: '#F0EEE6', ink: '#4A4944' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.who{margin-top:auto;border-top:1px solid #E8E5DA;padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.main{flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.nav:hover{background:#F0EEE6}
+.nav.on{background:#F8E3D8;color:#8A3B1E}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box}
+.h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s ease,box-shadow .15s ease}
+.btn:hover{box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.btn[disabled]{opacity:.6;cursor:default;box-shadow:none}
+.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.muted{color:#5E5D59}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#4A4944}
+.field input,.field select,.field textarea{font:inherit;font-size:15px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:10px 12px;min-height:44px;box-sizing:border-box;background:#fff;width:100%}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2}
+.line.first{border-top:0}
+.note{background:#F7F5EE;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#3D3D3A}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{border:1px solid #D9D5C7;background:#fff;border-radius:16px;padding:12px 16px;min-height:64px;box-sizing:border-box;text-align:left;display:flex;flex-direction:column;gap:4px;font-size:15px;font-weight:800;color:#1A1A18}
+.step.on{border-color:#B04A27;box-shadow:inset 0 0 0 1px #B04A27;background:#FDF3EE}
+.step small{font-size:12px;font-weight:700;color:#5E5D59}
+details.ev>summary{list-style:none;cursor:pointer}
+details.ev>summary::-webkit-details-marker{display:none}
+.sk{background:#EFECE2;border-radius:12px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:720px){
+.side{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-right:0;border-bottom:1px solid #E8E5DA}
+.side nav{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-direction:row;gap:4px;background:#fff;border-top:1px solid #E8E5DA;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav{flex:1 1 0;flex-direction:column;justify-content:center;gap:2px;padding:6px 2px;font-size:12px;min-width:0}
+.who{margin-top:0;border-top:0;padding-top:0;flex-direction:row;align-items:center}
+.who .name{display:none}
+.main{flex:1 1 100%;padding:20px 16px 104px;gap:16px}
+.card{padding:16px}
+.line{padding:14px 4px}
+.steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</helmet>
+<div class="shell">
+<aside class="side">
+  <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="disp" style="font-size:21px;font-weight:700;color:#1A1A18">job<span style="color:#B04A27">migo</span></span>
+  </div>
+  <nav aria-label="Main">
+    <a class="nav" href="Today.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M12 6h8M12 12h8M12 18h8"/></svg>Today</a>
+    <a class="nav" href="Jobs.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
+    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
+    <a class="nav on" aria-current="page" href="Settings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Settings</a>
+  </nav>
+  <div class="who">
+    <span class="name" style="font-size:13px;font-weight:700;color:#4A4944;padding:0 6px">Alex Sample</span>
+    <button class="btn" type="button">Sign out</button>
+  </div>
+</aside>
+<main class="main">
+  <header>
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.01em">Settings</h1>
+    <p class="muted" style="margin:6px 0 0;font-size:14px">Your account and your data.</p>
+  </header>
+
+  <div style="display:flex;flex-direction:column;gap:24px;max-width:760px">
+    <section class="card" aria-labelledby="ac-h" style="padding:20px 8px 8px">
+      <h2 id="ac-h" class="h2" style="padding:0 16px 12px">Account</h2>
+      <div class="line" style="justify-content:space-between">
+        <div style="font-size:14px;min-width:0;flex:1 1 240px"><strong>Name</strong><div class="muted" style="font-size:13px;margin-top:2px">Alex Sample</div></div>
+        <button class="btn" type="button" aria-label="Change name">Change</button>
+      </div>
+      <div class="line" style="justify-content:space-between">
+        <div style="font-size:14px;min-width:0;flex:1 1 240px"><strong>Email</strong><div class="muted" style="font-size:13px;margin-top:2px">alex@example.com</div></div>
+        <button class="btn" type="button" aria-label="Change email">Change</button>
+      </div>
+      <div class="line" style="justify-content:space-between">
+        <div style="font-size:14px;min-width:0;flex:1 1 240px"><strong>Password</strong><div class="muted" style="font-size:13px;margin-top:2px">Used to sign in on this device and others.</div></div>
+        <button class="btn" type="button" aria-label="Change password">Change</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="dt-h" style="padding:20px 8px 8px">
+      <h2 id="dt-h" class="h2" style="padding:0 16px 12px">Your data</h2>
+      <div class="line" style="justify-content:space-between">
+        <div style="font-size:14px;min-width:0;flex:1 1 240px"><strong>Export my data</strong><div class="muted" style="font-size:13px;margin-top:2px;line-height:1.45">A download of your profile, jobs, documents and notes.</div></div>
+        <button class="btn" type="button">Export</button>
+      </div>
+      <div class="line" style="justify-content:space-between">
+        <div style="font-size:14px;min-width:0;flex:1 1 240px"><strong>Delete my account</strong><div class="muted" style="font-size:13px;margin-top:2px;line-height:1.45">Removes your profile, jobs, documents and notes for good. This cannot be undone.</div></div>
+        <button class="btn ghost danger" type="button">Delete account</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="so-h" style="display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between">
+      <div style="min-width:0;flex:1 1 240px">
+        <h2 id="so-h" class="h2">Sign out</h2>
+        <p class="muted" style="margin:4px 0 0;font-size:13px">Signed in as Alex Sample.</p>
+      </div>
+      <button class="btn" type="button">Sign out</button>
+    </section>
+
+    <section aria-labelledby="lt-h" style="border:1px dashed #D9D5C7;border-radius:20px;padding:20px 24px;display:flex;flex-direction:column;gap:4px">
+      <h2 id="lt-h" class="h2" style="color:#4A4944">Later</h2>
+      <p class="muted" style="margin:0 0 6px;font-size:13px">Not part of this version. Nothing here is switched on.</p>
+      <div class="line" style="padding:12px 0;justify-content:space-between">
+        <div style="font-size:14px;color:#4A4944;flex:1 1 240px"><strong>Plan and billing</strong><div class="muted" style="font-size:13px;margin-top:2px">Plans, payments and invoices.</div></div>
+        <span class="tag" style="background:#F0EEE6;color:#4A4944">Later</span>
+      </div>
+      <div class="line" style="padding:12px 0;justify-content:space-between">
+        <div style="font-size:14px;color:#4A4944;flex:1 1 240px"><strong>Telegram</strong><div class="muted" style="font-size:13px;margin-top:2px">Daily digest and alerts in Telegram.</div></div>
+        <span class="tag" style="background:#F0EEE6;color:#4A4944">Later</span>
+      </div>
+    </section>
+  </div>
+
+  <p class="muted" style="margin:0;font-size:12px;line-height:1.5">Design board: the name and email here are sample data.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1140}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

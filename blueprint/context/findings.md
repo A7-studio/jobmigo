@@ -637,14 +637,6 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Suggested fix:** Add a generous-bound timing test for the deep-stack and many-distinct-word shapes, and one engine test that a 40 KB profile body is refused while a 40 KB job body is accepted.
 **Resolution:** Partly: a timing test for hostile input now exists; the profile-route 32 KB check next to the job route is still untested. Left open.
 
-### F-114 [P1] fixed - Unterminated-tag shapes still make the cleaner quadratic: a 200,000-character paste takes minutes (F-111's repair covered only the element stack)
-
-**File:** engine/src/engine/jobs/posting_guard.py:60, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:69
-**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
-**Why it matters:** `DROP_BLOCKS` (`<(script|style|noscript|svg|template)\b[^>]*>.*?...`), `TAG` (`<(/?)name(attrs)*>`) and `PRESTRIP` (`<?[^>]*?>`) each scan to the end of the input when a start has no `>`, so many starts with no `>` cost O(n) each. Measured with throwaway scripts after a `<p>` prefix (auto mode picks HTML): `<script ` repeated: 20,000 chars 6.5 s, 40,000 chars 25.9 s (about 650 s extrapolated at 200,000); `<svg `, `<style `, `<template `, `<noscript ` the same (20 to 28 s at 40,000); `<a ` repeated 11.5 s at 40,000; `</a ` repeated 8.7 s at 40,000; `<a "` 5.2 s; `<? ` 0.6 s at 40,000 (15 s at 200,000). All fit inside the 256 KB body cap and 200,000-character limit, so one signed-in user can pin the engine for many minutes per request, and repeat it. This is the same class as F-111, so its Resolution ("linear", "well under a second") does not hold for these shapes. The new timing test uses one `<a ` and one `<!--` run, so it does not reach them. Differential check of the element-stack repair itself: 40,000 random tag soups (implied end tags, closers with no opener, nested hidden elements, mixed case, self-closing) gave identical text and findings to the pre-repair walker, and the `positions` map stays consistent with `stack` for every pop path; that part is correct.
-**Suggested fix:** Bound every scan, for example `[^>]{0,2000}` in `DROP_BLOCKS` and `PRESTRIP`, and a length-limited attribute group in `TAG` (a tag longer than a few thousand characters is treated as text), or replace the regex tokenizer with one pass over `str.find("<")`/`find(">")` that remembers when no further `>` exists. Add timing cases for repeated `<script `, `<svg `, `<a `, `</a ` and `<? ` at 200,000 characters.
-**Resolution:** The unterminated-tag scans (`TAG`, `DROP_BLOCKS`, `PRESTRIP`) no longer cross a `<`, so an opener with no `>` fails fast; 45 hostile 200,000-character shapes now finish in under 0.1 s each (`test_repeated_unterminated_openers_are_cleaned_in_bounded_time`), and 4,000 random tag soups give output identical to the original.
-
 ### F-115 [P2] fixed - `asyncio.to_thread` does not keep the event loop free while the cleaner runs
 
 **File:** engine/src/engine/jobs/service.py:67
@@ -652,14 +644,6 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** The cleaner is regex work, and a single `re` call holds the GIL for its whole duration, so the loop thread cannot run while one is matching. Measured: a ticker task on the loop with `await asyncio.to_thread(clean_posting, "<p>" + "<script " * 1500)` saw a maximum loop lag of 2.37 s for a 2.38 s job, so health checks, CV parsing and other users stall exactly as before. The comment "Off the event loop ... must not stall others" is therefore false for the slow shapes of F-114, and the thread also stays busy (the default pool) after the client disconnects.
 **Suggested fix:** Fix the scans (F-114) so no single match is long. If a hard bound is still wanted, run the cleaner in a worker process with a timeout (the engine already runs CV extraction out of process) and refuse the paste with `validation_failed` on timeout; otherwise drop the `to_thread` and its comment, since it adds nothing.
 **Resolution:** The comment no longer claims the event loop is free; the real protection is the linear-time cleaner and the size cap, with the thread as a courtesy.
-
-### F-116 [P1] fixed - A single long unterminated tag name (`<aaaa...`, no `>`) makes `TAG` backtrack quadratically: about 14 minutes at 200,000 characters
-
-**File:** engine/src/engine/jobs/posting_guard.py:68
-**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
-**Why it matters:** In `TAG`, the name group `[\w:-]*` and the attribute group `(?:[^<>"']|...)*` accept the same characters, so when no `>` follows, the engine gives characters back from the name one at a time and re-scans the rest as attributes: O(n^2) from one tag. Measured with `<p>` + `<` + `a` x n (no `>`; auto mode picks HTML): 10,000 chars 2.1 s, 20,000 chars 8.6 s, 40,000 chars 34 s, so about 860 s at 200,000. `</aaa...` and `<a:b-b-...` behave the same. It is one request inside the 256 KB body and 200,000-character caps, and because a regex holds the GIL (F-115) the whole engine stalls for that time. The F-114 repair and its timing test do not cover it (see F-119).
-**Suggested fix:** Make the name possessive, `([a-zA-Z][\w:-]*+)` (Python 3.11 and later; the engine is 3.13), or add `(?![\w:-])` after it. Measured with the possessive form: 20,000 chars in under 1 ms. Add `<` + `a` x 200,000 and `</` + `a` x 200,000 to the timing test.
-**Resolution:** The tag name is possessive; a 100,000-character name now cleans in milliseconds (`test_hostile_html_at_the_size_cap_is_cleaned_in_bounded_time`).
 
 ### F-117 [P2] fixed - `collect` removes tags with `<[^>]+>`, which is quadratic on a comment or script block full of `<`
 
@@ -726,3 +710,11 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
 **Why it matters:** `jobs-view.test.ts` covers form checks, link safety, labels and copy well, but the repository has no DOM test library, so nothing exercises the add flow (link, refusal, paste, confirm, duplicate), the single-mutation rule, the delete question focus, the cache invalidation or the failed-load handling; these rest on the manual browser pass recorded in the spec. Two assertions are weak: the paste-instead test accepts "try again" as proof of a paste hint, and the date test has no clock-change case (F-120).
 **Suggested fix:** Accept as a documented gap for this repo, or extract the add flow into a small reducer in `jobs-view.ts` with tests; tighten the assertion to require "paste" for every `PASTE_INSTEAD` code except `fetch_failed`.
+
+### F-126 [P3] open - A stray `<` followed by a letter in an HTML paste drops the words up to the next `>`
+
+**File:** engine/src/engine/jobs/posting_guard.py:417
+**Found:** 2026-11-11 by /audit (scope: current; lens: performance, with the repair re-read for correctness)
+**Why it matters:** The scanner reads `<y then pay more.</p>` as a tag, as a browser does, so text such as "if x<y then pay more." loses "y then pay more." from the saved posting when the paste is treated as HTML. With no later `>`, everything after it is dropped. Reproduced with `clean_posting("<p>Salary if x<y then pay more.</p><p>Second line stays</p>")`, which returns "Salary if x" then "Second line stays". Rare in real postings; the browser-faithful rule is what keeps hidden text from being revealed.
+**Suggested fix:** Accept as a documented trade-off, or keep the dropped span in the counts so a user can see that text was removed. Decide with feature 8 when postings are read next to the profile.
+**Resolution:**

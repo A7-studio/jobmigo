@@ -14,173 +14,218 @@
 body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
-.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:600;color:#4A4944}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.who{margin-top:auto;border-top:1px solid #E8E5DA;padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.main{flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
 .nav:hover{background:#F0EEE6}
 .nav.on{background:#F8E3D8;color:#8A3B1E}
 .card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box}
-.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;display:inline-flex;align-items:center;gap:8px}
-.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:#4A4944;min-height:40px}
-.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
-.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#4A4944}
-.field select{font:inherit;font-size:14px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:0 12px;min-height:44px;background:#fff}
-.row:hover{background:#F7F5EE}
-
-.btn{transition:transform .15s ease,box-shadow .15s ease}
-.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s ease,box-shadow .15s ease}
+.btn:hover{box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
 .btn.pri:hover{background:#963E1F;border-color:#963E1F}
-a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #D97757;outline-offset:2px}
-@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-2deg)}}
-@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
-@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
-@keyframes flame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.14) rotate(4deg)}}
-@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,87,0)}50%{box-shadow:0 0 0 6px rgba(217,119,87,.28)}}
-@keyframes ringfill{from{stroke-dashoffset:213.6}}
-.migo{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
-.migo-eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
-.growx{transform-origin:left;animation:growx .9s cubic-bezier(.2,.8,.2,1) both}
-.growy{transform-origin:bottom;animation:growy .9s cubic-bezier(.2,.8,.2,1) both}
-.floaty{animation:floaty 4s ease-in-out infinite}
-.pop{animation:pop .5s ease-out both}
-.flame{animation:flame 1.4s ease-in-out infinite;transform-origin:50% 90%}
-.glow{animation:glow 2.4s ease-in-out infinite}
-.ringfill{animation:ringfill 1.2s cubic-bezier(.2,.8,.2,1) both}
-
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes shine{0%{background-position:160% 0}100%{background-position:-60% 0}}
-@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
-@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
-@keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
-h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
-.card{animation:rise .55s ease-out both}
-.card:hover{box-shadow:0 8px 24px rgba(26,26,24,.06)}
-.btn.pri{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.2) 50%,transparent 65%);background-size:220% 100%;animation:shine 4s ease-in-out infinite}
-.migo:hover{animation:wiggle .6s ease-in-out}
-.confetti{position:absolute;top:0;border-radius:2px;animation:fall 5s linear infinite}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-.ib{position:relative;width:44px;height:44px;flex:0 0 44px;border:1px solid transparent;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#4A4944;cursor:pointer;padding:0;list-style:none}
-.ib:hover{background:#F0EEE6;color:#1A1A18}
-.ib .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A18;color:#fff;font-size:12px;font-weight:700;border-radius:8px;padding:5px 9px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:30}
-.ib:hover .tip,.ib:focus-visible .tip{opacity:1}
-.ib[aria-pressed="true"]{color:#B04A27}
 .btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
-.btn.ghost:hover{background:#FDF3EE;box-shadow:none;transform:none}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none}
 .btn.ghost.danger{color:#8A1F1F}
 .btn.ghost.danger:hover{background:#FDECEC}
-.cr{font-size:12px;font-weight:700;color:#5E5D59}
-details.menu{position:relative}
-details.menu>summary{list-style:none;cursor:pointer}
-details.menu>summary::-webkit-details-marker{display:none}
-details.menu .pop-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:#fff;border:1px solid #E8E5DA;border-radius:14px;box-shadow:0 12px 32px rgba(26,26,24,.14);padding:6px;z-index:20;display:flex;flex-direction:column}
-details.menu .pop-menu button,details.menu .pop-menu a{border:0;background:transparent;border-radius:10px;min-height:44px;padding:0 12px;font:inherit;font-size:14px;font-weight:700;color:#1A1A18;display:flex;align-items:center;gap:10px;text-align:left}
-details.menu .pop-menu button:hover,details.menu .pop-menu a:hover{background:#F7F5EE}
+.btn[disabled]{opacity:.6;cursor:default;box-shadow:none}
+.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:#4A4944;min-height:44px;box-sizing:border-box}
+.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
+.tag{display:inline-block;font-size:12px;font-weight:800;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.muted{color:#5E5D59}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#4A4944}
+.field input,.field select,.field textarea{font:inherit;font-size:15px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:10px 12px;min-height:44px;box-sizing:border-box;background:#fff;width:100%}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2}
+.line.first{border-top:0}
+.note{background:#F7F5EE;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#3D3D3A}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{border:1px solid #D9D5C7;background:#fff;border-radius:16px;padding:12px 16px;min-height:64px;box-sizing:border-box;text-align:left;display:flex;flex-direction:column;gap:4px;font-size:15px;font-weight:800;color:#1A1A18}
+.step.on{border-color:#B04A27;box-shadow:inset 0 0 0 1px #B04A27;background:#FDF3EE}
+.step small{font-size:12px;font-weight:700;color:#5E5D59}
+details.ev>summary{list-style:none;cursor:pointer}
+details.ev>summary::-webkit-details-marker{display:none}
+.sk{background:#EFECE2;border-radius:12px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;transform-origin:50% 50%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:720px){
+.side{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-right:0;border-bottom:1px solid #E8E5DA}
+.side nav{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-direction:row;gap:4px;background:#fff;border-top:1px solid #E8E5DA;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.nav{flex:1 1 0;flex-direction:column;justify-content:center;gap:2px;padding:6px 2px;font-size:12px;min-width:0}
+.who{margin-top:0;border-top:0;padding-top:0;flex-direction:row;align-items:center}
+.who .name{display:none}
+.main{flex:1 1 100%;padding:20px 16px 104px;gap:16px}
+.card{padding:16px}
+.line{padding:14px 4px}
+.steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 </style>
 </helmet>
-<div style="display:flex;flex-wrap:wrap;min-height:100vh">
-
-<aside style="flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0">
-  <div style="display:flex;align-items:center;gap:10px;padding:0 6px">
-    <span style="display:inline-flex;align-items:center;gap:8px"><svg class="migo" width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><span class="disp" style="font-size:21px;font-weight:700;letter-spacing:0;color:#1A1A18">job<span style="color:#B04A27">migo</span></span></span>
+<div class="shell">
+<aside class="side">
+  <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+    <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="disp" style="font-size:21px;font-weight:700;color:#1A1A18">job<span style="color:#B04A27">migo</span></span>
   </div>
-  <nav aria-label="Main" style="display:flex;flex-direction:column;gap:4px">
-    <a class="nav" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</a>
-    <a class="nav on" href="Jobs.dc.html" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
-    <a class="nav" href="Pipeline.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v5h-4z"/></svg>Applications</a>
-    <a class="nav" href="Outreach.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v10H8l-4 4z"/></svg>Outreach</a>
-    <a class="nav" href="Documents.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>Documents</a>
-    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Career profile</a>
+  <nav aria-label="Main">
+    <a class="nav" href="Today.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M12 6h8M12 12h8M12 18h8"/></svg>Today</a>
+    <a class="nav on" aria-current="page" href="Jobs.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
+    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
     <a class="nav" href="Settings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Settings</a>
   </nav>
-  <div style="margin-top:auto;background:#FAF9F5;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
-    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700"><span>AI credits</span><span style="color:#4A4944;font-weight:600">409 / 600</span></div>
-    <div role="img" aria-label="409 of 600 credits remaining" style="height:8px;border-radius:99px;background:#D9D5C7;overflow:hidden"><div class="growx" style="width:68%;height:100%;background:#D97757"></div></div>
+  <div class="who">
+    <span class="name" style="font-size:13px;font-weight:700;color:#4A4944;padding:0 6px">Alex Sample</span>
+    <button class="btn" type="button">Sign out</button>
   </div>
 </aside>
-
-<main style="flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
-
+<main class="main">
   <header style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
     <div>
       <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.01em">Jobs</h1>
-      <p style="margin:6px 0 0;font-size:14px;color:#5E5D59">Verified live roles from public career pages and supported job APIs.</p>
+      <p class="muted" style="margin:6px 0 0;font-size:14px">Jobs found for you and jobs you add yourself, in one list.</p>
     </div>
-    <button class="btn ghost" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Saved jobs (9)</button>
+    <sc-if value="{{notAdding}}" hint-placeholder-val="{{true}}">
+      <button class="btn pri" type="button" onClick="{{openAdd}}">Add a job</button>
+    </sc-if>
   </header>
 
-  <section aria-label="Discovery summary" style="display:flex;flex-wrap:wrap;gap:12px 28px;font-size:13px;color:#4A4944;background:#fff;border:1px solid #E8E5DA;border-radius:16px;padding:14px 20px">
-    <span><strong style="color:#1A1A18">24</strong> new today</span>
-    <span><strong style="color:#1A1A18">7</strong> strong fits</span>
-    <span><strong style="color:#1A1A18">6</strong> duplicates merged</span>
-    <span><strong style="color:#1A1A18">3</strong> expired and removed</span>
-    <span>Last discovery run 07:12</span>
-  </section>
+  <sc-if value="{{adding}}" hint-placeholder-val="{{false}}">
+    <section class="card" aria-labelledby="add-h" style="display:flex;flex-direction:column;gap:14px;max-width:720px">
+      <h2 id="add-h" class="h2">Add a job</h2>
+      <label class="field">Link to the posting<input type="url" placeholder="https://"></label>
+      <label class="field">Or paste the posting text<textarea rows="4" placeholder="Paste the full posting here"></textarea></label>
+      <p class="muted" style="margin:0;font-size:13px;line-height:1.5">We keep a cleaned copy so you can read it later. Use one of the two fields.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn pri" type="button" onClick="{{closeAdd}}">Save job</button>
+        <button class="btn ghost" type="button" onClick="{{closeAdd}}">Cancel</button>
+      </div>
+    </section>
+  </sc-if>
 
-  <div role="group" aria-label="Career track" style="display:flex;flex-wrap:wrap;gap:10px">
-    <button class="chip on" type="button" aria-pressed="true">All tracks</button>
-    <button class="chip" type="button" aria-pressed="false">Flutter &amp; mobile</button>
-    <button class="chip" type="button" aria-pressed="false">AI coding evaluation</button>
-    <button class="chip" type="button" aria-pressed="false">AI application engineering</button>
+  <div role="group" aria-label="Stage" style="display:flex;flex-wrap:wrap;gap:8px">
+    <sc-for list="{{views}}" as="v" hint-placeholder-count="8">
+      <button class="{{v.cls}}" type="button" aria-pressed="{{v.pressed}}" onClick="{{v.pick}}">{{v.label}}</button>
+    </sc-for>
   </div>
 
-  <section class="card" aria-label="Filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;align-items:end;padding:18px 20px">
-    <label class="field">Search<input type="search" placeholder="Title or company" style="font:inherit;font-size:14px;font-weight:500;border:1px solid #D9D5C7;border-radius:12px;padding:0 12px;min-height:44px"></label>
-    <label class="field">Fit<select><option>Any fit</option><option>Strong</option><option>Good and above</option></select></label>
-    <label class="field">Location<select><option>Remote, EMEA</option><option>Nairobi</option><option>Remote, global</option></select></label>
-    <label class="field">Source<select><option>All sources</option><option>Company career pages</option><option>Job APIs</option></select></label>
-    <label class="field">Posted<select><option>Last 7 days</option><option>Today</option><option>Last 30 days</option></select></label>
-  </section>
-
-  <section class="card" aria-label="Job results" style="padding:8px">
-    <sc-for list="{{jobs}}" as="j" hint-placeholder-count="8">
-      <div class="row" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2;border-radius:12px">
-        <div style="width:44px;height:44px;border-radius:12px;background:{{j.tint}};color:{{j.ink}};font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:0 0 44px">{{j.initial}}</div>
-        <a href="Job.dc.html" style="flex:1 1 260px;min-width:0">
-          <div style="font-size:15px;font-weight:700">{{j.title}}</div>
-          <div style="font-size:13px;color:#5E5D59;margin-top:3px">{{j.company}} · {{j.where}} · {{j.pay}}</div>
-          <div style="font-size:12px;color:#5E5D59;margin-top:5px">{{j.meta}}</div>
-        </a>
-        <span style="font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;background:#F0EEE6;color:#4A4944">{{j.track}}</span>
-        <div style="flex:0 0 150px;text-align:right">
-          <span style="display:inline-block;font-size:12px;font-weight:800;padding:6px 12px;border-radius:99px;background:{{j.bandBg}};color:{{j.bandInk}}">{{j.band}}</span>
-          <div style="font-size:12px;color:#5E5D59;margin-top:6px">{{j.evidence}}</div>
-        </div>
-        <button class="ib" type="button" aria-label="{{j.saveLabel}}" aria-pressed="{{j.pressed}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{j.fill}}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
-      </div>
+  <div role="group" aria-label="Career track" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <span class="muted" style="font-size:13px;font-weight:700">Track</span>
+    <sc-for list="{{tracks}}" as="t" hint-placeholder-count="4">
+      <button class="{{t.cls}}" type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}">{{t.label}}</button>
     </sc-for>
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-top:1px solid #EFECE2;font-size:13px;color:#5E5D59">
-      <span>Showing 8 of 24. Lower-ranked jobs are evaluated on demand to save credits.</span>
-      <button class="btn ghost" type="button">Load more</button>
-    </div>
-  </section>
+  </div>
+
+  <sc-if value="{{isFiltered}}" hint-placeholder-val="{{false}}">
+    <p class="note" style="margin:0">These jobs matched your search but broke one of your dealbreakers, so they were kept out of New. Each one shows the reason. Restore a job if the reason is wrong.</p>
+  </sc-if>
+
+  <sc-if value="{{hasJobs}}" hint-placeholder-val="{{true}}">
+    <section class="card" aria-label="{{listLabel}}" style="padding:8px">
+      <sc-for list="{{jobs}}" as="j" hint-placeholder-count="3">
+        <div class="line">
+          <div aria-hidden="true" style="width:44px;height:44px;border-radius:12px;background:{{j.tint}};color:{{j.ink}};font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:0 0 44px">{{j.initial}}</div>
+          <a href="Job.dc.html" style="flex:1 1 260px;min-width:0">
+            <div style="font-size:15px;font-weight:700">{{j.title}}</div>
+            <div class="muted" style="font-size:13px;margin-top:3px">{{j.company}} · {{j.where}} · {{j.pay}}</div>
+            <div style="font-size:13px;margin-top:6px;color:#3D3D3A">{{j.note}}</div>
+          </a>
+          <span class="tag" style="background:#F0EEE6;color:#4A4944">{{j.track}}</span>
+          <span class="tag" style="background:{{j.bandBg}};color:{{j.bandInk}}">{{j.band}}</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-if value="{{j.isNew}}" hint-placeholder-val="{{true}}">
+              <button class="btn ghost" type="button" onClick="{{j.drop}}" aria-label="{{j.skipLabel}}">Skip</button>
+            </sc-if>
+            <sc-if value="{{j.isNew}}" hint-placeholder-val="{{true}}">
+              <button class="btn pri" type="button" onClick="{{j.drop}}" aria-label="{{j.keepLabel}}">Keep</button>
+            </sc-if>
+            <sc-if value="{{j.isOut}}" hint-placeholder-val="{{false}}">
+              <button class="btn" type="button" onClick="{{j.drop}}" aria-label="{{j.restoreLabel}}">Restore</button>
+            </sc-if>
+            <sc-if value="{{j.isOpen}}" hint-placeholder-val="{{false}}">
+              <a class="btn" href="Job.dc.html" aria-label="{{j.openLabel}}">Open</a>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{noJobs}}" hint-placeholder-val="{{false}}">
+    <section class="card" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start;max-width:560px">
+      <h2 class="h2">{{emptyTitle}}</h2>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#3D3D3A">{{emptyBody}}</p>
+    </section>
+  </sc-if>
+
+  <p class="muted" style="margin:0;font-size:12px;line-height:1.5">Fit labels are an AI evaluation of the posting against your profile. Design board: every job, company and number here is sample data.</p>
 </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+<script type="text/x-dc" data-dc-script data-props='{"startView":{"editor":"enum","options":["New","Saved","Preparing","Applied","Interviewing","Offer","Closed","Filtered out"],"default":"New"},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    const st = this.state || {};
+    const view = st.view ?? this.props.startView ?? 'New';
+    const track = st.track ?? 'All tracks';
+    const gone = st.gone ?? [];
     const strong = { band: 'Strong fit', bandBg: '#DDF3EC', bandInk: '#0B5E50' };
     const good = { band: 'Good fit', bandBg: '#E3EBF5', bandInk: '#1F4E79' };
     const stretch = { band: 'Stretch', bandBg: '#FFF1CC', bandInk: '#6B4300' };
-    const wait = { band: 'Not evaluated', bandBg: '#F0EEE6', bandInk: '#4A4944' };
+    const none = { band: 'Not evaluated', bandBg: '#F0EEE6', bandInk: '#4A4944' };
+    const out = { band: 'Filtered out', bandBg: '#FADCDC', bandInk: '#8A1F1F' };
     const pu = { tint: '#F8E3D8', ink: '#8A3B1E' };
     const gr = { tint: '#DDF3EC', ink: '#0B5E50' };
     const am = { tint: '#FFF1CC', ink: '#6B4300' };
     const bl = { tint: '#E3EEFB', ink: '#1D4F91' };
-    const save = (s) => ({ saveLabel: s ? 'Saved, remove from saved' : 'Save job', fill: s ? 'currentColor' : 'none', pressed: s ? 'true' : 'false' });
+    const F = 'Flutter & mobile', E = 'AI coding evaluation', A = 'AI application engineering';
+    const all = [
+      { v: 'New', ...gr, ...strong, initial: 'T', title: 'AI Code Evaluator (Python)', company: 'Tidewater Labs', where: 'Remote, global', pay: '$40-55/hr', track: E, note: 'Main gap: none found. 5 of 5 must-haves have evidence.' },
+      { v: 'New', ...bl, ...good, initial: 'F', title: 'Mobile Engineer, Flutter', company: 'Fieldnote', where: 'Remote, UTC+3 to +1', pay: '$60-75k', track: F, note: 'Main gap: no published app in their sector.' },
+      { v: 'New', ...am, ...stretch, initial: 'V', title: 'Applied AI Engineer', company: 'Verity', where: 'Remote, Europe', pay: '$95-120k', track: A, note: 'Main gap: 3 of 6 must-haves have no evidence in your profile.' },
+      { v: 'Saved', ...am, ...none, initial: 'K', title: 'Flutter Developer', company: 'Kite Studio', where: 'Remote, EMEA', pay: '$50-65k', track: F, note: 'Added by you from a link. Not prepared yet.' },
+      { v: 'Saved', ...gr, ...good, initial: 'S', title: 'AI Trainer, Code Quality', company: 'Sable AI', where: 'Remote, global', pay: '$35-50/hr', track: E, note: 'Kept 2 days ago. Not prepared yet.' },
+      { v: 'Preparing', ...pu, ...strong, initial: 'L', title: 'Senior Flutter Engineer', company: 'Lumen Health', where: 'Remote, EMEA', pay: '$70-90k', track: F, note: 'Ready to review: fit check, tailored CV and cover letter.' },
+      { v: 'Applied', ...am, ...good, initial: 'O', title: 'AI Application Engineer', company: 'Orbital Pay', where: 'Nairobi or remote', pay: 'Not listed', track: A, note: 'Applied 9 days ago. Follow-up due today.' },
+      { v: 'Applied', ...bl, ...good, initial: 'H', title: 'Flutter Engineer, Payments', company: 'Harbor', where: 'Remote, Africa', pay: '$55-70k', track: F, note: 'Applied 2 days ago. Follow-up set for next week.' },
+      { v: 'Interviewing', ...pu, ...stretch, initial: 'N', title: 'Product Engineer, LLM Tools', company: 'Northwind', where: 'Remote, US hours', pay: '$110-140k', track: A, note: 'First interview on Thursday, 15:00.' },
+      { v: 'Closed', ...gr, ...good, initial: 'P', title: 'Mobile Developer', company: 'Pinecrest', where: 'Remote, EMEA', pay: '$45-60k', track: F, note: 'Outcome: not selected. Closed 12 days ago.' },
+      { v: 'Closed', ...bl, ...stretch, initial: 'R', title: 'ML Engineer', company: 'Rivet', where: 'Remote, global', pay: '$90-110k', track: A, note: 'Skipped by you 3 days ago.' },
+      { v: 'Filtered out', ...am, ...out, initial: 'C', title: 'Senior Mobile Engineer', company: 'Cobalt', where: 'On-site, Austin', pay: '$120-150k', track: F, note: 'Reason: relocation required. Your profile says no relocation.' },
+      { v: 'Filtered out', ...pu, ...out, initial: 'D', title: 'AI Data Annotator', company: 'Driftwood', where: 'Remote, global', pay: '$4-6/hr', track: E, note: 'Reason: pay is below your minimum.' },
+      { v: 'Filtered out', ...gr, ...out, initial: 'G', title: 'Flutter Engineer', company: 'Granite Works', where: 'Remote, US only', pay: '$100-130k', track: F, note: 'Reason: open to US residents only.' }
+    ].map((j, i) => ({ ...j, id: 'j' + i })).filter((j) => gone.indexOf(j.id) < 0);
+    const inTrack = all.filter((j) => track === 'All tracks' || j.track === track);
+    const jobs = inTrack.filter((j) => j.v === view).map((j) => ({
+      ...j,
+      isNew: j.v === 'New', isOut: j.v === 'Filtered out', isOpen: j.v !== 'New' && j.v !== 'Filtered out',
+      drop: () => this.setState({ gone: gone.concat(j.id) }),
+      keepLabel: 'Keep ' + j.title + ' at ' + j.company,
+      skipLabel: 'Skip ' + j.title + ' at ' + j.company,
+      restoreLabel: 'Restore ' + j.title + ' at ' + j.company,
+      openLabel: 'Open ' + j.title + ' at ' + j.company
+    }));
+    const names = ['New', 'Saved', 'Preparing', 'Applied', 'Interviewing', 'Offer', 'Closed', 'Filtered out'];
+    const chip = (on) => ({ cls: on ? 'chip on' : 'chip', pressed: on ? 'true' : 'false' });
     return {
-      jobs: [
-        { ...pu, ...save(true), initial: 'L', title: 'Senior Flutter Engineer', company: 'Lumen Health', where: 'Remote, EMEA', pay: '$70-90k', track: 'Flutter', ...strong, evidence: '6 of 7 must-haves', meta: 'Verified 2h ago · Posted 3 days ago · Career page' },
-        { ...gr, ...save(false), initial: 'T', title: 'AI Code Evaluator (Python)', company: 'Tidewater Labs', where: 'Remote, global', pay: '$40-55/hr', track: 'AI evaluation', ...strong, evidence: '5 of 5 must-haves', meta: 'Verified 1h ago · Posted today · Job API' },
-        { ...am, ...save(false), initial: 'O', title: 'AI Application Engineer', company: 'Orbital Pay', where: 'Nairobi or remote', pay: 'Not listed', track: 'AI apps', ...good, evidence: '4 of 6, 2 partial', meta: 'Verified 4h ago · Posted 5 days ago · Career page' },
-        { ...bl, ...save(true), initial: 'F', title: 'Mobile Engineer, Flutter', company: 'Fieldnote', where: 'Remote, UTC+3 to +1', pay: '$60-75k', track: 'Flutter', ...good, evidence: '5 of 7, 1 gap', meta: 'Verified 2h ago · Posted 2 days ago · Merged from 2 listings' },
-        { ...pu, ...save(false), initial: 'N', title: 'Product Engineer, LLM Tools', company: 'Northwind', where: 'Remote, US hours', pay: '$110-140k', track: 'AI apps', ...stretch, evidence: '3 of 6, eligibility unclear', meta: 'Verified 6h ago · Posted 1 week ago · Job API' },
-        { ...gr, ...save(false), initial: 'S', title: 'AI Trainer, Code Quality', company: 'Sable AI', where: 'Remote, global', pay: '$35-50/hr', track: 'AI evaluation', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 3h ago · Posted 2 days ago · Career page' },
-        { ...am, ...save(false), initial: 'K', title: 'Flutter Developer', company: 'Kite Studio', where: 'Remote, EMEA', pay: '$50-65k', track: 'Flutter', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 5h ago · Posted 4 days ago · Career page' },
-        { ...bl, ...save(false), initial: 'V', title: 'Applied AI Engineer', company: 'Verity', where: 'Remote, Europe', pay: '$95-120k', track: 'AI apps', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 1h ago · Posted today · Job API' }
-      ]
+      jobs,
+      hasJobs: jobs.length > 0,
+      noJobs: jobs.length === 0,
+      isFiltered: view === 'Filtered out',
+      listLabel: view + ' jobs',
+      emptyTitle: view === 'New' ? 'No new matches' : 'No jobs here',
+      emptyBody: view === 'New' ? 'New matches appear here after each search. You can also add a job yourself.' : 'Nothing is at the ' + view + ' stage for this track.',
+      views: names.map((n) => ({ ...chip(n === view), label: n + ' (' + inTrack.filter((j) => j.v === n).length + ')', pick: () => this.setState({ view: n }) })),
+      tracks: ['All tracks', F, E, A].map((n) => ({ ...chip(n === track), label: n, pick: () => this.setState({ track: n }) })),
+      adding: !!st.adding,
+      notAdding: !st.adding,
+      openAdd: () => this.setState({ adding: true }),
+      closeAdd: () => this.setState({ adding: false })
     };
   }
 }
