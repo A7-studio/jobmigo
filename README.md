@@ -182,8 +182,8 @@ message or model text). Deleting a CV deletes its stored file and its draft.
 | Sign-up and sign-in (Better Auth), per-user scoping, app shell | Built |
 | Python engine, AI gateway, per-user cache and usage ledger | Built |
 | CV storage, safe text extraction, owner-scoped download and delete (3a) | Built |
-| AI parse into an unconfirmed profile draft, engine and web routes (3b) | Built, review pending |
-| Upload and parse status screen (3c) | Planned |
+| AI parse into an unconfirmed profile draft, engine and web routes (3b) | Built |
+| Upload and parse status screen at `/onboarding` (3c) | Built |
 | Profile review and confirmation, tracks, job paste, evaluation, application kit, tracking | Planned |
 | Automatic discovery, alerts, billing, admin and support | Planned (later slices) |
 

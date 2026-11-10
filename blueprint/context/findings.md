@@ -384,3 +384,63 @@ Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, securi
 **Why it matters:** The idempotency test starts two parses one after the other, so it does not exercise the atomic claim under a real race, and owner scoping is tested only through `start_parse` and the routes (the pre-read `get_cv` already refuses another user). A regression that dropped `user_id` from the `claim` or `_write_draft` UPDATE, or from `mark_failed`, would still pass. These statements carry the trust boundary the spec names.
 **Suggested fix:** Add tests that call `claim`, `mark_failed` and `_write_draft` directly with a different user id and assert no row changes, and one that runs two `claim` calls with `asyncio.gather` and asserts exactly one returns True.
 **Resolution:**
+
+### F-76 [P3] open - Focus is dropped on every state change and the upload has no announcement
+
+**File:** web/src/routes/_app/onboarding.tsx:408
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The spec requires focus and announcements. Pressing "Delete this CV" unmounts that button and renders the confirm group, but focus is not moved into it, so a keyboard or screen-reader user lands on the body; the same happens when the dropzone or "Upload another file" button unmounts after an upload, a delete confirm, or a parse starting. While uploading, the dropzone only swaps its text ("Uploading your CV...") with no `role="status"` or live region, so nothing is announced until the ready view appears (the `Problem` alert does fire).
+**Suggested fix:** Move focus to the confirm group's first button (and back to the trigger on cancel), move focus to the new state's heading or status region after upload and delete, and wrap the busy text in a `role="status"`.
+**Resolution:** Fixed: focus moves to "Keep it" when the delete confirm opens and back to "Delete this CV" when kept, and to the page heading after an upload or delete; the dropzone status text is a polite live region; seen in the browser.
+Reopened 2026-11-10 by /audit independent at P3: the delete confirm and upload focus repairs work, but the "a parse starting" case is not repaired. `build()` (Build my profile draft and Try again) never moves focus, so the pressed button unmounts into the parsing view and focus falls to the body. Also `confirmDelete` is not reset by `build()` and is shared by every `DeleteControl` instance, so opening the confirm and then pressing Build (or a parse finishing) remounts the control with the confirm already open and steals focus into "Keep it". Suggested fix: call `settleFocus()` after `build()`, and `setConfirmDelete(false)` there.
+
+### F-77 [P3] open - A failed "Build my profile draft" call shows the same alert twice
+
+**File:** web/src/routes/_app/onboarding.tsx:146
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** When `startParse` fails with an HTTP error (the engine's 502 for an AI failure), `build()` calls `setProblem(copyFor(code))` and then refreshes the list, which now returns the CV as `failed` with the same code. The page then renders the `problem` card and the failed card, both `role="alert"` with identical title and body, so a screen reader announces it twice and sighted users see two cards.
+**Suggested fix:** Clear `problem` after the refresh when the refreshed CV is `failed`, or skip `setProblem` for parse codes and let the failed card speak.
+**Resolution:** Fixed: the failed view shows one alert (the latest message), not two; seen in the browser (1 alert after a failed retry).
+Reopened 2026-11-10 by /audit independent: the repair (`problem ?? screen.copy` in the failed view) lets a client-side file problem replace the failure message while the failed CV's buttons stay. Choose a 6 MB file from "Upload another file" on an `ai_unavailable` failure and the one card reads "That file is too large" with "Try again" (which re-runs the parse, not the upload) beside it. Suggested fix: show a file-validation problem as its own card above the failed card, or keep the failed copy and add the file message; the duplicate-alert fix only needs to drop the stale parse problem.
+
+### F-78 [P3] open - "Try again" is offered for `ai_not_configured`, where retrying cannot help
+
+**File:** web/src/lib/cv-view.ts:114
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `ai_not_configured` shares the "could not reach the AI service ... Try again in a moment" copy and the retry button with transient errors. It is a server configuration state that never clears by retrying, so a user loops on it. The spec lists it as retryable and the test encodes that, so this is a spec choice worth revisiting, not a build deviation.
+**Suggested fix:** Give it its own copy ("This feature is not switched on yet") with no retry, or keep it and note the decision.
+**Resolution:** Fixed: `ai_not_configured` no longer offers Try again (copy: the AI service is not set up yet); the unit test lists it with the codes that offer no retry.
+Reopened 2026-11-10 by /audit independent: `ai_not_configured` now has no "Try again", but the engine stores it as the CV's `failed` state. The only action is "Upload another file", which deletes the CV first, and the copy says "check back later". When the AI is configured the user returns to a CV that still shows this failure, with no way to build the draft except delete and re-upload. Suggested fix: keep a retry for this code (the engine re-checks configuration on each POST) with the "not set up yet" copy, or do not persist it as `failed`.
+
+### F-81 [P3] open - A 401 during replace is never redirected, and tests cover only the pure helpers
+
+**File:** web/src/routes/_app/onboarding.tsx:126
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** In `chooseFile`, a delete that fails with `unauthorized` sets the "Please sign in again" card and returns before `refresh()`, so the sign-in redirect (driven only by the list query's error) never fires and the card has no sign-in link. The page logic that carries the spec's risks (the `refetchInterval` and `startedRef` stop conditions, the delete-then-upload order, one interval, redirect on 401) has no automated test; `shouldKeepPolling` and `copyFor` tests prove only the pure helpers, and the evidence is a scripted browser pass that is not in the repo.
+**Suggested fix:** Call `refresh()` (or navigate to sign-in) on `unauthorized` in every handler, and extract the replace flow and poll decision into testable functions with a Vitest case each.
+**Resolution:** Part fixed: a 401 anywhere in the page now goes back to sign-in. Still open: the page logic (polling stop conditions, delete-then-upload order) has no automated test, because no DOM test library is installed.
+Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now in `fail()` and the list query, but the draft query is not covered (F-82). In `cv-api.test.ts` the "each route" test records four calls and runs DELETE through a separate fetch, so the DELETE method and path are not asserted.
+
+### F-82 [P3] open - A session that ends while a draft is shown is not sent to sign-in
+
+**File:** web/src/routes/_app/onboarding.tsx:82
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The sign-in redirect reads only the list query's error. The draft query throws `CvError('unauthorized')` on a 401 but nothing inspects it, so the parsed view shows "We could not load your draft ... Your CV is safe. Try again in a moment" and Try again gets the same 401. The list is not polled in `parsed`, so the page may not notice for a long time. Not reproduced.
+**Suggested fix:** Treat `draft.error` with code `unauthorized` like the list error.
+**Resolution:**
+
+### F-83 [P3] open - The trust box names DeepSeek as the provider, but the engine's provider is configuration
+
+**File:** web/src/components/cv/parts.tsx:222
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The copy says the CV text is sent to "our AI provider, DeepSeek". `AI_CHEAP_MODEL` accepts `deepseek/`, `moonshot/` or `openrouter/` models (`.env.example`), so a deployment on another provider would make a privacy statement false. Correct today only because DeepSeek is the planned model, which is unset.
+**Suggested fix:** Say "our AI provider" without a name, or have the engine expose the provider name and render it.
+**Resolution:**
+
+### F-84 [P3] open - The parsing and parsed views are one `role="status"` region around buttons and the whole draft
+
+**File:** web/src/routes/_app/onboarding.tsx:281, web/src/routes/_app/onboarding.tsx:508
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** A live region should hold the message. Here it wraps the file card, the delete control (so opening the confirm is announced as a change), and in the parsed view the full draft (headline, role list, user-derived text) plus a nested `role="alert"` for a draft load error, read out on mount. It works but is noisy and nests live regions.
+**Suggested fix:** Put `role="status"` on a short sentence ("Reading your CV", "Draft ready") and leave the rest as ordinary content.
+**Resolution:**

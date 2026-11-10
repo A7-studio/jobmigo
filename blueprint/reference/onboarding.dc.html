@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Onboarding</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:28px;box-sizing:border-box}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 20px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
+.opt{display:flex;gap:14px;align-items:flex-start;border:1.5px solid #D9D5C7;border-radius:16px;padding:16px;background:#fff}
+.opt.on{border-color:#D97757;background:#FDF3EE}
+
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-2deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes flame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.14) rotate(4deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,87,0)}50%{box-shadow:0 0 0 6px rgba(217,119,87,.28)}}
+@keyframes ringfill{from{stroke-dashoffset:213.6}}
+.migo{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+.migo-eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.growx{transform-origin:left;animation:growx .9s cubic-bezier(.2,.8,.2,1) both}
+.growy{transform-origin:bottom;animation:growy .9s cubic-bezier(.2,.8,.2,1) both}
+.floaty{animation:floaty 4s ease-in-out infinite}
+.pop{animation:pop .5s ease-out both}
+.flame{animation:flame 1.4s ease-in-out infinite;transform-origin:50% 90%}
+.glow{animation:glow 2.4s ease-in-out infinite}
+.ringfill{animation:ringfill 1.2s cubic-bezier(.2,.8,.2,1) both}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
+@keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.card{animation:rise .55s ease-out both}
+.card:hover{box-shadow:0 8px 24px rgba(26,26,24,.06)}
+.btn.pri{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.2) 50%,transparent 65%);background-size:220% 100%;animation:shine 4s ease-in-out infinite}
+.migo:hover{animation:wiggle .6s ease-in-out}
+.confetti{position:absolute;top:0;border-radius:2px;animation:fall 5s linear infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.ib{position:relative;width:44px;height:44px;flex:0 0 44px;border:1px solid transparent;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#4A4944;cursor:pointer;padding:0;list-style:none}
+.ib:hover{background:#F0EEE6;color:#1A1A18}
+.ib .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A18;color:#fff;font-size:12px;font-weight:700;border-radius:8px;padding:5px 9px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:30}
+.ib:hover .tip,.ib:focus-visible .tip{opacity:1}
+.ib[aria-pressed="true"]{color:#B04A27}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none;transform:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.cr{font-size:12px;font-weight:700;color:#5E5D59}
+details.menu{position:relative}
+details.menu>summary{list-style:none;cursor:pointer}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu .pop-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:#fff;border:1px solid #E8E5DA;border-radius:14px;box-shadow:0 12px 32px rgba(26,26,24,.14);padding:6px;z-index:20;display:flex;flex-direction:column}
+details.menu .pop-menu button,details.menu .pop-menu a{border:0;background:transparent;border-radius:10px;min-height:44px;padding:0 12px;font:inherit;font-size:14px;font-weight:700;color:#1A1A18;display:flex;align-items:center;gap:10px;text-align:left}
+details.menu .pop-menu button:hover,details.menu .pop-menu a:hover{background:#F7F5EE}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 56px;box-sizing:border-box;gap:28px">
+
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="display:inline-flex;align-items:center;gap:8px"><svg class="migo" width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><span class="disp" style="font-size:21px;font-weight:700;letter-spacing:0;color:#1A1A18">job<span style="color:#B04A27">migo</span></span></span>
+  </div>
+
+  <ol aria-label="Setup progress" style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;max-width:880px">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+      <li style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:99px;background:{{s.bg}};color:{{s.ink}};font-size:13px;font-weight:700"><span style="font-weight:800">{{s.n}}</span>{{s.label}}</li>
+    </sc-for>
+  </ol>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;width:100%;max-width:1080px;align-items:flex-start;justify-content:center">
+
+    <section class="card" aria-labelledby="up" style="flex:3 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;gap:14px;align-items:flex-end"><svg class="migo" width="72" height="72" viewBox="0 0 48 48" role="img" aria-label="Migo, the Jobmigo mascot"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><div style="background:#FDF3EE;border:1px solid #F1CBBA;border-radius:16px 16px 16px 4px;padding:12px 16px;font-size:14px;line-height:1.55;color:#3D3D3A">Hi, I’m Migo. Drop in your CV and I’ll do the boring bit.</div></div>
+      <div>
+        <h1 id="up" style="margin:0;font-size:26px;font-weight:700;letter-spacing:-0.01em">Start with your CV</h1><div style="font-size:13px;font-weight:700;color:#8A3B1E;margin-top:6px">About 2 minutes in total.</div>
+        <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#4A4944">An AI model reads it once to build your profile. You review every fact before anything is scored or written.</p>
+      </div>
+
+      <div style="border:2px dashed #F1CBBA;border-radius:20px;background:#F7F5EE;padding:32px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B04A27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+        <div style="font-size:15px;font-weight:700">Drop your CV here</div>
+        <div style="font-size:13px;color:#5E5D59">PDF or DOCX, up to 10 MB</div>
+        <button class="btn" type="button">Choose a file</button>
+      </div>
+
+      <div style="border:1px solid #E8E5DA;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px" role="status" aria-live="polite">
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;font-weight:700"><span>Sam_CV_2026.pdf</span><span style="color:#5E5D59;font-weight:600">Reading your CV</span></div>
+        <div role="img" aria-label="Parsing 70 percent complete" style="height:8px;border-radius:99px;background:#EFECE2;overflow:hidden"><div class="growx" style="width:70%;height:100%;background:#D97757;border-radius:99px"></div></div>
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#4A4944">
+          <li>✓ File stored privately</li>
+          <li>✓ Text extracted</li>
+          <li>◐ Finding experience, skills and achievements</li>
+        </ul>
+      </div>
+    <div style="display:flex;flex-direction:column;gap:10px;background:#FAF9F5;border:1px solid #E8E5DA;border-radius:16px;padding:16px"><div style="display:flex;gap:10px;align-items:center;font-size:13px;color:#3D3D3A;line-height:1.4"><span style="color:#8A3B1E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6zM8 11V8a4 4 0 018 0v3"/></svg></span>Stored privately. Only you can see it.</div><div style="display:flex;gap:10px;align-items:center;font-size:13px;color:#3D3D3A;line-height:1.4"><span style="color:#8A3B1E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>Used only to build your profile, processed by an AI model. Never sold.</div><div style="display:flex;gap:10px;align-items:center;font-size:13px;color:#3D3D3A;line-height:1.4"><span style="color:#8A3B1E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span>Delete it any time in settings.</div></div>
+      <a class="link" href="Profile.dc.html" style="align-self:flex-start;font-size:14px;font-weight:700;color:#B04A27;min-height:44px;display:inline-flex;align-items:center">No CV handy? Add your details by hand</a>
+    </section>
+
+    <section class="card" aria-labelledby="tr" style="flex:2 1 340px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <h2 id="tr" style="margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em">What are you looking for?</h2>
+        <p style="margin:6px 0 0;font-size:13px;line-height:1.55;color:#5E5D59">Each track gets its own profile and criteria. Add more later.</p>
+      </div>
+      <sc-for list="{{tracks}}" as="t" hint-placeholder-count="3">
+        <label class="opt {{t.cls}}">
+          <input type="checkbox" checked="{{t.on}}" style="width:20px;height:20px;margin-top:2px;accent-color:#B04A27">
+          <span><span style="display:block;font-size:14px;font-weight:700">{{t.name}}</span><span style="display:block;font-size:12px;color:#5E5D59;margin-top:3px;line-height:1.5">{{t.note}}</span></span>
+        </label>
+      </sc-for>
+      <button class="btn ghost" type="button" style="justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add your own track</button>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;border-top:1px solid #EFECE2;padding-top:16px">
+        <span style="font-size:12px;color:#5E5D59;line-height:1.5;flex:1 1 180px">Your CV is private and used only for your own search.</span>
+        <a class="btn pri" href="Profile.dc.html">Review my profile</a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const done = { bg: '#DDF3EC', ink: '#0B5E50' };
+    const now = { bg: '#B04A27', ink: '#fff' };
+    const next = { bg: '#E8E5DA', ink: '#4A4944' };
+    return {
+      steps: [
+        { ...now, n: '1', label: 'Upload CV' },
+        { ...next, n: '2', label: 'Review profile' },
+        { ...next, n: '3', label: 'Make it yours' },
+        { ...next, n: '4', label: 'First evaluation' }
+      ],
+      tracks: [
+        { name: 'Flutter and mobile engineering', note: 'Mobile apps, cross-platform and platform work', on: true, cls: 'on' },
+        { name: 'AI coding evaluation and training', note: 'Reviewing and improving model-written code', on: true, cls: 'on' },
+        { name: 'AI application engineering', note: 'Building products on top of language models', on: false, cls: '' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

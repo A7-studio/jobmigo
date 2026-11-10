@@ -113,7 +113,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
           : await authClient.signIn.email({ email, password })
       if (error) return fail(serverMessage(error.code, mode))
       queryClient.clear()
-      await navigate({ to: '/dashboard' })
+      await navigate({ to: mode === 'sign-up' ? '/onboarding' : '/dashboard' })
     } catch {
       fail({
         form: 'Could not reach the server. Check your connection and try again.',

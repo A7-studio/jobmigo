@@ -163,6 +163,22 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Privacy.** CV text goes to the cheap-tier provider (DeepSeek, named on `/privacy`) only when a
   parse is requested. CV text, names and replies are never logged; `usage_event` holds no text.
 
+### CV upload and parse screen (feature 3c, as built)
+
+- **Route.** `/onboarding` (signed in, inside the app shell) is step 1 of the four-step flow in the
+  design canvas: a dropzone (PDF or DOCX, 5 MB), a file card with the real status, and a trust box
+  that says only what is true today. Sign-up now lands here; the dashboard links to it.
+- **Flow.** Choose a file, checked in the browser (`lib/cv-view.ts`) and again by the engine, then
+  `POST /api/cv`; the user presses "Build my profile draft" (`POST /parse`); the page polls the CV
+  list every 2 seconds while `parsing` (and stops after 3 minutes with a "Check again" button);
+  `parsed` shows counts and the first roles from `GET /api/cv/:id/profile`, labelled unconfirmed.
+- **Failures.** Every parse and upload code maps to calm copy in `lib/cv-view.ts` with only the
+  actions that can help ("Try again" for transient codes; "Upload another file" for
+  `text_too_long`, `no_profile_found` and unreadable files). No raw engine message or code is shown.
+- **Delete** is on the page with an inline confirm and also removes the draft.
+- **Not built yet** (honest gaps against the board): the tracks card, manual entry, and "Review
+  my profile" (feature 4).
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
