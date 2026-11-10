@@ -468,3 +468,91 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** With `ORDER BY ... LIMIT 1 FOR UPDATE OF profile`, Postgres re-checks a row that was changed while it waited and, if the row is gone, takes the next one: a mutation that was queued behind a delete of the newest CV could add an item to the previous parsed draft. Also `get_profile` reads the profile and each fact table in separate READ COMMITTED statements, so `version` can be older than the rows returned if a commit lands between them. Neither reproduced; only reachable with more than one parsed CV or a read racing an edit.
 **Suggested fix:** If it matters, re-check after locking that the locked profile is still the user's newest parsed one (or reject when its CV is not `parsed`), and read in a REPEATABLE READ transaction.
 **Resolution:**
+
+### F-93 [P2] fixed - The skill panel reuses one fact row across skills, so an open editor or delete question follows you to the next skill
+
+**File:** web/src/routes/_app/profile.tsx:491
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `SkillChips` renders `<FactRow kind="skill" fact={selected} />` with no `key`. Chips stay clickable while a panel is open, so clicking skill B while skill A's editor is open keeps the same component instance: `FactEditor` keeps A's typed values in its `useState` and `fact` is now B, so Save sends the diff against B and renames B to A's text (or hits `already_exists`). An open "Delete this?" question likewise carries over, now under B's name. Found by reading; not run in a browser.
+**Suggested fix:** `key={selected.id}` on the panel's `FactRow` (and consider disabling the other chips while an editor is open).
+**Resolution:** `key={selected.id}` on the panel `FactRow`, so each skill gets its own editor and delete state; browser-checked.
+
+### F-94 [P2] fixed - The load-failed card uses the save-failure copy ("We could not save that ... Your profile is unchanged")
+
+**File:** web/src/routes/_app/profile.tsx:218, web/src/lib/profile-view.ts:272
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Any load error other than `not_found` and `unauthorized` (`engine_unavailable`, `network`, `unexpected`) is shown with `copyFor`, whose default says "We could not save that. Your profile is unchanged." On a load that is the wrong action, and after a successful save whose re-read fails the same card says the profile is unchanged when it was changed, while the stale profile is still on screen. The unit test only checks length and that no code leaks, so it passes. The load-failed state was not captured in the build evidence.
+**Suggested fix:** A separate load copy ("We could not load your profile ... Try again") and, after a mutation, a message that the change was saved but the page could not refresh.
+**Resolution:** Load failure now has its own copy ("We could not load your profile") and shows no stale facts; `copyFor` covers it; browser-checked.
+
+### F-95 [P2] fixed - Focus is lost after Confirm, Confirm all, opening the headline editor and closing a skill panel
+
+**File:** web/src/components/profile/facts.tsx:355, web/src/routes/_app/profile.tsx:175, web/src/routes/_app/profile.tsx:353, web/src/routes/_app/profile.tsx:493
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The spec requires focus to land somewhere sensible after every transition, and the earlier /onboarding reviews found this class. (1) Confirm: the button is removed once the status changes, so focus drops to the page body (a user confirming rows with the keyboard must tab from the top each time). (2) Confirm all: the button becomes disabled, so keyboard focus is stranded on it. (3) "Edit headline" is replaced by the form and nothing moves focus into the Headline field (the row editor does this; this one does not). (4) The skill panel's Close button unmounts itself with no focus target. The docs say focus returns "after a delete or add" and the evidence lists focus only for those, so these were not seen.
+**Suggested fix:** After Confirm, move focus to that row's Edit button (or the next unconfirmed Confirm); after Confirm all, to the progress text or the first section heading; focus the Headline input when the editor opens; focus the chip that opened the panel on Close.
+**Resolution:** Focus returns to the row's Edit button after Confirm, to the page title after Confirm all, to the headline input when it opens, and to the chip when a skill panel closes; browser-checked.
+
+### F-96 [P2] fixed - Save errors raise two alerts; Confirm and Delete errors appear only in a banner at the top of the page
+
+**File:** web/src/routes/_app/profile.tsx:95, web/src/routes/_app/profile.tsx:230, web/src/components/profile/facts.tsx:219
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `ctx.run` always sets the page-level `Problem` (`role="alert"`, above the progress cards) and, for save, add and headline edits, the caller also sets an inline `role="alert"` with the same words: two announcements per failure, the exact duplicate-alert class found on /onboarding. For Confirm and Delete there is only the top banner, which a user working on a row far down the page does not see, and focus does not move to it. The banner is cleared only by the next action, so after Cancel it still says "That was not accepted" for an edit that no longer exists.
+**Suggested fix:** Show one error, next to the control that failed (inline for edit, add, headline, and a short inline line for Confirm and Delete); keep the top banner only for page-level errors, and clear it on Cancel.
+**Resolution:** Save errors show once, in the row; Confirm and Delete errors also show in the row (`rowError`); the page banner is only for `not_found` and Confirm all failures; browser-checked.
+
+### F-97 [P3] fixed - The same live-region message twice in a row is not announced
+
+**File:** web/src/routes/_app/profile.tsx:100
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `run` sets `notice` to "Confirmed." for each Confirm. When the text is unchanged React does not touch the DOM, so confirming a second fact right after the first, or saving twice, announces nothing. Together with F-95 a screen reader user confirming several rows gets feedback only for the first.
+**Suggested fix:** Clear the notice at the start of `run` (or add a counter into the text, or key the region node on a sequence number).
+**Resolution:** `announce()` alternates a zero-width suffix so a repeated message changes the live region text.
+
+### F-98 [P3] open - Stale data is kept after a failed or empty re-read, and a headline edit can overwrite a concurrent change
+
+**File:** web/src/routes/_app/profile.tsx:80, web/src/routes/_app/profile.tsx:397
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The page shows `query.data` and the error card together. If the re-read after a change returns `not_found` (the draft was deleted in another tab) the "Upload your CV to begin" card shows above the old facts, which can still be edited (each action then answers not_found). If the re-read fails, the new values are not shown (see F-94). In the headline form the diff is taken against the live `profile.headline`, not the value the form was opened from, so an untouched field is sent if another tab changed it meanwhile; row editors have the same property (`fromForm` diffs against the current `fact`). Narrow races, not reproduced.
+**Suggested fix:** Hide the review view when `loadCode` is `not_found`; diff against the values the editor opened with.
+**Resolution:** The page shows `undefined` data while the query is in error; the headline editor still diffs against the live value (the stale-data part is fixed; the diff-against-live-value race is not, and stays open).
+
+### F-99 [P3] open - The page has no automated test, and the API test does not assert the DELETE call
+
+**File:** web/tests/profile-api.test.ts:19, web/tests/profile-view.test.ts
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** "Calls each route" runs the DELETE through a separate fetch and the expected list has six entries, so the DELETE method and path are unasserted. The behaviours that carry this feature's risks (one mutation at a time, the refetch after each change, `not_found` and 401 handling, the focus and live-region rules, panel state per skill) are not tested; the build evidence is a scripted browser pass not kept in the repo, and F-93 to F-97 were all missed by it. `copyFor`'s test cannot catch the wrong load copy (F-94). No case covers toggling `isCurrent` alone, an achievement with a related role set, or the add-form body for the other kinds.
+**Suggested fix:** Record the DELETE in the same fetch mock; extract the run/refresh logic into a tested function; add a component or browser test when a harness is added (`/tests browser`).
+**Resolution:** Partly: the API test now asserts the DELETE method and path and the whitespace rules are tested; the page behaviours still lack automated tests because the repo has no DOM test library. Left open.
+
+### F-100 [P3] fixed - The client length check counts raw characters, the engine counts them after cleaning
+
+**File:** web/src/lib/profile-view.ts:216, web/src/routes/_app/profile.tsx:392
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The engine collapses runs of whitespace and drops control characters before checking the maximum (`cv/parse.py` `_clean`); the form checks after only a trim. A pasted value that fits after cleaning but is over the limit with its spaces is refused client-side, and the headline and summary check the untrimmed length. The error is conservative and calm, so it is not harmful, but the mirror is not exact, and the headline and summary inputs have no `aria-invalid` or `aria-describedby` tie to their (page-level) alert.
+**Suggested fix:** Collapse whitespace the same way before counting, and tie the headline error to its field.
+**Resolution:** `profile-view.ts` collapses whitespace like the engine before the length check and before sending; test `counts the collapsed length and sends the collapsed text`.
+
+### F-101 [P3] fixed - Skill chips: "Open" in the accessible name, no panel relationship, and focus does not move to the panel
+
+**File:** web/src/routes/_app/profile.tsx:472
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Each chip's `aria-label` is "Name, unconfirmed. Open" while `aria-expanded` already says it is open or closed, so the name reads wrongly when expanded. The detail panel renders after all chips with no `aria-controls` and focus stays on the chip, so a keyboard user must tab through the remaining chips to reach the panel. State is in the text (good), and targets are 44px.
+**Suggested fix:** Label "Name, unconfirmed" and keep `aria-expanded`; add `aria-controls` and move focus into the panel (or render it right after the chip row with a heading).
+**Resolution:** Chips are named by the skill, carry `aria-controls`, focus moves to `#skill-panel` on open and back to the chip on close.
+
+### F-102 [P3] open - A failed background or post-change re-read removes the whole review view, and with it any open editor and its typed text
+
+**File:** web/src/routes/_app/profile.tsx:94, web/src/router.tsx:7
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The F-98 repair sets `profile = query.isError ? undefined : query.data`. The query client keeps the default `refetchOnWindowFocus` with `staleTime` 30 s, so returning to the tab after 30 s refetches `/api/profile`; one transient failure (the query has `retry: false`) unmounts every section, row editor, the headline form, an open add form and the skill panel, discarding what the user typed, and shows "We could not load your profile". After a successful save whose re-read fails, the change is saved but the page hides it and the user sees the load card; "Try again" restores the view but not the lost input. Found by reading; not run in a browser.
+**Suggested fix:** Keep showing the last good data when a refetch fails (with the load card above it, controls still guarded), and hide the facts only for `not_found`; or set `refetchOnWindowFocus: false` for this query.
+**Resolution:**
+
+### F-103 [P3] open - Inline row errors are not cleared by later actions, and a server error stays beside a client validation error
+
+**File:** web/src/components/profile/facts.tsx:303, web/src/components/profile/facts.tsx:349, web/src/components/profile/facts.tsx:389
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `rowError` (a failed Confirm or Delete) is cleared only by the next Confirm or Delete on that row; opening Edit, saving or cancelling leaves "We could not save that. Your profile is unchanged." showing, now wrong after a successful edit. In `FactEditor`, `serverError` is passed in and remains while the user fixes a field and a client error appears, so two alerts can show for one form. Also the `autoOpen` prop on `FactRow` is unused. Narrow, calm, not reproduced.
+**Suggested fix:** Clear `rowError` when editing opens or a save succeeds; clear the server error on the next submit attempt (or on input); remove `autoOpen`.
+**Resolution:**

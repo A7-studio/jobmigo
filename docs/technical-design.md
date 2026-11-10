@@ -198,6 +198,23 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Errors** are stable codes (`not_found`, `validation_failed`, `limit_reached`, `already_exists`)
   and never echo what was sent. An item of an older draft, or another user's, is `not_found`.
 
+### Profile review screen (feature 4b, as built)
+
+- **Route.** `/profile` (signed in, in the app shell; the sidebar's "Career profile" links to it)
+  shows the latest parsed draft: a progress summary, headline and summary, and cards for
+  Experience, Skills (chips), Achievements, Projects and Education.
+- **Review.** Each fact shows its state in words (Unconfirmed, Confirmed, Edited by you) with
+  Confirm, Edit (an inline form with labelled fields, errors tied to the input, Save and Cancel)
+  and Delete (with an inline question). Each section has Add; the header has Confirm all and a
+  link to upload a new CV. Skills are chips with a dashed outline while unconfirmed.
+- **Rules in the browser** (`lib/profile-view.ts`) mirror the engine's bounds and send only the
+  fields that changed. One change runs at a time; after each the profile is re-read.
+- **Accessibility.** A polite live region announces Saved, Confirmed, Added and Deleted; focus
+  returns to the Edit button after a save or cancel, to the safe choice when a delete is asked, and
+  to the section heading after a delete or add.
+- **Not built yet** against the Profile board: variant tabs (4c), job preferences (5), alerts (10)
+  and the data controls (17).
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories

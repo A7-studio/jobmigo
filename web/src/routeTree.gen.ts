@@ -18,6 +18,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -74,6 +75,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppOnboardingRoute = AppOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
 const WaitlistConfirmRoute = WaitlistConfirmRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
   '/onboarding': typeof AppOnboardingRoute
+  '/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
   '/onboarding': typeof AppOnboardingRoute
+  '/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/sign-up': typeof SignUpRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/onboarding': typeof AppOnboardingRoute
+  '/_app/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/dashboard'
     | '/onboarding'
+    | '/profile'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/dashboard'
     | '/onboarding'
+    | '/profile'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/_app/dashboard'
     | '/_app/onboarding'
+    | '/_app/profile'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
@@ -377,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOnboardingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/waitlist/confirm': {
       id: '/waitlist/confirm'
       path: '/waitlist/confirm'
@@ -474,11 +493,13 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
+  AppProfileRoute: typeof AppProfileRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppOnboardingRoute: AppOnboardingRoute,
+  AppProfileRoute: AppProfileRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

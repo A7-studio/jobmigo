@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BTN,
@@ -556,9 +556,12 @@ function ParsedView({
             </ul>
           )}
           <p className="text-[13px] leading-relaxed text-muted">
-            These are unconfirmed: the AI can get things wrong. Reviewing and
-            correcting them is the next step, and it isn’t built yet.
+            These are unconfirmed: the AI can get things wrong. Review them,
+            correct what is wrong and confirm what is right.
           </p>
+          <Link to="/profile" className={`${BTN_PRIMARY} self-start`}>
+            Review your profile
+          </Link>
         </div>
       )}
       <div className="flex flex-wrap gap-2.5">{deleteControl}</div>

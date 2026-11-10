@@ -184,7 +184,8 @@ message or model text). Deleting a CV deletes its stored file and its draft.
 | CV storage, safe text extraction, owner-scoped download and delete (3a) | Built |
 | AI parse into an unconfirmed profile draft, engine and web routes (3b) | Built |
 | Upload and parse status screen at `/onboarding` (3c) | Built |
-| Profile review and confirmation, tracks, job paste, evaluation, application kit, tracking | Planned |
+| Profile fact edit and confirm routes (4a) and the profile review screen at `/profile` (4b) | Built |
+| Tracks and variants, job paste, evaluation, application kit, tracking | Planned |
 | Automatic discovery, alerts, billing, admin and support | Planned (later slices) |
 
 The ordered feature list is [`blueprint/build-plan.md`](blueprint/build-plan.md); the

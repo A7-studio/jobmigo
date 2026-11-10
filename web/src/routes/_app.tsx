@@ -20,14 +20,7 @@ export const Route = createFileRoute('/_app')({
   errorComponent: RouteError,
 })
 
-const SOON = [
-  'Jobs',
-  'Applications',
-  'Outreach',
-  'Documents',
-  'Career profile',
-  'Settings',
-]
+const SOON = ['Jobs', 'Applications', 'Outreach', 'Documents', 'Settings']
 
 const NAV_ITEM =
   'flex min-h-11 items-center justify-between rounded-md px-3 font-bold'
@@ -56,6 +49,15 @@ function AppShell() {
             }}
           >
             Dashboard
+          </Link>
+          <Link
+            to="/profile"
+            className={`${NAV_ITEM} text-ink hover:bg-surface-muted`}
+            activeProps={{
+              className: `${NAV_ITEM} bg-accent-soft text-accent-soft-ink`,
+            }}
+          >
+            Career profile
           </Link>
           {SOON.map((label) => (
             <span

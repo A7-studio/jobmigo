@@ -34,7 +34,7 @@ Scaffolding the app and applying `prototypes/theme.css` are pre-build steps, not
   - [x] 3c. CV upload and parse status screen - the `/onboarding` upload step and parse status from the design canvas: progress, success, failure with retry, plain AI disclosure on the upload step
 - [ ] 4. Profile review and track variants - edit extracted experience, skills and achievements, confirm facts, create variants for the three tracks
   - [x] 4a. Profile fact edit and confirm routes (engine) - the profile is the latest parsed draft; per-row edit, confirm, add and delete, confirm all, a profile version that changes on every edit, web API routes
-  - [ ] 4b. Profile review screen - `/profile` from the Profile board: review each fact, edit, confirm, add, delete, confirm all, with the unconfirmed state always visible
+  - [x] 4b. Profile review screen - `/profile` from the Profile board: review each fact, edit, confirm, add, delete, confirm all, with the unconfirmed state always visible
   - [ ] 4c. Track variants - Track and TrackProfileItem tables, create, rename and delete a track, choose which confirmed facts a track emphasises, and the screen for it
 - [ ] 5. Job preferences and track criteria - roles, salary floor, location, eligibility, must-have vs nice-to-have per track, dealbreakers and a do-not-apply list
 - [ ] 29. Add a job by link or paste - paste a job link or the posting text; fetch the public page text when the site allows it and fall back to paste, normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan
