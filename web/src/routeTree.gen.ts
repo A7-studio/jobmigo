@@ -17,6 +17,7 @@ import { Route as ReadyzRouteImport } from './routes/readyz'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppJobsRouteImport } from './routes/_app/jobs'
 import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
@@ -77,6 +78,11 @@ const SignUpRoute = SignUpRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOnboardingRoute = AppOnboardingRouteImport.update({
@@ -202,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
+  '/jobs': typeof AppJobsRoute
   '/onboarding': typeof AppOnboardingRoute
   '/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard': typeof AppDashboardRoute
+  '/jobs': typeof AppJobsRoute
   '/onboarding': typeof AppOnboardingRoute
   '/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/jobs': typeof AppJobsRoute
   '/_app/onboarding': typeof AppOnboardingRoute
   '/_app/profile': typeof AppProfileRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/dashboard'
+    | '/jobs'
     | '/onboarding'
     | '/profile'
     | '/waitlist/confirm'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/dashboard'
+    | '/jobs'
     | '/onboarding'
     | '/profile'
     | '/waitlist/confirm'
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/_app/dashboard'
+    | '/_app/jobs'
     | '/_app/onboarding'
     | '/_app/profile'
     | '/waitlist/confirm'
@@ -472,6 +484,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs': {
+      id: '/_app/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/onboarding': {
@@ -633,12 +652,14 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
+  AppJobsRoute: typeof AppJobsRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppProfileRoute: typeof AppProfileRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
+  AppJobsRoute: AppJobsRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppProfileRoute: AppProfileRoute,
 }

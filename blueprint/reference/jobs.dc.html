@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Jobs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:600;color:#4A4944}
+.nav:hover{background:#F0EEE6}
+.nav.on{background:#F8E3D8;color:#8A3B1E}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.chip{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:#4A4944;min-height:40px}
+.chip.on{background:#1A1A18;border-color:#1A1A18;color:#fff}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#4A4944}
+.field select{font:inherit;font-size:14px;font-weight:500;color:#1A1A18;border:1px solid #D9D5C7;border-radius:12px;padding:0 12px;min-height:44px;background:#fff}
+.row:hover{background:#F7F5EE}
+
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-2deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes flame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.14) rotate(4deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,87,0)}50%{box-shadow:0 0 0 6px rgba(217,119,87,.28)}}
+@keyframes ringfill{from{stroke-dashoffset:213.6}}
+.migo{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+.migo-eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.growx{transform-origin:left;animation:growx .9s cubic-bezier(.2,.8,.2,1) both}
+.growy{transform-origin:bottom;animation:growy .9s cubic-bezier(.2,.8,.2,1) both}
+.floaty{animation:floaty 4s ease-in-out infinite}
+.pop{animation:pop .5s ease-out both}
+.flame{animation:flame 1.4s ease-in-out infinite;transform-origin:50% 90%}
+.glow{animation:glow 2.4s ease-in-out infinite}
+.ringfill{animation:ringfill 1.2s cubic-bezier(.2,.8,.2,1) both}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
+@keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.card{animation:rise .55s ease-out both}
+.card:hover{box-shadow:0 8px 24px rgba(26,26,24,.06)}
+.btn.pri{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.2) 50%,transparent 65%);background-size:220% 100%;animation:shine 4s ease-in-out infinite}
+.migo:hover{animation:wiggle .6s ease-in-out}
+.confetti{position:absolute;top:0;border-radius:2px;animation:fall 5s linear infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.ib{position:relative;width:44px;height:44px;flex:0 0 44px;border:1px solid transparent;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#4A4944;cursor:pointer;padding:0;list-style:none}
+.ib:hover{background:#F0EEE6;color:#1A1A18}
+.ib .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A18;color:#fff;font-size:12px;font-weight:700;border-radius:8px;padding:5px 9px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:30}
+.ib:hover .tip,.ib:focus-visible .tip{opacity:1}
+.ib[aria-pressed="true"]{color:#B04A27}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none;transform:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.cr{font-size:12px;font-weight:700;color:#5E5D59}
+details.menu{position:relative}
+details.menu>summary{list-style:none;cursor:pointer}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu .pop-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:#fff;border:1px solid #E8E5DA;border-radius:14px;box-shadow:0 12px 32px rgba(26,26,24,.14);padding:6px;z-index:20;display:flex;flex-direction:column}
+details.menu .pop-menu button,details.menu .pop-menu a{border:0;background:transparent;border-radius:10px;min-height:44px;padding:0 12px;font:inherit;font-size:14px;font-weight:700;color:#1A1A18;display:flex;align-items:center;gap:10px;text-align:left}
+details.menu .pop-menu button:hover,details.menu .pop-menu a:hover{background:#F7F5EE}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:100vh">
+
+<aside style="flex:0 0 264px;box-sizing:border-box;padding:28px 20px;display:flex;flex-direction:column;gap:28px;background:#fff;border-right:1px solid #E8E5DA;min-width:0">
+  <div style="display:flex;align-items:center;gap:10px;padding:0 6px">
+    <span style="display:inline-flex;align-items:center;gap:8px"><svg class="migo" width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><span class="disp" style="font-size:21px;font-weight:700;letter-spacing:0;color:#1A1A18">job<span style="color:#B04A27">migo</span></span></span>
+  </div>
+  <nav aria-label="Main" style="display:flex;flex-direction:column;gap:4px">
+    <a class="nav" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</a>
+    <a class="nav on" href="Jobs.dc.html" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Jobs</a>
+    <a class="nav" href="Pipeline.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v5h-4z"/></svg>Applications</a>
+    <a class="nav" href="Outreach.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v10H8l-4 4z"/></svg>Outreach</a>
+    <a class="nav" href="Documents.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>Documents</a>
+    <a class="nav" href="Profile.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Career profile</a>
+    <a class="nav" href="Settings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3"/></svg>Settings</a>
+  </nav>
+  <div style="margin-top:auto;background:#FAF9F5;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700"><span>AI credits</span><span style="color:#4A4944;font-weight:600">409 / 600</span></div>
+    <div role="img" aria-label="409 of 600 credits remaining" style="height:8px;border-radius:99px;background:#D9D5C7;overflow:hidden"><div class="growx" style="width:68%;height:100%;background:#D97757"></div></div>
+  </div>
+</aside>
+
+<main style="flex:999 1 560px;min-width:0;padding:32px 40px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+
+  <header style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+    <div>
+      <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.01em">Jobs</h1>
+      <p style="margin:6px 0 0;font-size:14px;color:#5E5D59">Verified live roles from public career pages and supported job APIs.</p>
+    </div>
+    <button class="btn ghost" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Saved jobs (9)</button>
+  </header>
+
+  <section aria-label="Discovery summary" style="display:flex;flex-wrap:wrap;gap:12px 28px;font-size:13px;color:#4A4944;background:#fff;border:1px solid #E8E5DA;border-radius:16px;padding:14px 20px">
+    <span><strong style="color:#1A1A18">24</strong> new today</span>
+    <span><strong style="color:#1A1A18">7</strong> strong fits</span>
+    <span><strong style="color:#1A1A18">6</strong> duplicates merged</span>
+    <span><strong style="color:#1A1A18">3</strong> expired and removed</span>
+    <span>Last discovery run 07:12</span>
+  </section>
+
+  <div role="group" aria-label="Career track" style="display:flex;flex-wrap:wrap;gap:10px">
+    <button class="chip on" type="button" aria-pressed="true">All tracks</button>
+    <button class="chip" type="button" aria-pressed="false">Flutter &amp; mobile</button>
+    <button class="chip" type="button" aria-pressed="false">AI coding evaluation</button>
+    <button class="chip" type="button" aria-pressed="false">AI application engineering</button>
+  </div>
+
+  <section class="card" aria-label="Filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;align-items:end;padding:18px 20px">
+    <label class="field">Search<input type="search" placeholder="Title or company" style="font:inherit;font-size:14px;font-weight:500;border:1px solid #D9D5C7;border-radius:12px;padding:0 12px;min-height:44px"></label>
+    <label class="field">Fit<select><option>Any fit</option><option>Strong</option><option>Good and above</option></select></label>
+    <label class="field">Location<select><option>Remote, EMEA</option><option>Nairobi</option><option>Remote, global</option></select></label>
+    <label class="field">Source<select><option>All sources</option><option>Company career pages</option><option>Job APIs</option></select></label>
+    <label class="field">Posted<select><option>Last 7 days</option><option>Today</option><option>Last 30 days</option></select></label>
+  </section>
+
+  <section class="card" aria-label="Job results" style="padding:8px">
+    <sc-for list="{{jobs}}" as="j" hint-placeholder-count="8">
+      <div class="row" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px;border-top:1px solid #EFECE2;border-radius:12px">
+        <div style="width:44px;height:44px;border-radius:12px;background:{{j.tint}};color:{{j.ink}};font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:0 0 44px">{{j.initial}}</div>
+        <a href="Job.dc.html" style="flex:1 1 260px;min-width:0">
+          <div style="font-size:15px;font-weight:700">{{j.title}}</div>
+          <div style="font-size:13px;color:#5E5D59;margin-top:3px">{{j.company}} · {{j.where}} · {{j.pay}}</div>
+          <div style="font-size:12px;color:#5E5D59;margin-top:5px">{{j.meta}}</div>
+        </a>
+        <span style="font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;background:#F0EEE6;color:#4A4944">{{j.track}}</span>
+        <div style="flex:0 0 150px;text-align:right">
+          <span style="display:inline-block;font-size:12px;font-weight:800;padding:6px 12px;border-radius:99px;background:{{j.bandBg}};color:{{j.bandInk}}">{{j.band}}</span>
+          <div style="font-size:12px;color:#5E5D59;margin-top:6px">{{j.evidence}}</div>
+        </div>
+        <button class="ib" type="button" aria-label="{{j.saveLabel}}" aria-pressed="{{j.pressed}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{j.fill}}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+      </div>
+    </sc-for>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-top:1px solid #EFECE2;font-size:13px;color:#5E5D59">
+      <span>Showing 8 of 24. Lower-ranked jobs are evaluated on demand to save credits.</span>
+      <button class="btn ghost" type="button">Load more</button>
+    </div>
+  </section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const strong = { band: 'Strong fit', bandBg: '#DDF3EC', bandInk: '#0B5E50' };
+    const good = { band: 'Good fit', bandBg: '#E3EBF5', bandInk: '#1F4E79' };
+    const stretch = { band: 'Stretch', bandBg: '#FFF1CC', bandInk: '#6B4300' };
+    const wait = { band: 'Not evaluated', bandBg: '#F0EEE6', bandInk: '#4A4944' };
+    const pu = { tint: '#F8E3D8', ink: '#8A3B1E' };
+    const gr = { tint: '#DDF3EC', ink: '#0B5E50' };
+    const am = { tint: '#FFF1CC', ink: '#6B4300' };
+    const bl = { tint: '#E3EEFB', ink: '#1D4F91' };
+    const save = (s) => ({ saveLabel: s ? 'Saved, remove from saved' : 'Save job', fill: s ? 'currentColor' : 'none', pressed: s ? 'true' : 'false' });
+    return {
+      jobs: [
+        { ...pu, ...save(true), initial: 'L', title: 'Senior Flutter Engineer', company: 'Lumen Health', where: 'Remote, EMEA', pay: '$70-90k', track: 'Flutter', ...strong, evidence: '6 of 7 must-haves', meta: 'Verified 2h ago · Posted 3 days ago · Career page' },
+        { ...gr, ...save(false), initial: 'T', title: 'AI Code Evaluator (Python)', company: 'Tidewater Labs', where: 'Remote, global', pay: '$40-55/hr', track: 'AI evaluation', ...strong, evidence: '5 of 5 must-haves', meta: 'Verified 1h ago · Posted today · Job API' },
+        { ...am, ...save(false), initial: 'O', title: 'AI Application Engineer', company: 'Orbital Pay', where: 'Nairobi or remote', pay: 'Not listed', track: 'AI apps', ...good, evidence: '4 of 6, 2 partial', meta: 'Verified 4h ago · Posted 5 days ago · Career page' },
+        { ...bl, ...save(true), initial: 'F', title: 'Mobile Engineer, Flutter', company: 'Fieldnote', where: 'Remote, UTC+3 to +1', pay: '$60-75k', track: 'Flutter', ...good, evidence: '5 of 7, 1 gap', meta: 'Verified 2h ago · Posted 2 days ago · Merged from 2 listings' },
+        { ...pu, ...save(false), initial: 'N', title: 'Product Engineer, LLM Tools', company: 'Northwind', where: 'Remote, US hours', pay: '$110-140k', track: 'AI apps', ...stretch, evidence: '3 of 6, eligibility unclear', meta: 'Verified 6h ago · Posted 1 week ago · Job API' },
+        { ...gr, ...save(false), initial: 'S', title: 'AI Trainer, Code Quality', company: 'Sable AI', where: 'Remote, global', pay: '$35-50/hr', track: 'AI evaluation', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 3h ago · Posted 2 days ago · Career page' },
+        { ...am, ...save(false), initial: 'K', title: 'Flutter Developer', company: 'Kite Studio', where: 'Remote, EMEA', pay: '$50-65k', track: 'Flutter', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 5h ago · Posted 4 days ago · Career page' },
+        { ...bl, ...save(false), initial: 'V', title: 'Applied AI Engineer', company: 'Verity', where: 'Remote, Europe', pay: '$95-120k', track: 'AI apps', ...wait, evidence: 'Evaluate for 1 credit', meta: 'Verified 1h ago · Posted today · Job API' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

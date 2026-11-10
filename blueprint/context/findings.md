@@ -684,3 +684,45 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** `test_repeated_unterminated_openers_are_cleaned_in_bounded_time` feeds strings that start with `<script `, `<a `, `<? ` and so on. Auto mode switches to the HTML cleaner only when the text contains `<html`, `<body`, `<div` or `<p`, so these inputs are cleaned as plain text and pass in milliseconds whatever the regexes do. The older test's shapes do start with `<p>` or `<div>`. A regression of F-114 would not fail this test, and F-116 and F-117 are not reachable from it either.
 **Suggested fix:** Prefix every shape with `<p>`, call `guard(raw, "html")` directly, and add the F-116 and F-117 shapes: `<aaaa...`, `</aaaa...`, `<!--` + `<` x n, `<script>` + `<` x n, `<style>` + `<b ` repeated.
 **Resolution:** The timing test starts every shape with `<p>` so it reaches the HTML path, and includes the F-114, F-116 and F-117 shapes, 62 in all.
+
+### F-120 [P3] open - `addedLabel` says "Added today" for a job added yesterday on the day after a clock change
+
+**File:** web/src/lib/jobs-view.ts:115
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The day count is `Math.floor((startOfDay(now) - startOfDay(then)) / 86_400_000)`. Across a spring-forward day the two midnights are 23 hours apart, so the floor gives 0. Measured with `TZ=America/New_York`: 8 March 2026 20:00 versus 9 March 2026 10:00 gives 0 (should be 1), so "Added yesterday" shows as "Added today", and a two-day gap shows as one day. The test uses one fixed date and no clock-change case, so it cannot catch this.
+**Suggested fix:** Use `Math.round(...)` (or compare `Date.UTC(y, m, d)` of each local date), and add a test case across a clock change.
+
+### F-121 [P3] open - A failed "Read the text we saved" has no retry and a sign-out is shown as a generic error
+
+**File:** web/src/components/jobs/job-row.tsx:57, web/src/components/jobs/job-row.tsx:203
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The text query has `retry: false` and `staleTime: Infinity`, and the error block is only a `Problem` with no button. Hiding and showing the disclosure again does not refetch an errored query whose observer stays mounted, so the user must reload the page to see the text after one network blip. A 401 from `getJob` is shown as "Something went wrong" instead of sending the user to sign in as the list and the actions do.
+**Suggested fix:** Add a "Try again" button calling `text.refetch()` and treat `unauthorized` like the other calls.
+
+### F-122 [P3] open - Failed Dismiss, Restore or Delete with `not_found` loses its message because the row is removed
+
+**File:** web/src/routes/_app/jobs.tsx:81, web/src/components/jobs/job-row.tsx:134
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** For `not_found` the page invalidates the list and returns the copy "It may have been removed in another tab. We refreshed the list." The row unmounts on refresh and `setError` runs on it, so the message is never seen or announced; the row just disappears, silently for a screen reader. Failures of other kinds keep the row and show the message correctly.
+**Suggested fix:** Announce the not-found copy through the page's live region (`announce`) instead of, or as well as, the row error.
+
+### F-123 [P3] open - Small accessibility gaps in the add form and the disclosure
+
+**File:** web/src/components/jobs/add-job.tsx:158, web/src/components/jobs/add-job.tsx:241, web/src/components/jobs/job-row.tsx:179
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** (1) Each `<label>` wraps its input, hint and error text, so the accessible name includes the hint and the error, which the input then also gets through `aria-describedby` (read twice). (2) `aria-controls="text-<id>"` points at an element that exists only while the disclosure is open. (3) When the carried link is invalid (credentials or over 2,000 characters from a fetched final address), `errors.url` is a `role="alert"` paragraph with no field and no focus target, and the form cannot be saved except by going Back; the message does not say that. (4) After a refused read, "Paste the text instead" appears twice (inside the notice and as the normal button).
+**Suggested fix:** Put the visible label text in its own element tied with `htmlFor` or `aria-labelledby`, render the controlled region always (hidden when closed) or drop `aria-controls`, tell the user to go Back or clear the link for a url error, and keep one paste button.
+
+### F-124 [P3] open - A link the engine refused as blocked or private is carried into the saved source link
+
+**File:** web/src/components/jobs/add-job.tsx:93
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** After `fetch_blocked` (for example a private address), "Paste the text instead" sets `finalUrl` to the typed link, which is sent as `url` on save, stored, and shown as "Open the original posting" with a clickable link (http and https only, `rel="noopener noreferrer"`, server revalidated). This matches the spec ("a link kept when switching to paste") and only the signed-in user sees it, so it is not exploitable; but a private or localhost address stored as a job source is of no use and the spec does not record the choice for blocked links.
+**Suggested fix:** Keep the link only when the failure was not `fetch_blocked`, or record the decision in the spec.
+
+### F-125 [P3] open - Tests cover only the pure view model; the add state machine and row behavior have no test
+
+**File:** web/tests/jobs-view.test.ts:1
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `jobs-view.test.ts` covers form checks, link safety, labels and copy well, but the repository has no DOM test library, so nothing exercises the add flow (link, refusal, paste, confirm, duplicate), the single-mutation rule, the delete question focus, the cache invalidation or the failed-load handling; these rest on the manual browser pass recorded in the spec. Two assertions are weak: the paste-instead test accepts "try again" as proof of a paste hint, and the date test has no clock-change case (F-120).
+**Suggested fix:** Accept as a documented gap for this repo, or extract the add flow into a small reducer in `jobs-view.ts` with tests; tighten the assertion to require "paste" for every `PASTE_INSTEAD` code except `fetch_failed`.

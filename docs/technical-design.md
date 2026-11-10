@@ -286,6 +286,29 @@ everything else stays in the web app. The modules `ai` and the AI and document p
   `not_a_page`, `too_large`, `fetch_failed` (502), `rate_limited` (429).
 - **Not built:** JavaScript-rendered pages, charset sniffing from `<meta>`, the screens (29c).
 
+### Jobs screen (feature 29c, as built)
+
+- **Route.** `/jobs` in the app shell (the sidebar's Jobs item links to it). Saved and Dismissed
+  views, rows with a company tile, title, "company · place", source host and date added, a "Check
+  this posting" badge with its explanation when the cleaner flagged the text, Dismiss or Restore,
+  Delete with an inline question, a disclosure that loads and shows the saved text (React text
+  only), and a link to the original posting only for `http` and `https` addresses
+  (`rel="noopener noreferrer"`).
+- **Add a job.** A link path (`Read the page` calls the engine's safe fetch, then the user confirms
+  company, title (prefilled from the page title), place and the text) and a paste path. Every
+  refusal (`fetch_blocked`, `robots_disallowed`, `robots_unreadable`, `not_a_page`, `too_large`,
+  `fetch_failed`, `rate_limited`) has calm copy and a "Paste the text instead" step that keeps the
+  link; duplicates, a full list and bad input have their own copy. Nothing fetched is saved until
+  the user confirms.
+- **Rules in the browser** (`lib/jobs-view.ts`) mirror the engine's bounds with whitespace
+  collapsed the same way; one change runs at a time; a polite live region announces results;
+  focus goes to the heading after a change, to the safe choice when a delete is asked and back to
+  Delete on Keep.
+- **Deviations from the Jobs board:** the board's discovery summary, track chips, filters, fit
+  bands, evidence line, bookmark, load more and credit meter are not built (nothing evaluates,
+  ranks or discovers yet); the subtitle says what the page does; the add form and the saved-text
+  disclosure have no board.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
