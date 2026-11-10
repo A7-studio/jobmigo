@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { BTN, BTN_GHOST, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { getJob } from '#/lib/jobs-api'
@@ -182,6 +183,14 @@ export function JobRow({ job, actions }: { job: Job; actions: RowActions }) {
         >
           {open ? 'Hide the text we saved' : 'Read the text we saved'}
         </button>
+        <Link
+          to="/jobs/$jobId"
+          params={{ jobId: job.id }}
+          aria-label={`Open ${job.title} at ${job.company}`}
+          className="inline-flex min-h-11 items-center text-[13px] font-bold text-accent-soft-ink underline-offset-2 hover:underline"
+        >
+          Open
+        </Link>
         {href && (
           <a
             href={href}

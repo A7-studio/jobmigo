@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
+import { LANDING_PATH } from '#/lib/app-nav'
 import { authClient } from '#/lib/auth-client'
 import { AuthShell } from './AuthShell'
 
@@ -113,7 +114,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
           : await authClient.signIn.email({ email, password })
       if (error) return fail(serverMessage(error.code, mode))
       queryClient.clear()
-      await navigate({ to: mode === 'sign-up' ? '/onboarding' : '/dashboard' })
+      await navigate({ to: mode === 'sign-up' ? '/onboarding' : LANDING_PATH })
     } catch {
       fail({
         form: 'Could not reach the server. Check your connection and try again.',
@@ -127,7 +128,7 @@ export function AuthForm({ mode, google }: { mode: Mode; google: boolean }) {
     setBusy(true)
     await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/dashboard',
+      callbackURL: LANDING_PATH,
     })
     setBusy(false)
   }

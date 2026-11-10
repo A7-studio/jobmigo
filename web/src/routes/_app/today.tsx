@@ -1,0 +1,93 @@
+import { useEffect } from 'react'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMe } from '#/lib/useMe'
+
+export const Route = createFileRoute('/_app/today')({
+  head: () => ({ meta: [{ title: 'Today | Jobmigo' }] }),
+  component: Today,
+})
+
+function Today() {
+  const me = useMe()
+  const navigate = useNavigate()
+  const unauthorized = me.data?.ok === false && me.data.code === 'unauthorized'
+
+  useEffect(() => {
+    if (unauthorized) void navigate({ to: '/sign-in' })
+  }, [unauthorized, navigate])
+
+  if (me.isPending || unauthorized) {
+    return (
+      <div
+        aria-busy="true"
+        aria-label="Loading Today"
+        className="max-w-xl animate-pulse"
+      >
+        <div className="h-9 w-2/3 rounded-md bg-surface-sunken" />
+        <div className="mt-4 h-24 rounded-xl bg-surface-sunken" />
+      </div>
+    )
+  }
+
+  const result = me.data
+
+  if (me.isError || !result?.ok) {
+    const failure =
+      result?.ok === false ? result.message : 'Could not reach the server.'
+    return (
+      <div
+        role="alert"
+        className="max-w-xl rounded-xl border border-border bg-surface p-6"
+      >
+        <h1 className="text-xl font-semibold">
+          We could not load Today
+        </h1>
+        <p className="mt-1 text-muted">{failure}</p>
+        <button
+          type="button"
+          onClick={() => void me.refetch()}
+          disabled={me.isFetching}
+          className="mt-4 min-h-11 rounded-full bg-accent-strong px-4 font-bold text-white hover:bg-accent-strong-hover disabled:opacity-70"
+        >
+          {me.isFetching ? 'Retrying…' : 'Retry'}
+        </button>
+      </div>
+    )
+  }
+
+  const name = result.me.displayName ?? result.me.email
+
+  return (
+    <div className="max-w-xl">
+      <h1 className="text-3xl font-semibold">Hi, {name}</h1>
+      <div className="mt-6 flex items-center gap-4 rounded-xl border border-border bg-surface p-6">
+        <div
+          aria-hidden="true"
+          className="grid size-14 shrink-0 place-items-center rounded-full bg-accent font-display text-2xl font-semibold text-accent-ink"
+        >
+          M
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold">Migo is getting ready</h2>
+          <p className="text-muted">
+            Your jobs, applications and next steps will show up here soon.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-6">
+        <div>
+          <h2 className="text-lg font-semibold">Your CV</h2>
+          <p className="text-muted">
+            Upload it, or check on the profile draft Migo made from it.
+          </p>
+        </div>
+        <Link
+          to="/onboarding"
+          className="inline-flex min-h-11 items-center rounded-full bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover"
+        >
+          Open CV page
+        </Link>
+      </div>
+    </div>
+  )
+}

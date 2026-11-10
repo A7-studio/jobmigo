@@ -20,8 +20,11 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppJobsRouteImport } from './routes/_app/jobs'
 import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppTodayRouteImport } from './routes/_app/today'
 import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
+import { Route as AppJobsJobIdRouteImport } from './routes/_app/jobs_.$jobId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
 import { Route as ApiJobsIndexRouteImport } from './routes/api/jobs/index'
@@ -95,6 +98,16 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTodayRoute = AppTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => AppRoute,
+} as any)
 const WaitlistConfirmRoute = WaitlistConfirmRouteImport.update({
   id: '/waitlist/confirm',
   path: '/waitlist/confirm',
@@ -104,6 +117,11 @@ const WaitlistUnsubscribeRoute = WaitlistUnsubscribeRouteImport.update({
   id: '/waitlist/unsubscribe',
   path: '/waitlist/unsubscribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppJobsJobIdRoute = AppJobsJobIdRouteImport.update({
+  id: '/jobs_/$jobId',
+  path: '/jobs/$jobId',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -211,8 +229,11 @@ export interface FileRoutesByFullPath {
   '/jobs': typeof AppJobsRoute
   '/onboarding': typeof AppOnboardingRoute
   '/profile': typeof AppProfileRoute
+  '/settings': typeof AppSettingsRoute
+  '/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/jobs/$jobId': typeof AppJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -243,8 +264,11 @@ export interface FileRoutesByTo {
   '/jobs': typeof AppJobsRoute
   '/onboarding': typeof AppOnboardingRoute
   '/profile': typeof AppProfileRoute
+  '/settings': typeof AppSettingsRoute
+  '/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/jobs/$jobId': typeof AppJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -277,8 +301,11 @@ export interface FileRoutesById {
   '/_app/jobs': typeof AppJobsRoute
   '/_app/onboarding': typeof AppOnboardingRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/_app/jobs_/$jobId': typeof AppJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -311,8 +338,11 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/onboarding'
     | '/profile'
+    | '/settings'
+    | '/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/jobs/$jobId'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -343,8 +373,11 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/onboarding'
     | '/profile'
+    | '/settings'
+    | '/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/jobs/$jobId'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -376,8 +409,11 @@ export interface FileRouteTypes {
     | '/_app/jobs'
     | '/_app/onboarding'
     | '/_app/profile'
+    | '/_app/settings'
+    | '/_app/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/_app/jobs_/$jobId'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -507,6 +543,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/today': {
+      id: '/_app/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof AppTodayRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/waitlist/confirm': {
       id: '/waitlist/confirm'
       path: '/waitlist/confirm'
@@ -520,6 +570,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/waitlist/unsubscribe'
       preLoaderRoute: typeof WaitlistUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/jobs_/$jobId': {
+      id: '/_app/jobs_/$jobId'
+      path: '/jobs/$jobId'
+      fullPath: '/jobs/$jobId'
+      preLoaderRoute: typeof AppJobsJobIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -655,6 +712,9 @@ interface AppRouteChildren {
   AppJobsRoute: typeof AppJobsRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTodayRoute: typeof AppTodayRoute
+  AppJobsJobIdRoute: typeof AppJobsJobIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -662,6 +722,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppJobsRoute: AppJobsRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppProfileRoute: AppProfileRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTodayRoute: AppTodayRoute,
+  AppJobsJobIdRoute: AppJobsJobIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
