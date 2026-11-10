@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo States</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+button{font-family:inherit;cursor:pointer}
+.card{background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#1A1A18;min-height:44px;display:inline-flex;align-items:center;gap:8px;align-self:flex-start}
+.btn.pri{background:#B04A27;border-color:#B04A27;color:#fff}
+.label{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#4A4944}
+.sk{background:#E8E5DA;border-radius:8px}
+h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-0.01em}
+p{margin:0;font-size:13px;line-height:1.6;color:#4A4944}
+
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-2deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes flame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.14) rotate(4deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,87,0)}50%{box-shadow:0 0 0 6px rgba(217,119,87,.28)}}
+@keyframes ringfill{from{stroke-dashoffset:213.6}}
+.migo{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+.migo-eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.growx{transform-origin:left;animation:growx .9s cubic-bezier(.2,.8,.2,1) both}
+.growy{transform-origin:bottom;animation:growy .9s cubic-bezier(.2,.8,.2,1) both}
+.floaty{animation:floaty 4s ease-in-out infinite}
+.pop{animation:pop .5s ease-out both}
+.flame{animation:flame 1.4s ease-in-out infinite;transform-origin:50% 90%}
+.glow{animation:glow 2.4s ease-in-out infinite}
+.ringfill{animation:ringfill 1.2s cubic-bezier(.2,.8,.2,1) both}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
+@keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.card{animation:rise .55s ease-out both}
+.card:hover{box-shadow:0 8px 24px rgba(26,26,24,.06)}
+.btn.pri{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.2) 50%,transparent 65%);background-size:220% 100%;animation:shine 4s ease-in-out infinite}
+.migo:hover{animation:wiggle .6s ease-in-out}
+.confetti{position:absolute;top:0;border-radius:2px;animation:fall 5s linear infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="padding:40px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;max-width:1440px;margin:0 auto">
+
+  <div>
+    <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.01em">Empty, loading and error states</h1>
+    <p style="margin-top:6px">Every data view handles these. Messages say what happened and what to do next, with no blame.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+
+    <section class="card" aria-labelledby="s1">
+      <span class="label">Empty: new account</span>
+      <svg class="migo" width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg>
+      <h2 id="s1">Upload your CV to begin</h2>
+      <p>Jobs are ranked against your profile, so nothing appears here until it exists. It takes about two minutes.</p>
+      <button class="btn pri" type="button">Upload CV</button>
+    </section>
+
+    <section class="card" aria-labelledby="s2">
+      <span class="label">Empty: filters too narrow</span>
+      <div style="width:44px;height:44px;border-radius:14px;background:#F0EEE6;color:#4A4944;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></div>
+      <h2 id="s2">No jobs match these filters</h2>
+      <p>3 jobs are hidden by “Strong fit only” and “Nairobi”. Widen one filter to see them.</p>
+      <button class="btn" type="button">Clear filters</button>
+    </section>
+
+    <section class="card" aria-labelledby="s3">
+      <span class="label">Loading: job list</span>
+      <h2 id="s3" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Loading jobs</h2>
+      <div role="status" aria-label="Loading jobs" style="display:flex;flex-direction:column;gap:18px">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="sk" style="width:44px;height:44px;border-radius:12px;flex:0 0 44px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk" style="height:12px;width:{{r.a}}"></div><div class="sk" style="height:10px;width:{{r.b}}"></div></div>
+            <div class="sk" style="width:64px;height:24px;border-radius:99px"></div>
+          </div>
+        </sc-for>
+      </div>
+      <p>Skeletons match the final layout so nothing jumps when data arrives.</p>
+    </section>
+
+    <section class="card" aria-labelledby="s4">
+      <span class="label">Loading: AI evaluation running</span>
+      <h2 id="s4">Evaluating this job</h2>
+      <div role="status" style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:#4A4944">
+        <span>✓ Read the posting</span><span>✓ Matched requirements to your profile</span><span>◐ Checking salary and eligibility</span>
+      </div>
+      <div role="img" aria-label="Evaluation 66 percent complete" style="height:8px;border-radius:99px;background:#EFECE2;overflow:hidden"><div class="growx" style="width:66%;height:100%;background:#D97757"></div></div>
+      <p>Usually under 20 seconds. You can leave this page; we will notify you.</p>
+    </section>
+
+    <section class="card" aria-labelledby="s5" style="border-color:#E8A9A9">
+      <span class="label">Error: source unavailable</span>
+      <h2 id="s5">We couldn’t refresh Fieldnote’s jobs</h2>
+      <p>Their careers page did not respond. Showing jobs checked 2 days ago, marked “Not recently verified”. We will retry tonight.</p>
+      <button class="btn" type="button">Try again now</button>
+    </section>
+
+    <section class="card" aria-labelledby="s6" style="border-color:#E8A9A9">
+      <span class="label">Error: CV could not be read</span>
+      <h2 id="s6">This PDF has no readable text</h2>
+      <p>It may be a scanned image. Upload a text-based PDF or a DOCX, or add your details by hand.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" type="button">Upload another file</button><button class="btn" type="button">Enter manually</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="s7" style="background:#FFF8E8;border-color:#F0D49A">
+      <span class="label">Notice: expired job</span>
+      <h2 id="s7">This job looks closed</h2>
+      <p>The original posting was removed on 4 Nov. We kept your notes and drafts. You can still track the application.</p>
+      <button class="btn" type="button">Archive job</button>
+    </section>
+
+    <section class="card" aria-labelledby="s8" style="background:#FFF8E8;border-color:#F0D49A">
+      <span class="label">Notice: credits nearly used</span>
+      <h2 id="s8">18 credits left this month</h2>
+      <p>Cached results are free. Evaluating the 7 unscored jobs would use about 7 credits. Upgrade for a larger allowance.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" type="button">See plans</button><button class="btn" type="button">Not now</button></div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rows: [ { a: '55%', b: '35%' }, { a: '65%', b: '45%' }, { a: '48%', b: '30%' } ] };
+  }
+}
+</script>
+</body>
+</html>

@@ -44,6 +44,12 @@ export class CvTooLargeError extends DomainError {
   }
 }
 
+export class ValidationFailedError extends DomainError {
+  constructor(message = 'The data is not valid.') {
+    super(422, 'validation_failed', message)
+  }
+}
+
 export class EngineNotConfiguredError extends DomainError {
   constructor(message: string) {
     super(503, 'engine_not_configured', message)

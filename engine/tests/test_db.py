@@ -53,12 +53,15 @@ async def test_upgrade_creates_the_engine_schema_and_only_that(db_url: str) -> N
         "cv_file",
         "education",
         "experience",
+        "job",
         "profile",
         "project",
         "skill",
+        "track",
+        "track_profile_item",
         "usage_event",
     ]
-    assert [row["version_num"] for row in versions] == ["0004"]
+    assert [row["version_num"] for row in versions] == ["0008"]
     assert [r["table_name"] for r in after] == [r["table_name"] for r in before]
 
 
@@ -66,7 +69,7 @@ async def test_upgrade_twice_is_a_no_op(db_url: str) -> None:
     await upgrade(db_url)
     await upgrade(db_url)
     versions = await fetch(db_url, "select version_num from engine.alembic_version")
-    assert [row["version_num"] for row in versions] == ["0004"]
+    assert [row["version_num"] for row in versions] == ["0008"]
 
 
 async def test_downgrade_returns_to_an_empty_version_table(db_url: str) -> None:
@@ -76,7 +79,7 @@ async def test_downgrade_returns_to_an_empty_version_table(db_url: str) -> None:
     assert versions == []
     await upgrade(db_url)
     again = await fetch(db_url, "select version_num from engine.alembic_version")
-    assert [row["version_num"] for row in again] == ["0004"]
+    assert [row["version_num"] for row in again] == ["0008"]
 
 
 async def test_readyz_is_ready_when_the_database_answers(db_url: str) -> None:

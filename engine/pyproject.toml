@@ -42,6 +42,14 @@ select = ["E", "F", "I", "UP", "B", "SIM", "S", "ASYNC", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+# Adapted third-party code: long pattern lines and the invisible characters it lists.
+"src/engine/jobs/posting_guard.py" = ["E501", "RUF001", "RUF003"]
+"src/engine/jobs/robots.py" = ["E501"]
+# Address literals and long fixture lines are the point of these tests.
+"tests/test_fetch.py" = ["E501", "S104"]
+"tests/test_robots.py" = ["E501", "S311"]
+"tests/test_posting_guard.py" = ["E501"]
+"tests/test_jobs_fetch_route.py" = ["E501"]
 
 [tool.mypy]
 strict = true

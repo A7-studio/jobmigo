@@ -221,3 +221,25 @@ html {
     transform: none !important;
   }
 }
+
+/* Indeterminate progress: slides back and forth. Under reduced motion it is a
+   full-width, dimmed bar, so it never looks like a percentage. */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.indeterminate {
+  animation: indeterminate 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indeterminate {
+    width: 100% !important;
+    opacity: 0.45;
+  }
+}

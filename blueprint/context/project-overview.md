@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 65d7c442717f49fb18cc8a503ee3fb0de06e84364f10497751831738df9267ad -->
+<!-- blueprint:source-hash 0d473bb5074d5097a1e3d10434254e2bccfde9194de2bb8997cc706ae2dfc246 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -18,60 +18,52 @@ Principles for every feature:
 - **Initial ICP (hypothesis):** experienced, remote-seeking technology professionals running a multi-track search, applying to 5+ roles a week, valuing quality over volume.
 - **Also served:** career changers, freelancers, remote seekers.
 - **First user:** the founder (Flutter/mobile engineer) with three tracks: Flutter and mobile; AI coding evaluation and AI training; AI application engineering and product engineering, each with its own profile variant and criteria.
-- **Validation:** 4 weeks of daily self-use, 10-15 interviews, concierge pilot with 5-10 people, $19 founding-member waitlist; milestone 10 paying customers.
+- **Validation:** the founder edition must get the founder work first: 4 weeks of daily self-use with outcomes recorded in the tracker, then 10-15 interviews, concierge pilot with 5-10 people, $19 founding-member waitlist; goal 10 paying customers.
 
 ## Usage model
 
-- Scale: founder first, then tens of users; no larger scale assumed.
+- Scale: founder first (the founder edition runs locally for one user), then tens of users; no larger scale assumed.
 - Internet-facing, multi-user: per-user isolation is a real requirement; users are ordinary job seekers, not assumed adversarial.
 - Sensitive data: CVs and contact details; private storage, owner-scoped access, export and deletion, no personal CV data in logs or public content.
-- Recruiter data: publicly available information only.
+- Recruiter data: public information only.
 - Not required now: enterprise SSO, compliance certifications, multi-region, team accounts, HA.
 
 ## Features
 
-Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
+Direction since 2026-11-11: a **founder edition** first. It runs locally for one user, with no billing or hosting, and must get the founder work (jobs, freelance gigs, AI training roles). Selling starts in slice 2. The **headline feature is #8, AI job evaluation**.
 
-0. **Waitlist launch (27, 28a, 28b, 32; done)** - TypeScript full-stack switch; public homepage and consented waitlist with a Resend confirmation email; production deploy on one VPS behind Cloudflare with backups; animated homepage and design sync (canvas update published only with approval).
+_Done: launch and foundation_
+- **27, 28a, 28b, 32** - TypeScript full-stack switch; homepage and consented waitlist with a Resend confirmation email; production deploy files (one VPS behind Cloudflare, backups); animated homepage.
+- **1** foundation and app shell (Better Auth, per-user scoping, staff roles skeleton, audit log). **2, 30, 31** AI gateway and usage ledger in the Python engine (FastAPI, own Postgres schema with Alembic, bearer auth with the verified user id).
+- **3** CV upload, isolated text extraction, AI parse into an unconfirmed draft, `/onboarding` screen. **4** profile review, edit and confirm, tracks and emphasis. **5** job preferences per track (roles, salary floor, work modes, locations, eligibility, criteria, dealbreakers, do-not-apply).
+- **29** add a job by link or paste: safe fetch when robots.txt allows, cleaner for hidden and instruction-shaped text, dedupe, legitimacy flag, saved and dismissed, `/jobs` screen.
 
-_Slice 1, the paste-a-job loop (usable by the founder)_
-1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
-2. **AI gateway and usage ledger** (done; in the engine since 31) - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
-30. **Python AI engine foundation** - FastAPI service in `engine/` (uv, Pydantic, Ruff, strict typing, pytest), Docker entry, health, internal bearer auth with the user id from the verified web session, own Postgres schema with Alembic, TypeScript client in the web server.
-31. **Port the AI gateway and ledger to the engine** (done) - Python version with parity tests; the TypeScript gateway and its two tables are removed.
-3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft. 3a storage, upload and extraction (done); 3b AI parse into an unconfirmed draft, engine and web API routes (done); 3c `/onboarding` upload and parse status screen.
-4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
-5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-haves per track, dealbreakers, do-not-apply list.
-29. **Add a job by link or paste** - paste a link or posting text; fetch public page text when allowed, paste fallback; normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan.
-8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes (`uv run eval`).
-11. **Application kit** - tailored CV, cover letter, answer drafts from confirmed facts, fact check, versions, PDF/DOCX export.
-12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; records each outcome, shows interviews per application by track.
-9. **Dashboard** - evaluated jobs, needs-action list, application progress, empty/loading states; discovery widgets arrive with 10.
-19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-evaluation moment (paste a job, see an evidence-based evaluation); the first-shortlist moment arrives with discovery.
+_Slice 1, founder edition (in build order)_
+33. **Simpler app structure and design sync** - sidebar of Today, Jobs, Profile, Settings; one job workspace with steps Fit, CV and letter, Outreach, Track (replaces the Documents, Outreach and Applications pages); quests, levels, Ask Migo, credits meter and upgrade prompts hidden; canvas boards updated and approved before new screens.
+8. **AI job evaluation** - dealbreaker gates before AI calls (including "hires from my country"), cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; the Fit step, verdict first; a golden set of the founder's verdicts (starts at 10, grows to 30 to 50) gates model and prompt changes (`uv run eval`).
+35. **AI cost and quality page** - read-only, staff: cost, tokens and calls per workflow, cost per evaluation, cache savings, model and prompt versions, failures, golden-set match rate beside cost, paid-model estimate.
+34. **Opportunity types** - job, freelance gig or AI training role; picks track defaults and cover letter vs proposal.
+11. **Application kit** - tailored CV, cover letter or proposal, answers from confirmed facts, fact check, versions, PDF/DOCX export; the CV and letter step.
+12. **Application tracking** - stage per job with terminal flags, dates, notes, interview stages, follow-up date, outcome; stages are views of the Jobs list; interviews per application by track; board view later.
+36. **One-step prepare** - one button runs evaluation, kit and fact check (later contacts and outreach draft) in the background; one review page, one approval; nothing is sent.
+6. **Job source ingestion** - adapter contract: company board feeds (Greenhouse, Lever, Ashby, Workable), free remote feeds, JSearch; verify live, expiry, dedupe, per-host limits, monthly call budget, dismissed-job memory, legitimacy flag; no LinkedIn or Indeed scraping.
+10. **Scheduled discovery** - daily run per track: fetch, gates without AI, evaluate the best within a budget, results in Today; gated jobs listed as "Filtered out" with the reason.
+7. **Jobs list** - search, filters by track, stage, fit, location, source; keep or skip.
+9. **Today** - home page as one queue: matches to keep or skip, applications to review, follow-ups due, interviews; one main button each; no widgets.
+14. **Company and recruiter research** - public hiring-team info with source links, user-confirmed; no email guessing.
+15. **Outreach drafts and log** - messages the user copies and sends; the Outreach step.
+13. **Follow-ups and ghost watch** - due items in Today, flag applications silent for 10+ days, draft a nudge.
+37. **Interview prep** - likely questions, story bank from confirmed history, company brief.
+21. **Reachability check** - checklist of how a tailored CV reads to hiring systems (readability, headings, title match, truthful keyword coverage, file type), apply-early prompt.
+38. **Showcase pack** - README, golden-set results, cost per evaluation, safety demo, video script; no personal data.
 
-_Slice 2, apply better and follow through_
-13. **Follow-ups and ghost watch** - due items on dashboard and Telegram, flag applications silent for 10+ days and draft a nudge.
-21. **Reachability check** - AI checklist of how a tailored CV reads to hiring systems (readability, headings, title match, truthful keyword coverage, file type), plus a hiring-team route and apply-early prompt.
-14. **Company and recruiter research** - public hiring-team info and company summaries.
-15. **Outreach drafts and log** - personalised messages and tracking.
-20. **Progress and quests** - quests, streaks, levels, badges rewarding careful applications and follow-ups, not volume; weekly recap, Migo moments.
+_Slice 2, validate and sell_
+19. **Sign-up and onboarding flow** - four steps ending in a first evaluation. 17. **Data export and account deletion.** 40. **First payments by hand** - payment link and a staff-set paid flag for the first 10 customers. 16. **Subscription billing and entitlements** - regional price book (KES via Paystack with M-Pesa and cards, USD via a merchant of record), credits, checkout, dunning, invoices, pause. 39. **Telegram digest and alerts.** 24. **Email service.**
 
-_Slice 3, premium automatic discovery_
-16. **Subscription billing and entitlements** - plans, regional price book (KES via Paystack with M-Pesa and cards, USD via a merchant of record), credit allowances, checkout, M-Pesa prepaid renewal prompts, dunning, invoices, pause instead of cancel; free plan is bring-your-own-job with a small evaluation allowance.
-6. **Job source ingestion (premium)** - adapter contract with per-host limits, URL-normalised dedupe, dismissed-job memory, verify live, expiry, legitimacy flag.
-7. **Jobs list (premium)** - search, filters, saved and dismissed jobs.
-10. **Scheduled discovery and Telegram alerts (premium)** - daily run, digest, strong-fit alerts, in-app notifications.
+_Slice 3, grow and operate_
+20 progress and quests; 18 application analytics; 22 Ask Migo; 23 localisation (English, Swahili); 25 admin panel; 26 support desk.
 
-_Slice 4, grow and operate_
-17. **Data export and account deletion** - full export, verified delete.
-18. **Application analytics** - response rate, time to reply, outcomes by track.
-23. **Localisation** - i18n catalogs (English, Swahili), locale and time zone, regional formatting, region-aware payments and tax display.
-24. **Email service** - full layer beyond the waitlist confirmation (Resend first), per-locale templates, bounces, receipts, reminders, consented marketing.
-25. **Admin panel** - staff roles with MFA, users, subscriptions, refunds, price book, job sources, AI cost, flags, ops, audit log.
-26. **Support desk** - help form, inbound email to tickets, admin inbox, notes, canned replies.
-22. **Ask Migo** - natural-language questions over the user's own data, with cited answers.
-
-Excluded or later: auto-apply and browser automation, LinkedIn scraping, BYOK (gateway designed for it), autonomous agents, extra services, Python job-source adapters (only if scraping is approved within site terms), native app, team accounts, interview prep and coaching, AI insights dashboards, sending email from the user's mailbox (a read-only status scan may come later).
+Excluded or later: auto-apply, browser automation, LinkedIn scraping, Hunter.io contact emails, BYOK, autonomous agents, Python scraping adapters (only within site terms), native app, team accounts, interview coaching, AI insights, application board view, sending email from the user's mailbox.
 
 ## Data model
 
@@ -104,7 +96,7 @@ Every user-owned row has `user_id`; all queries are scoped by it. Canonical jobs
 - `JobListing` (`job_id`, `source_id`, `url`, `external_id`): several listings merge into one Job.
 
 ### UserJob (per-user state)
-- `id`, `user_id`, `job_id`, `track_id`, `state` (new|saved|dismissed|skipped), `recheck_after` (date, nullable), `skip_reason` (text), `screen_result` (json), `created_at`
+- `id`, `user_id`, `job_id`, `track_id`, `kind` (job|gig|ai_training), `state` (new|saved|dismissed|skipped), `recheck_after` (date, nullable), `skip_reason` (text), `screen_result` (json), `created_at`
 
 ### Evaluation
 - `id`, `user_job_id`, `profile_version`, `prompt_version`, `band` (strong|good|stretch|poor), `summary`, `requirements` (json: `need`, `status` met|partial|gap|unknown, `quote`, `evidence_ref`), `checks` (json: salary, location, eligibility, seniority), `cache_key` (content hash), `usage_event_id`
@@ -112,7 +104,7 @@ Every user-owned row has `user_id`; all queries are scoped by it. Canonical jobs
 > Lock: no numeric score; each requirement carries evidence or an explicit `unknown`.
 
 ### Document
-- `id`, `user_id`, `user_job_id`, `kind` (cv|cover_letter|answers), `version` (int), `content` (json), `fact_check` (json), `storage_key` (exported file, nullable)
+- `id`, `user_id`, `user_job_id`, `kind` (cv|cover_letter|proposal|answers), `version` (int), `content` (json), `fact_check` (json), `storage_key` (exported file, nullable)
 
 ### Contact and Outreach
 - `Contact`: `id`, `company_id`, `name`, `role`, `public_source_url`
@@ -169,19 +161,17 @@ Subscription plus AI credits. Prices are hypotheses to test and differ by region
 - **Pro (~$19):** multiple tracks and profiles, Telegram alerts, tailored documents, CRM, larger credits.
 - **Power (~$39):** recruiter research and outreach, highest credits, priority processing, exports.
 
-Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10 customers. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Daily hook: morning digest and "needs action" list. Distribution: LinkedIn build-in-public.
+Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Distribution: LinkedIn build-in-public. Open until the founder edition has results: whether the paid line is discovery or evaluation and kit volume, a fixed job-search pass vs a monthly plan, and the first audience.
 
 ## UI/UX
 
-Calm, focused SaaS workspace; data-rich but uncluttered. Mascot Migo (briefcase); light motion that respects reduced-motion; light gamification for quality actions only. Light theme, warm ivory ground, white cards, orange accent #D97757 (dark text; primary buttons #B04A27 with white text), Fredoka headings, Nunito body. Not a chatbot or job board. Approved design canvas: https://claude.ai/artifact/2jc4qnjcWgNi6cFLu72k7Q. Locked tokens: `prototypes/theme.css`. Fit and status use text labels, never colour alone; 44px touch targets; sidebar stacks on small screens, boards scroll horizontally.
+Calm, focused workspace that removes steps: one queue of next actions, one page per job, one approval per application, verdict first with evidence one click away. Mascot Migo (briefcase); motion only on state changes, respecting reduced-motion. Light theme, warm ivory ground, white cards, orange accent #D97757 (dark text; primary buttons #B04A27 with white text), Fredoka headings, Nunito body. Not a chatbot or job board. Approved design canvas: https://claude.ai/artifact/2jc4qnjcWgNi6cFLu72k7Q. Locked tokens: `prototypes/theme.css`. Fit and status use text labels, never colour alone; 44px touch targets; sidebar stacks on small screens, lists instead of boards on phones.
 
-Screens (route names proposed, all designed except `/settings`):
-- `/` - public homepage with waitlist; signed-in `/dashboard` (includes progress and quests)
-- `/jobs`, `/jobs/$jobId` - list and job evaluation; `/applications` - kanban board with ghost watch
-- `/profile` - profile review (also onboarding step 2), variants, preferences, alerts, data controls
-- `/documents` - application kit with fact and reachability checks; `/outreach` - contacts, drafts, log
-- `/signup`; `/onboarding` (four steps: upload CV, review profile, make it yours, first shortlist); `/plans`; empty/loading/error states
-- `/settings` - to design
+Screens (route names proposed; the canvas still shows the older seven-page layout until feature 33 updates it):
+- `/` - public homepage with waitlist; `/today` - action queue (replaces `/dashboard`)
+- `/jobs` - list with stage views; `/jobs/$jobId` - job workspace: Fit, CV and letter, Outreach, Track
+- `/profile` - profile review, tracks, preferences; `/settings` - account, data controls; staff cost page under `/admin`
+- `/signup`; `/onboarding`; `/plans` (slice 2); empty/loading/error states
 
 ## Deployment
 
@@ -197,7 +187,9 @@ Screens (route names proposed, all designed except `/settings`):
 
 > Resolve in the plans, then re-run /overview. Delete when empty.
 
-- Feature 17 (export and deletion) comes after CVs are stored (feature 3); consider moving it earlier.
-- "Credit limits from day one" (plan section 3) vs enforcement only arriving with billing (feature 16): decide whether the engine gateway (31) enforces a hard cap.
-- Job source list (which ATS/career-page adapters first) is not chosen.
-- In-app notifications are needed by feature 9 (dashboard) but built in feature 10.
+- Feature 17 (export and deletion) must land before any other person's CV is stored.
+- A hard AI spend cap in the engine gateway is undecided; the founder edition relies on the discovery budgets in 6 and 10.
+- The first company board list (5 to 10) comes from the founder.
+- Undecided: whether source adapters and the daily run live in the engine or the Node worker, and what schedules the run locally.
+- Onboarding ends in a first shortlist (project plan) or a first evaluation (feature 19).
+- The data model below predates the built per-user `engine.job` table; reconcile in feature 8 or 12.

@@ -86,6 +86,7 @@ async def test_start_poll_and_read_the_draft(app: FastAPI) -> None:
         assert set(body) == {
             "id",
             "cvId",
+            "version",
             "headline",
             "summary",
             "experiences",

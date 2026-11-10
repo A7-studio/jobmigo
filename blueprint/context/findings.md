@@ -384,3 +384,345 @@ Reopened 2026-11-08 by /audit independent (scope: current; lens: quality, securi
 **Why it matters:** The idempotency test starts two parses one after the other, so it does not exercise the atomic claim under a real race, and owner scoping is tested only through `start_parse` and the routes (the pre-read `get_cv` already refuses another user). A regression that dropped `user_id` from the `claim` or `_write_draft` UPDATE, or from `mark_failed`, would still pass. These statements carry the trust boundary the spec names.
 **Suggested fix:** Add tests that call `claim`, `mark_failed` and `_write_draft` directly with a different user id and assert no row changes, and one that runs two `claim` calls with `asyncio.gather` and asserts exactly one returns True.
 **Resolution:**
+
+### F-76 [P3] open - Focus is dropped on every state change and the upload has no announcement
+
+**File:** web/src/routes/_app/onboarding.tsx:408
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The spec requires focus and announcements. Pressing "Delete this CV" unmounts that button and renders the confirm group, but focus is not moved into it, so a keyboard or screen-reader user lands on the body; the same happens when the dropzone or "Upload another file" button unmounts after an upload, a delete confirm, or a parse starting. While uploading, the dropzone only swaps its text ("Uploading your CV...") with no `role="status"` or live region, so nothing is announced until the ready view appears (the `Problem` alert does fire).
+**Suggested fix:** Move focus to the confirm group's first button (and back to the trigger on cancel), move focus to the new state's heading or status region after upload and delete, and wrap the busy text in a `role="status"`.
+**Resolution:** Fixed: focus moves to "Keep it" when the delete confirm opens and back to "Delete this CV" when kept, and to the page heading after an upload or delete; the dropzone status text is a polite live region; seen in the browser.
+Reopened 2026-11-10 by /audit independent at P3: the delete confirm and upload focus repairs work, but the "a parse starting" case is not repaired. `build()` (Build my profile draft and Try again) never moves focus, so the pressed button unmounts into the parsing view and focus falls to the body. Also `confirmDelete` is not reset by `build()` and is shared by every `DeleteControl` instance, so opening the confirm and then pressing Build (or a parse finishing) remounts the control with the confirm already open and steals focus into "Keep it". Suggested fix: call `settleFocus()` after `build()`, and `setConfirmDelete(false)` there.
+
+### F-77 [P3] open - A failed "Build my profile draft" call shows the same alert twice
+
+**File:** web/src/routes/_app/onboarding.tsx:146
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** When `startParse` fails with an HTTP error (the engine's 502 for an AI failure), `build()` calls `setProblem(copyFor(code))` and then refreshes the list, which now returns the CV as `failed` with the same code. The page then renders the `problem` card and the failed card, both `role="alert"` with identical title and body, so a screen reader announces it twice and sighted users see two cards.
+**Suggested fix:** Clear `problem` after the refresh when the refreshed CV is `failed`, or skip `setProblem` for parse codes and let the failed card speak.
+**Resolution:** Fixed: the failed view shows one alert (the latest message), not two; seen in the browser (1 alert after a failed retry).
+Reopened 2026-11-10 by /audit independent: the repair (`problem ?? screen.copy` in the failed view) lets a client-side file problem replace the failure message while the failed CV's buttons stay. Choose a 6 MB file from "Upload another file" on an `ai_unavailable` failure and the one card reads "That file is too large" with "Try again" (which re-runs the parse, not the upload) beside it. Suggested fix: show a file-validation problem as its own card above the failed card, or keep the failed copy and add the file message; the duplicate-alert fix only needs to drop the stale parse problem.
+
+### F-78 [P3] open - "Try again" is offered for `ai_not_configured`, where retrying cannot help
+
+**File:** web/src/lib/cv-view.ts:114
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `ai_not_configured` shares the "could not reach the AI service ... Try again in a moment" copy and the retry button with transient errors. It is a server configuration state that never clears by retrying, so a user loops on it. The spec lists it as retryable and the test encodes that, so this is a spec choice worth revisiting, not a build deviation.
+**Suggested fix:** Give it its own copy ("This feature is not switched on yet") with no retry, or keep it and note the decision.
+**Resolution:** Fixed: `ai_not_configured` no longer offers Try again (copy: the AI service is not set up yet); the unit test lists it with the codes that offer no retry.
+Reopened 2026-11-10 by /audit independent: `ai_not_configured` now has no "Try again", but the engine stores it as the CV's `failed` state. The only action is "Upload another file", which deletes the CV first, and the copy says "check back later". When the AI is configured the user returns to a CV that still shows this failure, with no way to build the draft except delete and re-upload. Suggested fix: keep a retry for this code (the engine re-checks configuration on each POST) with the "not set up yet" copy, or do not persist it as `failed`.
+
+### F-81 [P3] open - A 401 during replace is never redirected, and tests cover only the pure helpers
+
+**File:** web/src/routes/_app/onboarding.tsx:126
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** In `chooseFile`, a delete that fails with `unauthorized` sets the "Please sign in again" card and returns before `refresh()`, so the sign-in redirect (driven only by the list query's error) never fires and the card has no sign-in link. The page logic that carries the spec's risks (the `refetchInterval` and `startedRef` stop conditions, the delete-then-upload order, one interval, redirect on 401) has no automated test; `shouldKeepPolling` and `copyFor` tests prove only the pure helpers, and the evidence is a scripted browser pass that is not in the repo.
+**Suggested fix:** Call `refresh()` (or navigate to sign-in) on `unauthorized` in every handler, and extract the replace flow and poll decision into testable functions with a Vitest case each.
+**Resolution:** Part fixed: a 401 anywhere in the page now goes back to sign-in. Still open: the page logic (polling stop conditions, delete-then-upload order) has no automated test, because no DOM test library is installed.
+Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now in `fail()` and the list query, but the draft query is not covered (F-82). In `cv-api.test.ts` the "each route" test records four calls and runs DELETE through a separate fetch, so the DELETE method and path are not asserted.
+
+### F-82 [P3] open - A session that ends while a draft is shown is not sent to sign-in
+
+**File:** web/src/routes/_app/onboarding.tsx:82
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The sign-in redirect reads only the list query's error. The draft query throws `CvError('unauthorized')` on a 401 but nothing inspects it, so the parsed view shows "We could not load your draft ... Your CV is safe. Try again in a moment" and Try again gets the same 401. The list is not polled in `parsed`, so the page may not notice for a long time. Not reproduced.
+**Suggested fix:** Treat `draft.error` with code `unauthorized` like the list error.
+**Resolution:**
+
+### F-83 [P3] open - The trust box names DeepSeek as the provider, but the engine's provider is configuration
+
+**File:** web/src/components/cv/parts.tsx:222
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The copy says the CV text is sent to "our AI provider, DeepSeek". `AI_CHEAP_MODEL` accepts `deepseek/`, `moonshot/` or `openrouter/` models (`.env.example`), so a deployment on another provider would make a privacy statement false. Correct today only because DeepSeek is the planned model, which is unset.
+**Suggested fix:** Say "our AI provider" without a name, or have the engine expose the provider name and render it.
+**Resolution:**
+
+### F-84 [P3] open - The parsing and parsed views are one `role="status"` region around buttons and the whole draft
+
+**File:** web/src/routes/_app/onboarding.tsx:281, web/src/routes/_app/onboarding.tsx:508
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** A live region should hold the message. Here it wraps the file card, the delete control (so opening the confirm is announced as a change), and in the parsed view the full draft (headline, role list, user-derived text) plus a nested `role="alert"` for a draft load error, read out on mount. It works but is noisy and nests live regions.
+**Suggested fix:** Put `role="status"` on a short sentence ("Reading your CV", "Draft ready") and leave the rest as ordinary content.
+**Resolution:**
+
+### F-90 [P3] open - The lost-update and confirm-versus-edit concurrency tests pass without the row lock
+
+**File:** engine/tests/test_profile_edit.py:359, engine/tests/test_profile_edit.py:386
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** In a scratch copy with the `FOR UPDATE` removed from `latest_profile`, `test_concurrent_edits_to_different_fields_are_both_kept` and `test_a_confirm_racing_an_edit_never_hides_the_edit` still passed on three runs; only the duplicate-add, limit and patch-versus-delete tests failed. `asyncio.gather` over two short calls does not force the two reads to overlap, and the confirm test ends in `edited` for either order. A regression that drops the lock for confirm, or writes stale columns, would go unnoticed.
+**Suggested fix:** Make the overlap deterministic: hold the profile lock in a separate session (or add a barrier/sleep after the read through a test hook), start the call, release, and assert the outcome; or drop the two tests' claim of covering the lock.
+**Resolution:**
+
+### F-91 [P3] open - Reads after commit run outside the lock, so a concurrent delete can turn a committed change into a 500 or 404
+
+**File:** engine/src/engine/profile/service.py:196, :228, :248, :150, :295
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `add_item`, `patch_item` and `confirm_item` call `session.refresh(row)` after `commit()` (which expires the row and frees the lock). If another request deletes that row in between, `refresh` raises `InvalidRequestError`, an unhandled 500 for a write that succeeded. `patch_profile` and `confirm_all` re-run `_current` after commit; if the profile was deleted meanwhile they answer 404 for a change that was saved. Narrow window, not reproduced.
+**Suggested fix:** Build the response before commit (flush, then validate the row into the output model, or use `expire_on_commit=False`), and read the new version in the same transaction with `RETURNING`.
+**Resolution:**
+
+### F-92 [P3] unverified - Latest-profile lock query can lock an older draft when the newest one is deleted while waiting; `GET` is not one snapshot
+
+**File:** engine/src/engine/profile/service.py:34
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** With `ORDER BY ... LIMIT 1 FOR UPDATE OF profile`, Postgres re-checks a row that was changed while it waited and, if the row is gone, takes the next one: a mutation that was queued behind a delete of the newest CV could add an item to the previous parsed draft. Also `get_profile` reads the profile and each fact table in separate READ COMMITTED statements, so `version` can be older than the rows returned if a commit lands between them. Neither reproduced; only reachable with more than one parsed CV or a read racing an edit.
+**Suggested fix:** If it matters, re-check after locking that the locked profile is still the user's newest parsed one (or reject when its CV is not `parsed`), and read in a REPEATABLE READ transaction.
+**Resolution:**
+
+### F-93 [P2] fixed - The skill panel reuses one fact row across skills, so an open editor or delete question follows you to the next skill
+
+**File:** web/src/routes/_app/profile.tsx:491
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `SkillChips` renders `<FactRow kind="skill" fact={selected} />` with no `key`. Chips stay clickable while a panel is open, so clicking skill B while skill A's editor is open keeps the same component instance: `FactEditor` keeps A's typed values in its `useState` and `fact` is now B, so Save sends the diff against B and renames B to A's text (or hits `already_exists`). An open "Delete this?" question likewise carries over, now under B's name. Found by reading; not run in a browser.
+**Suggested fix:** `key={selected.id}` on the panel's `FactRow` (and consider disabling the other chips while an editor is open).
+**Resolution:** `key={selected.id}` on the panel `FactRow`, so each skill gets its own editor and delete state; browser-checked.
+
+### F-94 [P2] fixed - The load-failed card uses the save-failure copy ("We could not save that ... Your profile is unchanged")
+
+**File:** web/src/routes/_app/profile.tsx:218, web/src/lib/profile-view.ts:272
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Any load error other than `not_found` and `unauthorized` (`engine_unavailable`, `network`, `unexpected`) is shown with `copyFor`, whose default says "We could not save that. Your profile is unchanged." On a load that is the wrong action, and after a successful save whose re-read fails the same card says the profile is unchanged when it was changed, while the stale profile is still on screen. The unit test only checks length and that no code leaks, so it passes. The load-failed state was not captured in the build evidence.
+**Suggested fix:** A separate load copy ("We could not load your profile ... Try again") and, after a mutation, a message that the change was saved but the page could not refresh.
+**Resolution:** Load failure now has its own copy ("We could not load your profile") and shows no stale facts; `copyFor` covers it; browser-checked.
+
+### F-95 [P2] fixed - Focus is lost after Confirm, Confirm all, opening the headline editor and closing a skill panel
+
+**File:** web/src/components/profile/facts.tsx:355, web/src/routes/_app/profile.tsx:175, web/src/routes/_app/profile.tsx:353, web/src/routes/_app/profile.tsx:493
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The spec requires focus to land somewhere sensible after every transition, and the earlier /onboarding reviews found this class. (1) Confirm: the button is removed once the status changes, so focus drops to the page body (a user confirming rows with the keyboard must tab from the top each time). (2) Confirm all: the button becomes disabled, so keyboard focus is stranded on it. (3) "Edit headline" is replaced by the form and nothing moves focus into the Headline field (the row editor does this; this one does not). (4) The skill panel's Close button unmounts itself with no focus target. The docs say focus returns "after a delete or add" and the evidence lists focus only for those, so these were not seen.
+**Suggested fix:** After Confirm, move focus to that row's Edit button (or the next unconfirmed Confirm); after Confirm all, to the progress text or the first section heading; focus the Headline input when the editor opens; focus the chip that opened the panel on Close.
+**Resolution:** Focus returns to the row's Edit button after Confirm, to the page title after Confirm all, to the headline input when it opens, and to the chip when a skill panel closes; browser-checked.
+
+### F-96 [P2] fixed - Save errors raise two alerts; Confirm and Delete errors appear only in a banner at the top of the page
+
+**File:** web/src/routes/_app/profile.tsx:95, web/src/routes/_app/profile.tsx:230, web/src/components/profile/facts.tsx:219
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `ctx.run` always sets the page-level `Problem` (`role="alert"`, above the progress cards) and, for save, add and headline edits, the caller also sets an inline `role="alert"` with the same words: two announcements per failure, the exact duplicate-alert class found on /onboarding. For Confirm and Delete there is only the top banner, which a user working on a row far down the page does not see, and focus does not move to it. The banner is cleared only by the next action, so after Cancel it still says "That was not accepted" for an edit that no longer exists.
+**Suggested fix:** Show one error, next to the control that failed (inline for edit, add, headline, and a short inline line for Confirm and Delete); keep the top banner only for page-level errors, and clear it on Cancel.
+**Resolution:** Save errors show once, in the row; Confirm and Delete errors also show in the row (`rowError`); the page banner is only for `not_found` and Confirm all failures; browser-checked.
+
+### F-97 [P3] fixed - The same live-region message twice in a row is not announced
+
+**File:** web/src/routes/_app/profile.tsx:100
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `run` sets `notice` to "Confirmed." for each Confirm. When the text is unchanged React does not touch the DOM, so confirming a second fact right after the first, or saving twice, announces nothing. Together with F-95 a screen reader user confirming several rows gets feedback only for the first.
+**Suggested fix:** Clear the notice at the start of `run` (or add a counter into the text, or key the region node on a sequence number).
+**Resolution:** `announce()` alternates a zero-width suffix so a repeated message changes the live region text.
+
+### F-98 [P3] open - Stale data is kept after a failed or empty re-read, and a headline edit can overwrite a concurrent change
+
+**File:** web/src/routes/_app/profile.tsx:80, web/src/routes/_app/profile.tsx:397
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The page shows `query.data` and the error card together. If the re-read after a change returns `not_found` (the draft was deleted in another tab) the "Upload your CV to begin" card shows above the old facts, which can still be edited (each action then answers not_found). If the re-read fails, the new values are not shown (see F-94). In the headline form the diff is taken against the live `profile.headline`, not the value the form was opened from, so an untouched field is sent if another tab changed it meanwhile; row editors have the same property (`fromForm` diffs against the current `fact`). Narrow races, not reproduced.
+**Suggested fix:** Hide the review view when `loadCode` is `not_found`; diff against the values the editor opened with.
+**Resolution:** The page shows `undefined` data while the query is in error; the headline editor still diffs against the live value (the stale-data part is fixed; the diff-against-live-value race is not, and stays open).
+
+### F-99 [P3] open - The page has no automated test, and the API test does not assert the DELETE call
+
+**File:** web/tests/profile-api.test.ts:19, web/tests/profile-view.test.ts
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** "Calls each route" runs the DELETE through a separate fetch and the expected list has six entries, so the DELETE method and path are unasserted. The behaviours that carry this feature's risks (one mutation at a time, the refetch after each change, `not_found` and 401 handling, the focus and live-region rules, panel state per skill) are not tested; the build evidence is a scripted browser pass not kept in the repo, and F-93 to F-97 were all missed by it. `copyFor`'s test cannot catch the wrong load copy (F-94). No case covers toggling `isCurrent` alone, an achievement with a related role set, or the add-form body for the other kinds.
+**Suggested fix:** Record the DELETE in the same fetch mock; extract the run/refresh logic into a tested function; add a component or browser test when a harness is added (`/tests browser`).
+**Resolution:** Partly: the API test now asserts the DELETE method and path and the whitespace rules are tested; the page behaviours still lack automated tests because the repo has no DOM test library. Left open.
+
+### F-100 [P3] fixed - The client length check counts raw characters, the engine counts them after cleaning
+
+**File:** web/src/lib/profile-view.ts:216, web/src/routes/_app/profile.tsx:392
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The engine collapses runs of whitespace and drops control characters before checking the maximum (`cv/parse.py` `_clean`); the form checks after only a trim. A pasted value that fits after cleaning but is over the limit with its spaces is refused client-side, and the headline and summary check the untrimmed length. The error is conservative and calm, so it is not harmful, but the mirror is not exact, and the headline and summary inputs have no `aria-invalid` or `aria-describedby` tie to their (page-level) alert.
+**Suggested fix:** Collapse whitespace the same way before counting, and tie the headline error to its field.
+**Resolution:** `profile-view.ts` collapses whitespace like the engine before the length check and before sending; test `counts the collapsed length and sends the collapsed text`.
+
+### F-101 [P3] fixed - Skill chips: "Open" in the accessible name, no panel relationship, and focus does not move to the panel
+
+**File:** web/src/routes/_app/profile.tsx:472
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Each chip's `aria-label` is "Name, unconfirmed. Open" while `aria-expanded` already says it is open or closed, so the name reads wrongly when expanded. The detail panel renders after all chips with no `aria-controls` and focus stays on the chip, so a keyboard user must tab through the remaining chips to reach the panel. State is in the text (good), and targets are 44px.
+**Suggested fix:** Label "Name, unconfirmed" and keep `aria-expanded`; add `aria-controls` and move focus into the panel (or render it right after the chip row with a heading).
+**Resolution:** Chips are named by the skill, carry `aria-controls`, focus moves to `#skill-panel` on open and back to the chip on close.
+
+### F-102 [P3] open - A failed background or post-change re-read removes the whole review view, and with it any open editor and its typed text
+
+**File:** web/src/routes/_app/profile.tsx:94, web/src/router.tsx:7
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The F-98 repair sets `profile = query.isError ? undefined : query.data`. The query client keeps the default `refetchOnWindowFocus` with `staleTime` 30 s, so returning to the tab after 30 s refetches `/api/profile`; one transient failure (the query has `retry: false`) unmounts every section, row editor, the headline form, an open add form and the skill panel, discarding what the user typed, and shows "We could not load your profile". After a successful save whose re-read fails, the change is saved but the page hides it and the user sees the load card; "Try again" restores the view but not the lost input. Found by reading; not run in a browser.
+**Suggested fix:** Keep showing the last good data when a refetch fails (with the load card above it, controls still guarded), and hide the facts only for `not_found`; or set `refetchOnWindowFocus: false` for this query.
+**Resolution:**
+
+### F-103 [P3] open - Inline row errors are not cleared by later actions, and a server error stays beside a client validation error
+
+**File:** web/src/components/profile/facts.tsx:303, web/src/components/profile/facts.tsx:349, web/src/components/profile/facts.tsx:389
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `rowError` (a failed Confirm or Delete) is cleared only by the next Confirm or Delete on that row; opening Edit, saving or cancelling leaves "We could not save that. Your profile is unchanged." showing, now wrong after a successful edit. In `FactEditor`, `serverError` is passed in and remains while the user fixes a field and a client error appears, so two alerts can show for one form. Also the `autoOpen` prop on `FactRow` is unused. Narrow, calm, not reproduced.
+**Suggested fix:** Clear `rowError` when editing opens or a save succeeds; clear the server error on the next submit attempt (or on input); remove `autoOpen`.
+**Resolution:**
+
+### F-104 [P2] fixed - A delete or rename that answers `not_found` leaves the track controls stuck in the delete or rename mode
+
+**File:** web/src/components/profile/tracks.tsx:38, web/src/components/profile/tracks.tsx:180, web/src/routes/_app/profile.tsx:153
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `mode` is local to `TracksSection` and is only reset by `close()`. If the track was already deleted elsewhere (another tab or device), the engine answers `not_found`, `track()` refreshes the list, and `selected` becomes null while `mode` is still `deleting`. The confirm block is hidden (`selected &&`), every chip is disabled (`mode === 'deleting'`) and "+ Add a track" is disabled (`mode !== 'idle'`), and nothing on screen can set the mode back, so the section is unusable until a reload. For `renaming` the form stays titled "Rename track" but `submit()` falls through to `onCreate` because `selected` is null, so Save silently creates a new track. Found by reading; not run in a browser.
+**Suggested fix:** Reset `mode` to `idle` when `selected` disappears (an effect on `selected?.id`), and in `submit()` never fall back to create while `mode === 'renaming'`.
+**Resolution:** The panel modes reset when the chosen track disappears (effect in `tracks.tsx`), and a stale save refreshes the list; browser-checked (panel gone, Add enabled).
+
+### F-105 [P3] fixed - `str.isalnum()` accepts non-ASCII letters in `CLOUDFLARE_ACCOUNT_ID`
+
+**File:** engine/src/engine/ai/config.py:149
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** The check is meant to keep the account id from changing the URL's shape, but Python's `isalnum()` is Unicode-aware, so an id such as `abcé` passes and is formatted into the URL. It cannot add a path, host or query (httpx percent-encodes it), and the value comes from operator config, so the impact is a confusing 4xx rather than an exploit. Cloudflare account ids are 32 hex characters.
+**Suggested fix:** Match `[0-9A-Za-z]+` (or `[0-9a-f]{32}`) with `re.fullmatch`, and add a case with a non-ASCII value to `test_cloudflare_needs_an_account_id_that_goes_into_the_url`.
+**Resolution:** Account id is checked with an ASCII regex; test covers a non-ASCII id.
+
+### F-106 [P3] open - Emphasis rows can be orphaned by a race with a fact delete, and the list route returns orphans
+
+**File:** engine/src/engine/tracks/service.py:155, engine/src/engine/profile/service.py:295
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `emphasise` checks the fact and inserts under the track lock, but `delete_item` removes the emphasis rows without locking any track. A delete that commits between the fact check and the insert leaves an emphasis row for a fact that no longer exists. Rows for facts of older drafts or a deleted CV are likewise never cleaned (no foreign key, by design), and `GET /internal/tracks` returns every row, so the response and `variantVersion`-based consumers (features 8 and 11) must filter against the live profile. The screen already filters, and the spec accepts orphans, so this is a note for the generation features rather than a defect today.
+**Suggested fix:** When a consumer is added, join emphasis to the live fact tables (or filter in `_emphasis`), and consider locking the track rows or using `FOR SHARE` on the fact row in `emphasise`.
+**Resolution:**
+
+### F-107 [P3] open - The tracks UI states that carry the risk have no automated test
+
+**File:** web/tests/tracks-view.test.ts, web/tests/tracks-api.test.ts
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** The view model, client, proxy and engine routes are well covered (cap race, ownership, older drafts, concurrency, cleanup), but the component behaviour is only in the unrecorded browser pass: one mutation at a time, focus after add, rename, delete and toggle, the live-region announcements and the `not_found` path that F-104 breaks. There is no engine test for the `delete_item` and `emphasise` race either. Same gap as F-99 (no DOM test harness).
+**Suggested fix:** Add a component or browser test when `/tests browser` is set up, starting with delete-then-`not_found`.
+**Resolution:**
+
+### F-108 [P3] open - The preferences panel remounts, and loses typed text, when the track's variant version changes
+
+**File:** web/src/components/profile/tracks.tsx:248
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The panel is keyed by `${selected.id}-${selected.variantVersion}`. Preferences do not bump `variant_version`, but toggling "Emphasise" on a fact does (`tracks/service.py` lines 114 and 207), and the fact buttons stay enabled while the panel is open (only the chips are disabled by `mode`). Emphasising a fact, or a refetch after another tab emphasised one, changes the key, so the form remounts from stored values, discards unsaved typing and moves focus to the first field. Found by reading; not run in a browser.
+**Suggested fix:** Key the panel by `selected.id` only (the diff-only body already tolerates stale originals), or disable the emphasis toggles while the panel is open.
+**Resolution:**
+
+### F-109 [P3] open - The form's duplicate and length checks are not an exact mirror of the engine's cleaning
+
+**File:** web/src/lib/tracks-view.ts:117, web/src/lib/tracks-view.ts:128
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The engine drops control, format and surrogate characters (for example U+200B) and compares with `casefold()`; the form only collapses `\s+` and compares with `toLowerCase()`. So "Straße" and "STRASSE" pass the form and get a generic 422; a line holding only a zero-width character passes the form and is refused as empty; a pasted line whose length fits only after the format characters are dropped is refused client-side. All outcomes are calm and nothing is saved wrongly, but the per-field message is lost for these inputs.
+**Suggested fix:** Strip `\p{Cc}\p{Cf}\p{Cs}` (keeping tab and newline) in `tidyName` before collapsing, and compare with a case-fold approximation (`toLowerCase()` plus `toUpperCase().toLowerCase()`).
+**Resolution:**
+
+### F-110 [P3] open - Preferences fields put the hint and error inside the label, so the accessible name is long and read twice
+
+**File:** web/src/components/profile/preferences.tsx:47, web/src/components/profile/preferences.tsx:111
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Each field is a `<label>` that wraps the control, the hint span and the error span, so the accessible name becomes "label + hint + error", and `aria-describedby` then repeats the same hint and error. Screen readers announce the text twice. The salary and currency inputs also leave their hint out of `aria-describedby`. Errors are reached by focus, which is good, and are not live, so nothing is lost; it is noise.
+**Suggested fix:** Use a plain `<label htmlFor>` for the label text only and keep the hint and error as siblings referenced by `aria-describedby` (include the hint on salary and currency).
+**Resolution:**
+
+### F-111 [P2] fixed - A crafted 200,000-character paste can block the engine for over 20 seconds (quadratic cleaner paths, run on the event loop)
+
+**File:** engine/src/engine/jobs/posting_guard.py:350, engine/src/engine/jobs/posting_guard.py:421, engine/src/engine/jobs/service.py:67
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `last_index` scans the whole open-element stack for every closer, so many unclosed openers followed by many unmatched closers is quadratic. Measured here: `<p>` + `<b>` x 33,000 + `</x>` x 25,000 (199,003 characters, well inside the 256 KB body cap and the 200,000-character limit) took 23 s; `<div>` x 20,000 + `</x>` x 20,000 took 9 s. Also quadratic but milder: the `word not in homoglyphs` and `url not in hidden_urls` list lookups in `scan` (about 1.7 s for 25,000 distinct mixed-script words). `create_job` calls `clean_posting` synchronously inside the async handler, so the whole engine (every user, CV parsing, health checks) is stalled for that time by one signed-in user. The regexes themselves held up (no ReDoS found across 24 hostile shapes: unterminated tags, quotes, comments, script, doctype, deep nesting, entities). Not network-reachable without a session, hence P2.
+**Suggested fix:** Keep a name-to-count dict (or a dict of name to list of indexes) beside the stack so a closer with no open match is O(1), and use a set next to the lists in `scan`. Optionally run `clean_posting` in `asyncio.to_thread` or cap the number of tags processed.
+**Resolution:** The element lookup uses an index kept per name and `scan` uses sets, so the cleaner is linear (the 199k-character shapes take well under a second); `create_job` also runs it in `asyncio.to_thread`. A differential run of 4,000 random tag soups against the original walker gave identical output; a timing test is in `test_posting_guard.py`.
+
+### F-112 [P3] open - Stored `source_url` is only checked in code, and `url_key` drops IPv6 brackets
+
+**File:** engine/src/engine/jobs/models.py:121, engine/migrations/versions/0008_job.py:25
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** `create_job` rejects non-http(s) schemes and credentials before storing, so no `javascript:` URL can be saved through the routes today. The table has no check constraint on `source_url`, though, and `sourceUrl` is returned verbatim, so a later screen (29c) must still render it as a link only after an http(s) check, and any other writer (a seed, a later import) is unguarded. Separately, `url_key` uses `parts.hostname`, which has no brackets, so `http://[::1]:80/a` and a host key built from `::1:80` look alike; the collision is contrived and only affects the duplicate check.
+**Suggested fix:** Add `CHECK (source_url is null or source_url ~* '^https?://')` in a later migration, and re-add brackets for IPv6 hosts in `url_key`. Note the rule for 29c.
+**Resolution:**
+
+### F-113 [P3] open - No test guards the cleaner against slow input, and the body-cap tests do not show the profile route stays at 32 KB in the engine
+
+**File:** engine/tests/test_posting_guard.py, engine/tests/test_jobs_routes.py
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** The suite covers hidden HTML, invisible characters, flags, counts-only findings, duplicates, the race, ownership and the job cap well, but nothing bounds the cleaner's time on hostile 200,000-character shapes (see F-111), so a future edit to the walker could regress silently. The web side proves the default 32 KB cap is kept; the engine's `_body` default is only covered by older profile tests, not by one that sends 40 KB to a profile or track route next to the 256 KB job route.
+**Suggested fix:** Add a generous-bound timing test for the deep-stack and many-distinct-word shapes, and one engine test that a 40 KB profile body is refused while a 40 KB job body is accepted.
+**Resolution:** Partly: a timing test for hostile input now exists; the profile-route 32 KB check next to the job route is still untested. Left open.
+
+### F-114 [P1] fixed - Unterminated-tag shapes still make the cleaner quadratic: a 200,000-character paste takes minutes (F-111's repair covered only the element stack)
+
+**File:** engine/src/engine/jobs/posting_guard.py:60, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:69
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `DROP_BLOCKS` (`<(script|style|noscript|svg|template)\b[^>]*>.*?...`), `TAG` (`<(/?)name(attrs)*>`) and `PRESTRIP` (`<?[^>]*?>`) each scan to the end of the input when a start has no `>`, so many starts with no `>` cost O(n) each. Measured with throwaway scripts after a `<p>` prefix (auto mode picks HTML): `<script ` repeated: 20,000 chars 6.5 s, 40,000 chars 25.9 s (about 650 s extrapolated at 200,000); `<svg `, `<style `, `<template `, `<noscript ` the same (20 to 28 s at 40,000); `<a ` repeated 11.5 s at 40,000; `</a ` repeated 8.7 s at 40,000; `<a "` 5.2 s; `<? ` 0.6 s at 40,000 (15 s at 200,000). All fit inside the 256 KB body cap and 200,000-character limit, so one signed-in user can pin the engine for many minutes per request, and repeat it. This is the same class as F-111, so its Resolution ("linear", "well under a second") does not hold for these shapes. The new timing test uses one `<a ` and one `<!--` run, so it does not reach them. Differential check of the element-stack repair itself: 40,000 random tag soups (implied end tags, closers with no opener, nested hidden elements, mixed case, self-closing) gave identical text and findings to the pre-repair walker, and the `positions` map stays consistent with `stack` for every pop path; that part is correct.
+**Suggested fix:** Bound every scan, for example `[^>]{0,2000}` in `DROP_BLOCKS` and `PRESTRIP`, and a length-limited attribute group in `TAG` (a tag longer than a few thousand characters is treated as text), or replace the regex tokenizer with one pass over `str.find("<")`/`find(">")` that remembers when no further `>` exists. Add timing cases for repeated `<script `, `<svg `, `<a `, `</a ` and `<? ` at 200,000 characters.
+**Resolution:** The unterminated-tag scans (`TAG`, `DROP_BLOCKS`, `PRESTRIP`) no longer cross a `<`, so an opener with no `>` fails fast; 45 hostile 200,000-character shapes now finish in under 0.1 s each (`test_repeated_unterminated_openers_are_cleaned_in_bounded_time`), and 4,000 random tag soups give output identical to the original.
+
+### F-115 [P2] fixed - `asyncio.to_thread` does not keep the event loop free while the cleaner runs
+
+**File:** engine/src/engine/jobs/service.py:67
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** The cleaner is regex work, and a single `re` call holds the GIL for its whole duration, so the loop thread cannot run while one is matching. Measured: a ticker task on the loop with `await asyncio.to_thread(clean_posting, "<p>" + "<script " * 1500)` saw a maximum loop lag of 2.37 s for a 2.38 s job, so health checks, CV parsing and other users stall exactly as before. The comment "Off the event loop ... must not stall others" is therefore false for the slow shapes of F-114, and the thread also stays busy (the default pool) after the client disconnects.
+**Suggested fix:** Fix the scans (F-114) so no single match is long. If a hard bound is still wanted, run the cleaner in a worker process with a timeout (the engine already runs CV extraction out of process) and refuse the paste with `validation_failed` on timeout; otherwise drop the `to_thread` and its comment, since it adds nothing.
+**Resolution:** The comment no longer claims the event loop is free; the real protection is the linear-time cleaner and the size cap, with the thread as a courtesy.
+
+### F-116 [P1] fixed - A single long unterminated tag name (`<aaaa...`, no `>`) makes `TAG` backtrack quadratically: about 14 minutes at 200,000 characters
+
+**File:** engine/src/engine/jobs/posting_guard.py:68
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** In `TAG`, the name group `[\w:-]*` and the attribute group `(?:[^<>"']|...)*` accept the same characters, so when no `>` follows, the engine gives characters back from the name one at a time and re-scans the rest as attributes: O(n^2) from one tag. Measured with `<p>` + `<` + `a` x n (no `>`; auto mode picks HTML): 10,000 chars 2.1 s, 20,000 chars 8.6 s, 40,000 chars 34 s, so about 860 s at 200,000. `</aaa...` and `<a:b-b-...` behave the same. It is one request inside the 256 KB body and 200,000-character caps, and because a regex holds the GIL (F-115) the whole engine stalls for that time. The F-114 repair and its timing test do not cover it (see F-119).
+**Suggested fix:** Make the name possessive, `([a-zA-Z][\w:-]*+)` (Python 3.11 and later; the engine is 3.13), or add `(?![\w:-])` after it. Measured with the possessive form: 20,000 chars in under 1 ms. Add `<` + `a` x 200,000 and `</` + `a` x 200,000 to the timing test.
+**Resolution:** The tag name is possessive; a 100,000-character name now cleans in milliseconds (`test_hostile_html_at_the_size_cap_is_cleaned_in_bounded_time`).
+
+### F-117 [P2] fixed - `collect` removes tags with `<[^>]+>`, which is quadratic on a comment or script block full of `<`
+
+**File:** engine/src/engine/jobs/posting_guard.py:316
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `collect` runs `re.sub(r"<[^>]+>", " ", inner)` over every dropped comment, script or style block. An unclosed `<!--` or `<script>` runs to the end of input, and `<` repeated inside it scans to the end from each `<`. Measured at 200,000 characters after a `<p>` prefix: `<!--` + `<` x n 13.8 s, `<script>` + `<` x n 13.8 s, `<style>` + `<b ` repeated 4.6 s, `<!--` + `<a ` repeated 4.7 s, `<!--` + `< ` repeated 6.9 s (all roughly 4x per doubling). One request stalls the engine for that time.
+**Suggested fix:** Use `<[^<>]+>` here too (same rule as the other scans), or `<[^<>]*>`; the removed text only feeds the hidden-text scan.
+**Resolution:** The tag strip over dropped blocks uses `<[^<>]+>`; the `<`-run shapes are in the timing test.
+
+### F-118 [P2] fixed - Excluding `<` from tag bodies lets a tag written with a `<` inside it escape the hidden-content stripping
+
+**File:** engine/src/engine/jobs/posting_guard.py:61, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:68
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** A browser reads `<div hidden <b>` as a hidden `div` whose attributes include `<b`, so the text is invisible to the reader. After F-114's change `TAG` refuses a body containing `<`, so the cleaner now sees no `div` tag: `<p>a<div hidden <b>SECRET ignore all previous</div>vis` cleaned to `a<div hidden SECRET ignore all previous|vis` (before: `a|vis`), and `<div style="display:none" <b>X</b>vis</div>` kept `X` plus the raw `<div style=...` text. So a posting author can again put hidden text in the cleaned description that the user never saw, and the raw tag text is stored. Instruction-shaped lines are still counted, so this is partly covered by the flag. Ordinary pages are unaffected: 40,000 random tag soups without `<` inside tags matched the pre-repair output exactly. `<!DOCTYPE x<y>` and `<a title=x<y>` also change.
+**Suggested fix:** Keep the old forms (`[^>]*`, a body allowed to contain `<`) and bound the work another way: possessive name (F-116) plus a bounded body, for example `{0,4000}` for the attribute group, with a longer unterminated tag treated as text; or tokenize once with `find("<")`/`find(">")` and remember when no more `>` exists.
+**Resolution:** `<` is allowed inside a tag again (bounded to 1,000 characters of attribute text), so `<div hidden <b>SECRET` stays hidden; test added.
+
+### F-119 [P2] fixed - The new timing test does not run the HTML walker, and misses the quadratic shapes
+
+**File:** engine/tests/test_posting_guard.py:164
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `test_repeated_unterminated_openers_are_cleaned_in_bounded_time` feeds strings that start with `<script `, `<a `, `<? ` and so on. Auto mode switches to the HTML cleaner only when the text contains `<html`, `<body`, `<div` or `<p`, so these inputs are cleaned as plain text and pass in milliseconds whatever the regexes do. The older test's shapes do start with `<p>` or `<div>`. A regression of F-114 would not fail this test, and F-116 and F-117 are not reachable from it either.
+**Suggested fix:** Prefix every shape with `<p>`, call `guard(raw, "html")` directly, and add the F-116 and F-117 shapes: `<aaaa...`, `</aaaa...`, `<!--` + `<` x n, `<script>` + `<` x n, `<style>` + `<b ` repeated.
+**Resolution:** The timing test starts every shape with `<p>` so it reaches the HTML path, and includes the F-114, F-116 and F-117 shapes, 62 in all.
+
+### F-120 [P3] open - `addedLabel` says "Added today" for a job added yesterday on the day after a clock change
+
+**File:** web/src/lib/jobs-view.ts:115
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The day count is `Math.floor((startOfDay(now) - startOfDay(then)) / 86_400_000)`. Across a spring-forward day the two midnights are 23 hours apart, so the floor gives 0. Measured with `TZ=America/New_York`: 8 March 2026 20:00 versus 9 March 2026 10:00 gives 0 (should be 1), so "Added yesterday" shows as "Added today", and a two-day gap shows as one day. The test uses one fixed date and no clock-change case, so it cannot catch this.
+**Suggested fix:** Use `Math.round(...)` (or compare `Date.UTC(y, m, d)` of each local date), and add a test case across a clock change.
+
+### F-121 [P3] open - A failed "Read the text we saved" has no retry and a sign-out is shown as a generic error
+
+**File:** web/src/components/jobs/job-row.tsx:57, web/src/components/jobs/job-row.tsx:203
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The text query has `retry: false` and `staleTime: Infinity`, and the error block is only a `Problem` with no button. Hiding and showing the disclosure again does not refetch an errored query whose observer stays mounted, so the user must reload the page to see the text after one network blip. A 401 from `getJob` is shown as "Something went wrong" instead of sending the user to sign in as the list and the actions do.
+**Suggested fix:** Add a "Try again" button calling `text.refetch()` and treat `unauthorized` like the other calls.
+
+### F-122 [P3] open - Failed Dismiss, Restore or Delete with `not_found` loses its message because the row is removed
+
+**File:** web/src/routes/_app/jobs.tsx:81, web/src/components/jobs/job-row.tsx:134
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** For `not_found` the page invalidates the list and returns the copy "It may have been removed in another tab. We refreshed the list." The row unmounts on refresh and `setError` runs on it, so the message is never seen or announced; the row just disappears, silently for a screen reader. Failures of other kinds keep the row and show the message correctly.
+**Suggested fix:** Announce the not-found copy through the page's live region (`announce`) instead of, or as well as, the row error.
+
+### F-123 [P3] open - Small accessibility gaps in the add form and the disclosure
+
+**File:** web/src/components/jobs/add-job.tsx:158, web/src/components/jobs/add-job.tsx:241, web/src/components/jobs/job-row.tsx:179
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** (1) Each `<label>` wraps its input, hint and error text, so the accessible name includes the hint and the error, which the input then also gets through `aria-describedby` (read twice). (2) `aria-controls="text-<id>"` points at an element that exists only while the disclosure is open. (3) When the carried link is invalid (credentials or over 2,000 characters from a fetched final address), `errors.url` is a `role="alert"` paragraph with no field and no focus target, and the form cannot be saved except by going Back; the message does not say that. (4) After a refused read, "Paste the text instead" appears twice (inside the notice and as the normal button).
+**Suggested fix:** Put the visible label text in its own element tied with `htmlFor` or `aria-labelledby`, render the controlled region always (hidden when closed) or drop `aria-controls`, tell the user to go Back or clear the link for a url error, and keep one paste button.
+
+### F-124 [P3] open - A link the engine refused as blocked or private is carried into the saved source link
+
+**File:** web/src/components/jobs/add-job.tsx:93
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** After `fetch_blocked` (for example a private address), "Paste the text instead" sets `finalUrl` to the typed link, which is sent as `url` on save, stored, and shown as "Open the original posting" with a clickable link (http and https only, `rel="noopener noreferrer"`, server revalidated). This matches the spec ("a link kept when switching to paste") and only the signed-in user sees it, so it is not exploitable; but a private or localhost address stored as a job source is of no use and the spec does not record the choice for blocked links.
+**Suggested fix:** Keep the link only when the failure was not `fetch_blocked`, or record the decision in the spec.
+
+### F-125 [P3] open - Tests cover only the pure view model; the add state machine and row behavior have no test
+
+**File:** web/tests/jobs-view.test.ts:1
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `jobs-view.test.ts` covers form checks, link safety, labels and copy well, but the repository has no DOM test library, so nothing exercises the add flow (link, refusal, paste, confirm, duplicate), the single-mutation rule, the delete question focus, the cache invalidation or the failed-load handling; these rest on the manual browser pass recorded in the spec. Two assertions are weak: the paste-instead test accepts "try again" as proof of a paste hint, and the date test has no clock-change case (F-120).
+**Suggested fix:** Accept as a documented gap for this repo, or extract the add flow into a small reducer in `jobs-view.ts` with tests; tighten the assertion to require "paste" for every `PASTE_INSTEAD` code except `fetch_failed`.

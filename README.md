@@ -182,9 +182,15 @@ message or model text). Deleting a CV deletes its stored file and its draft.
 | Sign-up and sign-in (Better Auth), per-user scoping, app shell | Built |
 | Python engine, AI gateway, per-user cache and usage ledger | Built |
 | CV storage, safe text extraction, owner-scoped download and delete (3a) | Built |
-| AI parse into an unconfirmed profile draft, engine and web routes (3b) | Built, review pending |
-| Upload and parse status screen (3c) | Planned |
-| Profile review and confirmation, tracks, job paste, evaluation, application kit, tracking | Planned |
+| AI parse into an unconfirmed profile draft, engine and web routes (3b) | Built |
+| Upload and parse status screen at `/onboarding` (3c) | Built |
+| Profile fact edit and confirm routes (4a) and the profile review screen at `/profile` (4b) | Built |
+| Tracks: create, rename, delete and choose which confirmed facts each emphasises, on `/profile` (4c) | Built |
+| Job preferences per track (roles, pay, work modes, places, criteria, dealbreakers, skip list), 5 | Built |
+| Job table and paste in the engine, with the posting cleaner (29a) | Built |
+| Safe link fetch with robots.txt rules and an SSRF guard (29b) | Built |
+| The Jobs screen: add a job by link or paste, saved and dismissed lists (29c) | Built |
+| Evaluation, application kit, tracking | Planned |
 | Automatic discovery, alerts, billing, admin and support | Planned (later slices) |
 
 The ordered feature list is [`blueprint/build-plan.md`](blueprint/build-plan.md); the

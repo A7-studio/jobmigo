@@ -20,10 +20,11 @@ from sqlalchemy import (
     Numeric,
     PrimaryKeyConstraint,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 SCHEMA = "engine"
@@ -148,6 +149,7 @@ class Profile(Base):
     """A draft of the facts parsed from one CV. Nothing in it is confirmed yet."""
 
     __tablename__ = "profile"
+    __table_args__ = (CheckConstraint("version >= 1", name="ck_profile_version"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
@@ -160,7 +162,11 @@ class Profile(Base):
     )
     headline: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
@@ -236,3 +242,124 @@ class Education(_Child, Base):
     qualification: Mapped[str | None] = mapped_column(Text)
     start: Mapped[str | None] = mapped_column(Text)
     end: Mapped[str | None] = mapped_column(Text)
+
+
+class Track(Base):
+    """A named job-search track; it emphasises some of the user's confirmed facts."""
+
+    __tablename__ = "track"
+    __table_args__ = (
+        CheckConstraint("variant_version >= 1", name="ck_track_variant_version"),
+        CheckConstraint(
+            "salary_floor is null or (salary_floor >= 0 and salary_floor <= 10000000)",
+            name="ck_track_salary_floor",
+        ),
+        CheckConstraint(
+            "currency is null or currency ~ '^[A-Z]{3}$'", name="ck_track_currency"
+        ),
+        CheckConstraint(
+            "work_modes <@ array['remote', 'hybrid', 'onsite']",
+            name="ck_track_work_modes",
+        ),
+        Index("track_user_name_uniq", "user_id", text("lower(name)"), unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    name: Mapped[str] = mapped_column(Text)
+    variant_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    target_roles: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    salary_floor: Mapped[int | None] = mapped_column(Integer)
+    currency: Mapped[str | None] = mapped_column(Text)
+    work_modes: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    locations: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    eligibility: Mapped[str | None] = mapped_column(Text)
+    criteria: Mapped[list[dict[str, str]]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    dealbreakers: Mapped[list[str]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    do_not_apply: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class TrackProfileItem(Base):
+    """One fact a track emphasises. `item_id` points at one of five fact tables."""
+
+    __tablename__ = "track_profile_item"
+    __table_args__ = (
+        CheckConstraint(
+            "kind in ('experience', 'skill', 'achievement', 'project', 'education')",
+            name="ck_track_profile_item_kind",
+        ),
+        UniqueConstraint("track_id", "kind", "item_id", name="track_profile_item_uniq"),
+        Index("track_profile_item_item_idx", "user_id", "kind", "item_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    track_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.track.id", ondelete="CASCADE")
+    )
+    kind: Mapped[str] = mapped_column(Text)
+    item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+
+
+class Job(Base):
+    """A job posting the user pasted in. `description` is the cleaned text."""
+
+    __tablename__ = "job"
+    __table_args__ = (
+        CheckConstraint("status in ('saved', 'dismissed')", name="ck_job_status"),
+        CheckConstraint("flag in ('ok', 'review')", name="ck_job_flag"),
+        Index("job_user_dedupe_uniq", "user_id", "dedupe_key", unique=True),
+        Index(
+            "job_user_url_uniq",
+            "user_id",
+            "url_key",
+            unique=True,
+            postgresql_where=text("url_key is not null"),
+        ),
+        Index("job_user_created_idx", "user_id", text("created_at desc")),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    company: Mapped[str] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(Text)
+    location: Mapped[str | None] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    url_key: Mapped[str | None] = mapped_column(Text)
+    dedupe_key: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, server_default=text("'saved'"))
+    flag: Mapped[str] = mapped_column(Text, server_default=text("'ok'"))
+    findings: Mapped[dict[str, int]] = mapped_column(
+        JSONB, server_default=text("'{}'::jsonb")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

@@ -163,6 +163,152 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Privacy.** CV text goes to the cheap-tier provider (DeepSeek, named on `/privacy`) only when a
   parse is requested. CV text, names and replies are never logged; `usage_event` holds no text.
 
+### CV upload and parse screen (feature 3c, as built)
+
+- **Route.** `/onboarding` (signed in, inside the app shell) is step 1 of the four-step flow in the
+  design canvas: a dropzone (PDF or DOCX, 5 MB), a file card with the real status, and a trust box
+  that says only what is true today. Sign-up now lands here; the dashboard links to it.
+- **Flow.** Choose a file, checked in the browser (`lib/cv-view.ts`) and again by the engine, then
+  `POST /api/cv`; the user presses "Build my profile draft" (`POST /parse`); the page polls the CV
+  list every 2 seconds while `parsing` (and stops after 3 minutes with a "Check again" button);
+  `parsed` shows counts and the first roles from `GET /api/cv/:id/profile`, labelled unconfirmed.
+- **Failures.** Every parse and upload code maps to calm copy in `lib/cv-view.ts` with only the
+  actions that can help ("Try again" for transient codes; "Upload another file" for
+  `text_too_long`, `no_profile_found` and unreadable files). No raw engine message or code is shown.
+- **Delete** is on the page with an inline confirm and also removes the draft.
+- **Not built yet** (honest gaps against the board): the tracks card, manual entry, and "Review
+  my profile" (feature 4).
+
+### Profile facts: edit and confirm (feature 4a, as built)
+
+- **The profile** is the user's latest parsed draft (`GET /internal/profile`, web `/api/profile`).
+  Replacing a CV starts a new unconfirmed draft; merging drafts is a later feature.
+- **Statuses.** `extracted` (from the parse), `confirmed` (the user said it is right) and `edited`
+  (the user changed it, or added it). Generated work may cite `confirmed` and `edited` only.
+- **Routes.** `PATCH /api/profile` (headline, summary), `POST /api/profile/items/:kind` (add),
+  `PATCH` and `DELETE /api/profile/items/:kind/:id`, `POST .../:id/confirm`, and
+  `POST /api/profile/confirm-all`. Kinds: experience, skill, achievement, project, education.
+- **Rules.** A patch must change something to count (a no-op changes nothing); a real change sets
+  `edited`. Confirm turns `extracted` into `confirmed` and leaves the others alone. Adds use the
+  parse limits and bounds; a skill name already present is `409 already_exists`; an achievement may
+  link only to an experience of the same profile. Deleting an experience keeps its achievements,
+  unlinked.
+- **`profile.version`** goes up by one on every real change, in the same transaction. Evaluations
+  and documents key their caches on it.
+- **Errors** are stable codes (`not_found`, `validation_failed`, `limit_reached`, `already_exists`)
+  and never echo what was sent. An item of an older draft, or another user's, is `not_found`.
+
+### Profile review screen (feature 4b, as built)
+
+- **Route.** `/profile` (signed in, in the app shell; the sidebar's "Career profile" links to it)
+  shows the latest parsed draft: a progress summary, headline and summary, and cards for
+  Experience, Skills (chips), Achievements, Projects and Education.
+- **Review.** Each fact shows its state in words (Unconfirmed, Confirmed, Edited by you) with
+  Confirm, Edit (an inline form with labelled fields, errors tied to the input, Save and Cancel)
+  and Delete (with an inline question). Each section has Add; the header has Confirm all and a
+  link to upload a new CV. Skills are chips with a dashed outline while unconfirmed.
+- **Rules in the browser** (`lib/profile-view.ts`) mirror the engine's bounds and send only the
+  fields that changed. One change runs at a time; after each the profile is re-read.
+- **Accessibility.** A polite live region announces Saved, Confirmed, Added and Deleted; focus
+  returns to the Edit button after a save or cancel, to the safe choice when a delete is asked, and
+  to the section heading after a delete or add.
+- **Not built yet** against the Profile board: job preferences (5), alerts (10) and the data
+  controls (17).
+
+### Tracks (feature 4c, as built)
+
+- **Tables** (engine, migration 0006): `track` (`name`, `variant_version`, unique per user ignoring
+  case) and `track_profile_item` (`track_id`, `kind`, `item_id`; `item_id` has no foreign key because
+  it points at one of five fact tables, so deleting a fact removes its emphasis rows in the same
+  transaction and the screen ignores any left behind by a deleted CV).
+- **Routes.** Engine `GET|POST /internal/tracks`, `PATCH|DELETE /internal/tracks/{id}`, and
+  `PUT|DELETE /internal/tracks/{id}/items/{kind}/{itemId}`; web proxies at `/api/tracks/**`.
+  At most 10 tracks per user (`limit_reached`, creation serialised with an advisory lock). Only a
+  confirmed or edited fact of the latest parsed profile can be emphasised (`not_confirmed`).
+  Renaming and each emphasis change bump `variant_version`; repeating a change does not.
+- **Screen.** A "Your tracks" card on `/profile` (chip row from the Goals board, add, rename, delete
+  with a question) and an Emphasise toggle (`aria-pressed`) on each confirmed or edited fact while a
+  track is chosen. No board shows choosing facts for a track: that toggle and the rename and delete
+  controls are the recorded deviation.
+
+### Job preferences (feature 5, as built)
+
+- **Columns** on `track` (migration 0007): `target_roles`, `salary_floor` + `currency`, `work_modes`
+  (remote, hybrid, onsite; empty means any), `locations`, `eligibility`, `criteria` (jsonb
+  `{label, weight: must|important|nice}`), `dealbreakers` (jsonb of plain-text rules, not typed
+  checks: feature 8 decides how they run), `do_not_apply`. Check constraints mirror the enums, the
+  currency shape and the salary range; list sizes and text lengths are enforced by the API
+  (`engine/tracks/preferences.py`) and mirrored in the browser form.
+- **Route.** `PATCH /internal/tracks/{id}/preferences` (web `/api/tracks/{id}/preferences`) merges
+  the keys sent over the stored values and validates the whole result; unknown keys, repeats
+  (ignoring case) and a salary without a currency are `validation_failed`. Preferences do not change
+  `variant_version` (they are criteria, not the profile variant).
+- **Screen.** A Preferences panel for the chosen track in the Your tracks card: one item per line,
+  three criteria boxes (Must have, Important, Nice to have), errors tied to each field. Nothing
+  evaluates against them yet. No board shows this panel (deviation from the Goals wording only).
+
+### Jobs: paste (feature 29a, as built)
+
+- **Table** `engine.job` (migration 0008): `company`, `title`, optional `location` and
+  `source_url`, `url_key` and `dedupe_key` (unique per user), the cleaned `description`, `status`
+  (`saved`, `dismissed`), `flag` (`ok`, `review`) and `findings` (counts only).
+- **Routes.** Engine `POST|GET /internal/jobs`, `GET|PATCH|DELETE /internal/jobs/{id}`; web proxies
+  at `/api/jobs/**`. A paste takes company, title and the raw text (plain or page HTML, up to
+  100,000 characters; the body cap is 256 KB, other bodies keep 32 KB). The stored text is the
+  cleaned text and must be 1 to 30,000 characters. A repeated URL (ignoring `utm_*`, fragment and
+  trailing slash) or company and title is `already_exists`; at most 500 jobs per user.
+- **The cleaner** (`jobs/posting_guard.py`, ported from ai-job-search under MIT, see
+  `THIRD_PARTY_NOTICES.md`) removes hidden HTML, invisible and Unicode tag characters, and counts
+  instruction-shaped lines and look-alike words. It advises and never blocks: `flag` is `review`
+  when a targeting signal is present. Its instruction pattern for "ignore the ..." also matches
+  ordinary prose, so a harmless posting can be marked for review. The HTML reader is a single
+  pass (feature 29b): its time is linear in the input whatever the markup, a tag of any length is
+  read as a tag, and anything left unterminated (tag, comment, declaration, script) hides the
+  rest of the input, as a browser reads it. The paste cap stays 100,000 characters. Counts are stored, excerpts never.
+- **Not built:** fetching a link and robots.txt (29b), the screens (29c), extracting company and title.
+
+### Jobs: link fetch (feature 29b, as built)
+
+- **Route.** Engine `POST /internal/jobs/fetch {url}` (web `/api/jobs/fetch`) returns
+  `{text, title, finalUrl, truncated}` and stores nothing; the user confirms company and title and
+  saves with the paste route. At most 10 fetches a minute per user (in memory, per process).
+- **Safety** (`jobs/fetch.py`). Only http and https on ports 80 and 443, no credentials. The host
+  is resolved once and every address must be public (loopback, private, link-local, carrier-grade
+  NAT, multicast, reserved, IPv4-mapped, 6to4 and NAT64 forms are refused); the connection goes to
+  that validated address with the original host kept in `Host` and the TLS name, so DNS cannot
+  change between the check and the connection. At most 3 redirects, each hop checked the same way.
+  No cookies, no environment proxies, 1 MiB streamed cap, 10 second total limit, only `text/html`
+  and `text/plain` with a 200.
+- **robots.txt** (`jobs/robots.py`, ported from ai-job-search under MIT): read before every hop
+  with the same safe fetcher; blocked if our agent group or `*` disallows; unreadable (any status
+  but 200 or 404, a soft-200 error page, an undecodable rule) is refused, never assumed allowed.
+- **Codes:** `validation_failed`, `fetch_blocked`, `robots_disallowed`, `robots_unreadable`,
+  `not_a_page`, `too_large`, `fetch_failed` (502), `rate_limited` (429).
+- **Not built:** JavaScript-rendered pages, charset sniffing from `<meta>`, the screens (29c).
+
+### Jobs screen (feature 29c, as built)
+
+- **Route.** `/jobs` in the app shell (the sidebar's Jobs item links to it). Saved and Dismissed
+  views, rows with a company tile, title, "company · place", source host and date added, a "Check
+  this posting" badge with its explanation when the cleaner flagged the text, Dismiss or Restore,
+  Delete with an inline question, a disclosure that loads and shows the saved text (React text
+  only), and a link to the original posting only for `http` and `https` addresses
+  (`rel="noopener noreferrer"`).
+- **Add a job.** A link path (`Read the page` calls the engine's safe fetch, then the user confirms
+  company, title (prefilled from the page title), place and the text) and a paste path. Every
+  refusal (`fetch_blocked`, `robots_disallowed`, `robots_unreadable`, `not_a_page`, `too_large`,
+  `fetch_failed`, `rate_limited`) has calm copy and a "Paste the text instead" step that keeps the
+  link; duplicates, a full list and bad input have their own copy. Nothing fetched is saved until
+  the user confirms.
+- **Rules in the browser** (`lib/jobs-view.ts`) mirror the engine's bounds with whitespace
+  collapsed the same way; one change runs at a time; a polite live region announces results;
+  focus goes to the heading after a change, to the safe choice when a delete is asked and back to
+  Delete on Keep.
+- **Deviations from the Jobs board:** the board's discovery summary, track chips, filters, fit
+  bands, evidence line, bookmark, load more and credit meter are not built (nothing evaluates,
+  ranks or discovers yet); the subtitle says what the page does; the add form and the saved-text
+  disclosure have no board.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
@@ -416,7 +562,7 @@ against schemas, results cached by content hash, and every call writes a
 Code: the gateway lives in the Python engine (`engine/src/engine/ai/`, feature 31); the
 earlier TypeScript version and its two tables were removed. Entry point `run_task(task, input,
 user_id=..., database=...)` with two model tiers set by `AI_CHEAP_MODEL` and `AI_STRONG_MODEL`
-(`provider/model-id`), the DeepSeek, Moonshot and OpenRouter providers over one
+(`provider/model-id`), the DeepSeek, Moonshot, OpenRouter, Gemini, Groq and Cloudflare providers over one
 OpenAI-compatible adapter (httpx), task definitions with a prompt `version` and Pydantic input
 and output models, a per-user cache (`engine.ai_cache`), and a ledger (`engine.usage_event`)
 that never stores prompt or output text. The first task, CV parsing (feature 3b), is reached
@@ -540,7 +686,7 @@ allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the head
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `STORAGE_PUBLIC_ENDPOINT`, `STORAGE_REGION`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `STORAGE_PUBLIC_ENDPOINT`, `STORAGE_REGION`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan

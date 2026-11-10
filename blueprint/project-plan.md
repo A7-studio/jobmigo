@@ -46,8 +46,15 @@ three tracks: (1) Flutter and mobile engineering, (2) AI coding evaluation and
 AI training, (3) AI application engineering and related product engineering.
 Each track has its own CV/profile variant and its own evaluation criteria.
 
+**Founder edition first (decided 2026-11-11):** the product is built to get the
+founder work before it is sold. It runs on the founder's machine for one user,
+with no billing and no hosting, and covers jobs, freelance gigs and AI training
+roles. If it works, the founder's own results are the marketing story and the
+demo, and the same product becomes the SaaS.
+
 **Validation before large investment:**
-- Use it daily for 4 weeks on the founder's own search and record real outcomes.
+- Use it daily for 4 weeks on the founder's own search and record real outcomes
+  (applications, replies, interviews, offers) in the product's own tracker.
 - Run 10-15 problem interviews and a concierge pilot (manually run the
   pipeline for 5-10 people from LinkedIn, then replace manual steps with product).
 - Landing page plus waitlist with a $19 "founding member" offer; the milestone
@@ -55,31 +62,35 @@ Each track has its own CV/profile variant and its own evaluation criteria.
 
 ## 3. Features - What does the MVP need?
 
-**MVP vertical slice (must be usable by the founder first):**
+**Founder edition (must get the founder work first):**
 - Account registration and sign-in
 - CV upload (PDF/DOCX) with AI parsing into a structured profile
 - Profile review and editing, with multiple track variants
 - Job preferences per track (roles, salary floor, location, eligibility, priorities, dealbreakers, do-not-apply list)
-- Job discovery from legitimate public sources, with verification, dedupe and a posting-legitimacy flag
-- Job list with search, filters and saved jobs
-- AI job evaluation with fit band, per-requirement evidence and gaps
-- Dashboard (relevant jobs, top opportunities, actions, progress)
-- Scheduled discovery, daily digest and strong-fit alerts via Telegram and in-app
-- AI usage ledger and credit limits from day one
-
-**Next (after the slice):**
-- Tailored CV, cover letter and application-question drafts with fact checking, PDF/DOCX export
-- Application CRM: stages, notes, follow-ups, interview stages
-- Progress and quests: daily quests, streaks, levels and badges that reward quality actions, not volume
-- Reachability check: how a tailored CV reads to hiring systems, keyword coverage with truthful additions only, and a route to the hiring team
+- Add a job by link or paste
+- AI job evaluation with fit band, per-requirement evidence and gaps, checked against a golden set of the founder's own verdicts
+- Tailored CV, cover letter or proposal, and application-question drafts with fact checking, PDF/DOCX export
+- Application tracking: stages, notes, follow-up dates, interview stages and outcomes
+- Opportunity types: job, freelance gig, AI training role
+- Automatic daily discovery from legitimate public sources (company board feeds, free remote feeds, JSearch), with verification, dedupe and a posting-legitimacy flag
+- One-step prepare: one button runs evaluation, kit and fact check, and the user reviews one page
+- Today page: one queue of next actions
+- Recruiter and company research from public information, drafted outreach the user sends
 - Ghost watch: flags applications silent for 10+ days and drafts a follow-up
+- Interview prep from confirmed history
+- Reachability check: how a tailored CV reads to hiring systems, keyword coverage with truthful additions only, and a route to the hiring team
+- AI usage ledger from day one, with a cost and quality page
+- Showcase pack: README, results table and demo video script
+
+**Next (when selling starts):**
+- Sign-up and onboarding flow, data export and account deletion
+- First payments by hand, then subscription billing and entitlements with regional prices (Kenya in KES, international in USD) and M-Pesa
+- Telegram digest and alerts, email service
+- Progress and quests: daily quests, streaks, levels and badges that reward quality actions, not volume
 - Ask Migo: cited answers to questions about the user's own jobs, profile and applications
-- Recruiter and company research from public information, drafted outreach
-- Subscription billing and entitlements with regional prices (Kenya in KES, international in USD) and M-Pesa
 - Localisation: language, currency, payment methods, time zone
 - Admin panel and support desk: manage users, subscriptions, pricing, jobs sources, AI cost, flags; answer support requests
 - Email service: transactional, billing, support and consented marketing email
-- Data export and account deletion
 - Application analytics
 
 **Later or deliberately excluded:**
@@ -87,7 +98,7 @@ Each track has its own CV/profile variant and its own evaluation criteria.
 - Scraping LinkedIn or other sources that forbid it
 - Bring-your-own-key (design the gateway for it, do not build it yet)
 - Autonomous multi-step agents, microservices, native mobile app
-- Team or agency accounts, interview prep and coaching (for now), AI insights dashboards (for now), salary negotiation tools
+- Team or agency accounts, interview coaching (interview prep itself is in the founder edition), AI insights dashboards (for now), salary negotiation tools
 - Sending email from the user's mailbox (a read-only scan to detect status changes may come later)
 
 ## 4. Data - What are we storing?
@@ -174,6 +185,13 @@ results are free. Consider an early-bird price for the first 10 customers. Disco
 generous. Track cost per user and per workflow from day one so pricing follows
 real margin data.
 
+**Open after the founder edition (2026-11-11):** the packaging below sells discovery,
+but job alerts are free elsewhere. Before billing is built, decide from the founder's
+results whether the paid line should instead be evaluation and kit volume, whether a
+fixed job-search pass (one or three months) fits better than a monthly plan, and which
+single audience to sell to first. The first 10 customers pay through a payment link
+with a paid flag set by staff.
+
 Build order follows the packaging: the free paste-a-job loop is built first (it is the
 core: evaluate, tailor, track, measure interviews), then automatic discovery and alerts as
 the premium upgrade, reusing the same evaluator.
@@ -208,8 +226,8 @@ Screens designed: Homepage (hero, journey, features, quests, honest-by-design, w
 Profile review, Onboarding, Application kit with reachability check, Outreach, and empty, loading and
 error states, Settings, Help, regional Checkout (Kenya and international), the M-Pesa prompt, a prototype flow map, and four staff admin screens (overview, support inbox, users and subscriptions, pricing and regions). Technical and database design: `docs/technical-design.md` and `docs/database-design.md`.
 
-Navigation: Dashboard, Jobs, Applications, Outreach, Documents, Career profile. Track switcher on list views. Responsive: sidebar stacks on small
-screens, boards scroll horizontally, 44px minimum touch targets. Fit and
+Navigation (simplified 2026-11-11; the canvas boards are updated in build-plan feature 33): Today, Jobs, Profile, Settings. Each job opens one workspace page with the steps Fit, CV and letter, Outreach and Track, which replaces the separate Applications, Outreach and Documents pages. Today is one queue of next actions, each with one main button. "Prepare application" does the evaluation, the kit and the fact check in one go and asks for one approval. The verdict is shown first and the evidence is one click away. Quests, levels, Ask Migo, the credits meter and upgrade prompts are hidden in the founder edition. Track switcher on list views. Responsive: sidebar stacks on small
+screens, lists are used instead of boards on phones, 44px minimum touch targets, and motion is kept to state changes. Fit and
 status are always conveyed by text labels, never colour alone.
 
 ## 8. Deployment - Where and how will this ship?

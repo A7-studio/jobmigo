@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMe } from '#/lib/useMe'
 
 export const Route = createFileRoute('/_app/dashboard')({
@@ -72,6 +72,20 @@ function Dashboard() {
             Your jobs, applications and next steps will show up here soon.
           </p>
         </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-6">
+        <div>
+          <h2 className="text-lg font-semibold">Your CV</h2>
+          <p className="text-muted">
+            Upload it, or check on the profile draft Migo made from it.
+          </p>
+        </div>
+        <Link
+          to="/onboarding"
+          className="inline-flex min-h-11 items-center rounded-full bg-accent-strong px-5 font-bold text-white hover:bg-accent-strong-hover"
+        >
+          Open CV page
+        </Link>
       </div>
     </div>
   )
