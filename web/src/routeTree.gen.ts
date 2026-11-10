@@ -22,10 +22,15 @@ import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
+import { Route as ApiProfileIndexRouteImport } from './routes/api/profile/index'
+import { Route as ApiProfileConfirmAllRouteImport } from './routes/api/profile/confirm-all'
 import { Route as ApiCvIdIndexRouteImport } from './routes/api/cv/$id/index'
 import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/download'
 import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
 import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
+import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
+import { Route as ApiProfileItemsKindIdIndexRouteImport } from './routes/api/profile/items/$kind/$id/index'
+import { Route as ApiProfileItemsKindIdConfirmRouteImport } from './routes/api/profile/items/$kind/$id/confirm'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -91,6 +96,16 @@ const ApiCvIndexRoute = ApiCvIndexRouteImport.update({
   path: '/api/cv/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProfileIndexRoute = ApiProfileIndexRouteImport.update({
+  id: '/api/profile/',
+  path: '/api/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfileConfirmAllRoute = ApiProfileConfirmAllRouteImport.update({
+  id: '/api/profile/confirm-all',
+  path: '/api/profile/confirm-all',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCvIdIndexRoute = ApiCvIdIndexRouteImport.update({
   id: '/api/cv/$id/',
   path: '/api/cv/$id/',
@@ -111,6 +126,24 @@ const ApiCvIdProfileRoute = ApiCvIdProfileRouteImport.update({
   path: '/api/cv/$id/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProfileItemsKindIndexRoute =
+  ApiProfileItemsKindIndexRouteImport.update({
+    id: '/api/profile/items/$kind/',
+    path: '/api/profile/items/$kind/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiProfileItemsKindIdIndexRoute =
+  ApiProfileItemsKindIdIndexRouteImport.update({
+    id: '/api/profile/items/$kind/$id/',
+    path: '/api/profile/items/$kind/$id/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiProfileItemsKindIdConfirmRoute =
+  ApiProfileItemsKindIdConfirmRouteImport.update({
+    id: '/api/profile/items/$kind/$id/confirm',
+    path: '/api/profile/items/$kind/$id/confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,11 +157,16 @@ export interface FileRoutesByFullPath {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
+  '/api/profile/': typeof ApiProfileIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
+  '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,11 +180,16 @@ export interface FileRoutesByTo {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv': typeof ApiCvIndexRoute
+  '/api/profile': typeof ApiProfileIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
+  '/api/profile/items/$kind': typeof ApiProfileItemsKindIndexRoute
+  '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/profile/items/$kind/$id': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -162,11 +205,16 @@ export interface FileRoutesById {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
+  '/api/profile/': typeof ApiProfileIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
+  '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,11 +230,16 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/profile/confirm-all'
     | '/api/cv/'
+    | '/api/profile/'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id/'
+    | '/api/profile/items/$kind/'
+    | '/api/profile/items/$kind/$id/confirm'
+    | '/api/profile/items/$kind/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -200,11 +253,16 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/profile/confirm-all'
     | '/api/cv'
+    | '/api/profile'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id'
+    | '/api/profile/items/$kind'
+    | '/api/profile/items/$kind/$id/confirm'
+    | '/api/profile/items/$kind/$id'
   id:
     | '__root__'
     | '/'
@@ -219,11 +277,16 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/profile/confirm-all'
     | '/api/cv/'
+    | '/api/profile/'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id/'
+    | '/api/profile/items/$kind/'
+    | '/api/profile/items/$kind/$id/confirm'
+    | '/api/profile/items/$kind/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -237,11 +300,16 @@ export interface RootRouteChildren {
   WaitlistConfirmRoute: typeof WaitlistConfirmRoute
   WaitlistUnsubscribeRoute: typeof WaitlistUnsubscribeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiProfileConfirmAllRoute: typeof ApiProfileConfirmAllRoute
   ApiCvIndexRoute: typeof ApiCvIndexRoute
+  ApiProfileIndexRoute: typeof ApiProfileIndexRoute
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
   ApiCvIdParseRoute: typeof ApiCvIdParseRoute
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
+  ApiProfileItemsKindIndexRoute: typeof ApiProfileItemsKindIndexRoute
+  ApiProfileItemsKindIdConfirmRoute: typeof ApiProfileItemsKindIdConfirmRoute
+  ApiProfileItemsKindIdIndexRoute: typeof ApiProfileItemsKindIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +405,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCvIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/profile/': {
+      id: '/api/profile/'
+      path: '/api/profile'
+      fullPath: '/api/profile/'
+      preLoaderRoute: typeof ApiProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profile/confirm-all': {
+      id: '/api/profile/confirm-all'
+      path: '/api/profile/confirm-all'
+      fullPath: '/api/profile/confirm-all'
+      preLoaderRoute: typeof ApiProfileConfirmAllRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cv/$id/': {
       id: '/api/cv/$id/'
       path: '/api/cv/$id'
@@ -365,6 +447,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCvIdProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/profile/items/$kind/': {
+      id: '/api/profile/items/$kind/'
+      path: '/api/profile/items/$kind'
+      fullPath: '/api/profile/items/$kind/'
+      preLoaderRoute: typeof ApiProfileItemsKindIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profile/items/$kind/$id/': {
+      id: '/api/profile/items/$kind/$id/'
+      path: '/api/profile/items/$kind/$id'
+      fullPath: '/api/profile/items/$kind/$id/'
+      preLoaderRoute: typeof ApiProfileItemsKindIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profile/items/$kind/$id/confirm': {
+      id: '/api/profile/items/$kind/$id/confirm'
+      path: '/api/profile/items/$kind/$id/confirm'
+      fullPath: '/api/profile/items/$kind/$id/confirm'
+      preLoaderRoute: typeof ApiProfileItemsKindIdConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -391,11 +494,16 @@ const rootRouteChildren: RootRouteChildren = {
   WaitlistConfirmRoute: WaitlistConfirmRoute,
   WaitlistUnsubscribeRoute: WaitlistUnsubscribeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiProfileConfirmAllRoute: ApiProfileConfirmAllRoute,
   ApiCvIndexRoute: ApiCvIndexRoute,
+  ApiProfileIndexRoute: ApiProfileIndexRoute,
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
   ApiCvIdParseRoute: ApiCvIdParseRoute,
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
+  ApiProfileItemsKindIndexRoute: ApiProfileItemsKindIndexRoute,
+  ApiProfileItemsKindIdConfirmRoute: ApiProfileItemsKindIdConfirmRoute,
+  ApiProfileItemsKindIdIndexRoute: ApiProfileItemsKindIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 65d7c442717f49fb18cc8a503ee3fb0de06e84364f10497751831738df9267ad -->
+<!-- blueprint:source-hash 32748038b999683c1a49c9bace97dd8b8e52ff620f3285d22abcc483414489f5 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -18,19 +18,19 @@ Principles for every feature:
 - **Initial ICP (hypothesis):** experienced, remote-seeking technology professionals running a multi-track search, applying to 5+ roles a week, valuing quality over volume.
 - **Also served:** career changers, freelancers, remote seekers.
 - **First user:** the founder (Flutter/mobile engineer) with three tracks: Flutter and mobile; AI coding evaluation and AI training; AI application engineering and product engineering, each with its own profile variant and criteria.
-- **Validation:** 4 weeks of daily self-use, 10-15 interviews, concierge pilot with 5-10 people, $19 founding-member waitlist; milestone 10 paying customers.
+- **Validation:** 4 weeks of daily self-use, 10-15 interviews, concierge pilot with 5-10 people, $19 founding-member waitlist; goal 10 paying customers.
 
 ## Usage model
 
 - Scale: founder first, then tens of users; no larger scale assumed.
 - Internet-facing, multi-user: per-user isolation is a real requirement; users are ordinary job seekers, not assumed adversarial.
 - Sensitive data: CVs and contact details; private storage, owner-scoped access, export and deletion, no personal CV data in logs or public content.
-- Recruiter data: publicly available information only.
+- Recruiter data: public information only.
 - Not required now: enterprise SSO, compliance certifications, multi-region, team accounts, HA.
 
 ## Features
 
-Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
+Slice 1 is the founder's paste-a-job loop; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
 0. **Waitlist launch (27, 28a, 28b, 32; done)** - TypeScript full-stack switch; public homepage and consented waitlist with a Resend confirmation email; production deploy on one VPS behind Cloudflare with backups; animated homepage and design sync (canvas update published only with approval).
 
@@ -40,11 +40,11 @@ _Slice 1, the paste-a-job loop (usable by the founder)_
 30. **Python AI engine foundation** - FastAPI service in `engine/` (uv, Pydantic, Ruff, strict typing, pytest), Docker entry, health, internal bearer auth with the user id from the verified web session, own Postgres schema with Alembic, TypeScript client in the web server.
 31. **Port the AI gateway and ledger to the engine** (done) - Python version with parity tests; the TypeScript gateway and its two tables are removed.
 3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft. 3a storage, upload and extraction (done); 3b AI parse into an unconfirmed draft, engine and web API routes (done); 3c `/onboarding` upload and parse status screen.
-4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
+4. **Profile review and track variants** - edit and confirm extracted facts, variants per track; 4a engine edit and confirm routes, 4b `/profile` screen, 4c tracks and variants.
 5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-haves per track, dealbreakers, do-not-apply list.
 29. **Add a job by link or paste** - paste a link or posting text; fetch public page text when allowed, paste fallback; normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan.
 8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes (`uv run eval`).
-11. **Application kit** - tailored CV, cover letter, answer drafts from confirmed facts, fact check, versions, PDF/DOCX export.
+11. **Application kit** - tailored CV, cover letter, answers from confirmed facts, fact check, versions, PDF/DOCX export.
 12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; records each outcome, shows interviews per application by track.
 9. **Dashboard** - evaluated jobs, needs-action list, application progress, empty/loading states; discovery widgets arrive with 10.
 19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-evaluation moment (paste a job, see an evidence-based evaluation); the first-shortlist moment arrives with discovery.
@@ -71,7 +71,7 @@ _Slice 4, grow and operate_
 26. **Support desk** - help form, inbound email to tickets, admin inbox, notes, canned replies.
 22. **Ask Migo** - natural-language questions over the user's own data, with cited answers.
 
-Excluded or later: auto-apply and browser automation, LinkedIn scraping, BYOK (gateway designed for it), autonomous agents, extra services, Python job-source adapters (only if scraping is approved within site terms), native app, team accounts, interview prep and coaching, AI insights dashboards, sending email from the user's mailbox (a read-only status scan may come later).
+Excluded or later: auto-apply, browser automation, LinkedIn scraping, BYOK (gateway designed for it), autonomous agents, extra services, Python job-source adapters (only if scraping is approved within site terms), native app, team accounts, interview prep and coaching, AI insights dashboards, sending email from the user's mailbox (a read-only status scan may come later).
 
 ## Data model
 
@@ -169,7 +169,7 @@ Subscription plus AI credits. Prices are hypotheses to test and differ by region
 - **Pro (~$19):** multiple tracks and profiles, Telegram alerts, tailored documents, CRM, larger credits.
 - **Power (~$39):** recruiter research and outreach, highest credits, priority processing, exports.
 
-Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10 customers. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Daily hook: morning digest and "needs action" list. Distribution: LinkedIn build-in-public.
+Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Daily hook: morning digest and "needs action" list. Distribution: LinkedIn build-in-public.
 
 ## UI/UX
 

@@ -179,6 +179,25 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Not built yet** (honest gaps against the board): the tracks card, manual entry, and "Review
   my profile" (feature 4).
 
+### Profile facts: edit and confirm (feature 4a, as built)
+
+- **The profile** is the user's latest parsed draft (`GET /internal/profile`, web `/api/profile`).
+  Replacing a CV starts a new unconfirmed draft; merging drafts is a later feature.
+- **Statuses.** `extracted` (from the parse), `confirmed` (the user said it is right) and `edited`
+  (the user changed it, or added it). Generated work may cite `confirmed` and `edited` only.
+- **Routes.** `PATCH /api/profile` (headline, summary), `POST /api/profile/items/:kind` (add),
+  `PATCH` and `DELETE /api/profile/items/:kind/:id`, `POST .../:id/confirm`, and
+  `POST /api/profile/confirm-all`. Kinds: experience, skill, achievement, project, education.
+- **Rules.** A patch must change something to count (a no-op changes nothing); a real change sets
+  `edited`. Confirm turns `extracted` into `confirmed` and leaves the others alone. Adds use the
+  parse limits and bounds; a skill name already present is `409 already_exists`; an achievement may
+  link only to an experience of the same profile. Deleting an experience keeps its achievements,
+  unlinked.
+- **`profile.version`** goes up by one on every real change, in the same transaction. Evaluations
+  and documents key their caches on it.
+- **Errors** are stable codes (`not_found`, `validation_failed`, `limit_reached`, `already_exists`)
+  and never echo what was sent. An item of an older draft, or another user's, is `not_found`.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories

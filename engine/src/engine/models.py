@@ -148,6 +148,7 @@ class Profile(Base):
     """A draft of the facts parsed from one CV. Nothing in it is confirmed yet."""
 
     __tablename__ = "profile"
+    __table_args__ = (CheckConstraint("version >= 1", name="ck_profile_version"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
@@ -160,7 +161,11 @@ class Profile(Base):
     )
     headline: Mapped[str | None] = mapped_column(Text)
     summary: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 

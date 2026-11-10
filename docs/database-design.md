@@ -516,6 +516,10 @@ trigger). Every staff action that reads or changes a user's data writes a row.
 > always `extracted` until feature 4). Experience and education dates are text (`YYYY` or
 > `YYYY-MM`). `Skill.evidence_ref` and `used_in_role` are not built yet; the feature that first
 > uses them adds them.
+>
+> Feature 4a (Alembic `0005`) adds `profile.version` (int, default 1, bumped on every real change to the
+> profile or its facts) and `profile.updated_at`. The profile a user works on is their newest parsed
+> CV's draft; fact `status` moves `extracted` to `confirmed` or `edited` as they review.
 
 ## Storage map
 

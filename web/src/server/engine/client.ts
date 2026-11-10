@@ -10,7 +10,7 @@ type FetchLike = (input: string, init: RequestInit) => Promise<Response>
 export type EngineCall = {
   /** The verified user, from `requireUser`. Never taken from client input. */
   userId: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
   /** A raw request body streamed as is (uploads). Mutually exclusive with `body`. */
   stream?: ReadableStream<Uint8Array>

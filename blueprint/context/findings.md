@@ -444,3 +444,27 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** A live region should hold the message. Here it wraps the file card, the delete control (so opening the confirm is announced as a change), and in the parsed view the full draft (headline, role list, user-derived text) plus a nested `role="alert"` for a draft load error, read out on mount. It works but is noisy and nests live regions.
 **Suggested fix:** Put `role="status"` on a short sentence ("Reading your CV", "Draft ready") and leave the rest as ordinary content.
 **Resolution:**
+
+### F-90 [P3] open - The lost-update and confirm-versus-edit concurrency tests pass without the row lock
+
+**File:** engine/tests/test_profile_edit.py:359, engine/tests/test_profile_edit.py:386
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** In a scratch copy with the `FOR UPDATE` removed from `latest_profile`, `test_concurrent_edits_to_different_fields_are_both_kept` and `test_a_confirm_racing_an_edit_never_hides_the_edit` still passed on three runs; only the duplicate-add, limit and patch-versus-delete tests failed. `asyncio.gather` over two short calls does not force the two reads to overlap, and the confirm test ends in `edited` for either order. A regression that drops the lock for confirm, or writes stale columns, would go unnoticed.
+**Suggested fix:** Make the overlap deterministic: hold the profile lock in a separate session (or add a barrier/sleep after the read through a test hook), start the call, release, and assert the outcome; or drop the two tests' claim of covering the lock.
+**Resolution:**
+
+### F-91 [P3] open - Reads after commit run outside the lock, so a concurrent delete can turn a committed change into a 500 or 404
+
+**File:** engine/src/engine/profile/service.py:196, :228, :248, :150, :295
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `add_item`, `patch_item` and `confirm_item` call `session.refresh(row)` after `commit()` (which expires the row and frees the lock). If another request deletes that row in between, `refresh` raises `InvalidRequestError`, an unhandled 500 for a write that succeeded. `patch_profile` and `confirm_all` re-run `_current` after commit; if the profile was deleted meanwhile they answer 404 for a change that was saved. Narrow window, not reproduced.
+**Suggested fix:** Build the response before commit (flush, then validate the row into the output model, or use `expire_on_commit=False`), and read the new version in the same transaction with `RETURNING`.
+**Resolution:**
+
+### F-92 [P3] unverified - Latest-profile lock query can lock an older draft when the newest one is deleted while waiting; `GET` is not one snapshot
+
+**File:** engine/src/engine/profile/service.py:34
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** With `ORDER BY ... LIMIT 1 FOR UPDATE OF profile`, Postgres re-checks a row that was changed while it waited and, if the row is gone, takes the next one: a mutation that was queued behind a delete of the newest CV could add an item to the previous parsed draft. Also `get_profile` reads the profile and each fact table in separate READ COMMITTED statements, so `version` can be older than the rows returned if a commit lands between them. Neither reproduced; only reachable with more than one parsed CV or a read racing an edit.
+**Suggested fix:** If it matters, re-check after locking that the locked profile is still the user's newest parsed one (or reject when its CV is not `parsed`), and read in a REPEATABLE READ transaction.
+**Resolution:**

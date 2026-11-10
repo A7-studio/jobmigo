@@ -89,6 +89,7 @@ class EducationOut(_Out):
 class DraftOut(_Out):
     id: uuid.UUID
     cv_id: uuid.UUID = Field(alias="cvId")
+    version: int
     headline: str | None
     summary: str | None
     experiences: list[ExperienceOut]
@@ -371,6 +372,35 @@ async def start_parse(
     return await get_cv(user_id=user_id, cv_id=cv_id, database=database)
 
 
+async def load_draft(
+    session: AsyncSession, profile: Profile, user_id: uuid.UUID
+) -> DraftOut:
+    """A profile with its rows in order. The caller has already scoped `profile`."""
+
+    async def rows(model: Any) -> list[Any]:
+        result = await session.execute(
+            select(model)
+            .where(model.profile_id == profile.id, model.user_id == user_id)
+            .order_by(model.position)
+        )
+        return list(result.scalars())
+
+    return DraftOut(
+        id=profile.id,
+        cv_id=profile.source_cv_id,
+        version=profile.version,
+        headline=profile.headline,
+        summary=profile.summary,
+        experiences=[ExperienceOut.model_validate(r) for r in await rows(Experience)],
+        skills=[SkillOut.model_validate(r) for r in await rows(Skill)],
+        achievements=[
+            AchievementOut.model_validate(r) for r in await rows(Achievement)
+        ],
+        projects=[ProjectOut.model_validate(r) for r in await rows(Project)],
+        education=[EducationOut.model_validate(r) for r in await rows(Education)],
+    )
+
+
 async def get_draft(*, user_id: uuid.UUID, cv_id: str, database: Database) -> DraftOut:
     wanted = parse_id(cv_id)
     async with AsyncSession(database.engine) as session:
@@ -383,27 +413,4 @@ async def get_draft(*, user_id: uuid.UUID, cv_id: str, database: Database) -> Dr
         ).scalar_one_or_none()
         if profile is None:
             raise not_found()
-
-        async def rows(model: Any) -> list[Any]:
-            result = await session.execute(
-                select(model)
-                .where(model.profile_id == profile.id, model.user_id == user_id)
-                .order_by(model.position)
-            )
-            return list(result.scalars())
-
-        return DraftOut(
-            id=profile.id,
-            cv_id=profile.source_cv_id,
-            headline=profile.headline,
-            summary=profile.summary,
-            experiences=[
-                ExperienceOut.model_validate(r) for r in await rows(Experience)
-            ],
-            skills=[SkillOut.model_validate(r) for r in await rows(Skill)],
-            achievements=[
-                AchievementOut.model_validate(r) for r in await rows(Achievement)
-            ],
-            projects=[ProjectOut.model_validate(r) for r in await rows(Project)],
-            education=[EducationOut.model_validate(r) for r in await rows(Education)],
-        )
+        return await load_draft(session, profile, user_id)
