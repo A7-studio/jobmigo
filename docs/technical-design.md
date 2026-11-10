@@ -261,10 +261,30 @@ everything else stays in the web app. The modules `ai` and the AI and document p
   `THIRD_PARTY_NOTICES.md`) removes hidden HTML, invisible and Unicode tag characters, and counts
   instruction-shaped lines and look-alike words. It advises and never blocks: `flag` is `review`
   when a targeting signal is present. Its instruction pattern for "ignore the ..." also matches
-  ordinary prose, so a harmless posting can be marked for review. Tag matching is bounded (a tag
-  with more than 1,000 characters of attribute text is read as text) so hostile input cannot make
-  the cleaner slow; this is why the paste cap is 100,000 characters. Counts are stored, excerpts never.
+  ordinary prose, so a harmless posting can be marked for review. The HTML reader is a single
+  pass (feature 29b): its time is linear in the input whatever the markup, a tag of any length is
+  read as a tag, and anything left unterminated (tag, comment, declaration, script) hides the
+  rest of the input, as a browser reads it. The paste cap stays 100,000 characters. Counts are stored, excerpts never.
 - **Not built:** fetching a link and robots.txt (29b), the screens (29c), extracting company and title.
+
+### Jobs: link fetch (feature 29b, as built)
+
+- **Route.** Engine `POST /internal/jobs/fetch {url}` (web `/api/jobs/fetch`) returns
+  `{text, title, finalUrl, truncated}` and stores nothing; the user confirms company and title and
+  saves with the paste route. At most 10 fetches a minute per user (in memory, per process).
+- **Safety** (`jobs/fetch.py`). Only http and https on ports 80 and 443, no credentials. The host
+  is resolved once and every address must be public (loopback, private, link-local, carrier-grade
+  NAT, multicast, reserved, IPv4-mapped, 6to4 and NAT64 forms are refused); the connection goes to
+  that validated address with the original host kept in `Host` and the TLS name, so DNS cannot
+  change between the check and the connection. At most 3 redirects, each hop checked the same way.
+  No cookies, no environment proxies, 1 MiB streamed cap, 10 second total limit, only `text/html`
+  and `text/plain` with a 200.
+- **robots.txt** (`jobs/robots.py`, ported from ai-job-search under MIT): read before every hop
+  with the same safe fetcher; blocked if our agent group or `*` disallows; unreadable (any status
+  but 200 or 404, a soft-200 error page, an undecodable rule) is refused, never assumed allowed.
+- **Codes:** `validation_failed`, `fetch_blocked`, `robots_disallowed`, `robots_unreadable`,
+  `not_a_page`, `too_large`, `fetch_failed` (502), `rate_limited` (429).
+- **Not built:** JavaScript-rendered pages, charset sniffing from `<meta>`, the screens (29c).
 
 ### Layering inside a module
 

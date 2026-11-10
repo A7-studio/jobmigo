@@ -56,3 +56,10 @@ export const handleJobDelete = (
     { method: 'DELETE', path: `/internal/jobs/${id}` },
     () => checkId(id),
   )
+
+export const handleJobFetch = (request: Request, deps: JobsHttpDeps = {}) =>
+  forward(request, deps, {
+    method: 'POST',
+    path: '/internal/jobs/fetch',
+    withBody: true,
+  })

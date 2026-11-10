@@ -5,7 +5,9 @@ and is never logged or echoed in an error.
 """
 
 import asyncio
+import time
 import uuid
+from collections import defaultdict, deque
 from typing import Any
 
 from sqlalchemy import func, select
@@ -15,11 +17,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from engine.cv.service import not_found
 from engine.db import Database
 from engine.errors import ApiError
-from engine.jobs import posting_guard
+from engine.jobs import fetch, posting_guard
 from engine.jobs.models import (
     MAX_DESCRIPTION_CHARS,
     MAX_JOBS,
     MIN_DESCRIPTION_CHARS,
+    FetchIn,
+    FetchOut,
     JobFull,
     JobIn,
     JobOut,
@@ -163,3 +167,42 @@ async def delete_job(*, user_id: uuid.UUID, job_id: str, database: Database) -> 
         job = await _owned(session, user_id, wanted)
         await session.delete(job)
         await session.commit()
+
+
+FETCHES_PER_MINUTE = 10
+_recent: defaultdict[uuid.UUID, deque[float]] = defaultdict(deque)
+
+
+def _within_rate_limit(user_id: uuid.UUID, now: float) -> bool:
+    """At most FETCHES_PER_MINUTE page fetches per user per minute, in this process."""
+    if len(_recent) > 1000:  # forget users with nothing recent
+        for known in [k for k, v in _recent.items() if not v or now - v[-1] >= 60]:
+            del _recent[known]
+    window = _recent[user_id]
+    while window and now - window[0] >= 60:
+        window.popleft()
+    if len(window) >= FETCHES_PER_MINUTE:
+        return False
+    window.append(now)
+    return True
+
+
+async def fetch_job_page(
+    *,
+    user_id: uuid.UUID,
+    body: dict[str, Any],
+    fetcher: Any = None,
+) -> FetchOut:
+    """Read a public job link and return its cleaned text. Nothing is stored."""
+    parsed = _validated(FetchIn, body)
+    if not _within_rate_limit(user_id, time.monotonic()):
+        raise ApiError(
+            429, "rate_limited", "Too many links at once. Try again in a minute."
+        )
+    page = await (fetcher or fetch.fetch_page)(parsed.url)
+    return FetchOut(
+        text=page.text,
+        title=page.title,
+        final_url=page.final_url,
+        truncated=page.truncated,
+    )

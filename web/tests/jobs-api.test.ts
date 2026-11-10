@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   addJob,
   deleteJob,
+  fetchJobPage,
   getJob,
   listJobs,
   setJobStatus,
@@ -20,6 +21,7 @@ describe('jobs-api', () => {
     await addJob({ company: 'A', title: 'T', text: 'posting' }, { fetchFn })
     await getJob(ID, { fetchFn })
     await setJobStatus(ID, 'dismissed', { fetchFn })
+    await fetchJobPage('https://x.example/j', { fetchFn })
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
     expect(await deleteJob(ID, { fetchFn: del })).toEqual({
       ok: true,
@@ -41,6 +43,11 @@ describe('jobs-api', () => {
       ],
       ['GET', `/api/jobs/${ID}`, undefined],
       ['PATCH', `/api/jobs/${ID}`, JSON.stringify({ status: 'dismissed' })],
+      [
+        'POST',
+        '/api/jobs/fetch',
+        JSON.stringify({ url: 'https://x.example/j' }),
+      ],
     ])
   })
 
@@ -49,6 +56,12 @@ describe('jobs-api', () => {
     expect(
       await addJob({ company: 'A', title: 'T', text: 'x' }, { fetchFn: dup }),
     ).toMatchObject({ ok: false, code: 'already_exists' })
+    const blocked = vi.fn<Fetch>(async () =>
+      reply({ code: 'robots_disallowed' }, 422),
+    )
+    expect(
+      await fetchJobPage('https://x.example/', { fetchFn: blocked }),
+    ).toMatchObject({ ok: false, code: 'robots_disallowed' })
     const odd = vi.fn<Fetch>(async () => reply({ code: '<b>' }, 500))
     expect(await listJobs(undefined, { fetchFn: odd })).toMatchObject({
       code: 'unexpected',

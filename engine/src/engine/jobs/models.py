@@ -135,3 +135,18 @@ def url_key(url: str | None) -> str | None:
     )
     path = parts.path.rstrip("/")
     return urlunsplit((parts.scheme.lower(), netloc, path, query, ""))
+
+
+class FetchIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    url: str = Field(min_length=1, max_length=MAX_URL_CHARS)
+
+
+class FetchOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    text: str
+    title: str | None
+    final_url: str = Field(serialization_alias="finalUrl")
+    truncated: bool

@@ -2,8 +2,9 @@
 
 ## ai-job-search
 
-`engine/src/engine/jobs/posting_guard.py` is adapted from `tools/posting_guard.py` in
-ai-job-search (https://github.com/ai-job-search-dev/ai-job-search), used under the MIT licence.
+`engine/src/engine/jobs/posting_guard.py` is adapted from `tools/posting_guard.py`, and
+`engine/src/engine/jobs/robots.py` from `tools/robots_check.py`, in ai-job-search
+(https://github.com/ai-job-search-dev/ai-job-search), used under the MIT licence.
 
 ```
 MIT License

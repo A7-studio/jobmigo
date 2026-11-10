@@ -86,3 +86,14 @@ export const setJobStatus = (id: string, status: JobStatus, deps: Deps = {}) =>
 
 export const deleteJob = (id: string, deps: Deps = {}) =>
   call<undefined>(`/api/jobs/${id}`, { method: 'DELETE' }, deps)
+
+export type FetchedPage = {
+  text: string
+  title: string | null
+  finalUrl: string
+  truncated: boolean
+}
+
+/** Read a public job link; the cleaned text comes back and nothing is saved. */
+export const fetchJobPage = (url: string, deps: Deps = {}) =>
+  call<FetchedPage>('/api/jobs/fetch', json('POST', { url }), deps)

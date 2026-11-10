@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   MAX_JOB_BODY_BYTES,
   handleJob,
+  handleJobFetch,
   handleJobCreate,
   handleJobDelete,
   handleJobStatus,
@@ -41,8 +42,9 @@ describe('jobs handlers', () => {
       handleJob(request('GET'), ID, deps),
       handleJobStatus(request('PATCH', {}), ID, deps),
       handleJobDelete(request('DELETE'), ID, deps),
+      handleJobFetch(request('POST', { url: 'https://x.example/' }), deps),
     ])
-    expect(results.map((r) => r.status)).toEqual([401, 401, 401, 401, 401])
+    expect(results.map((r) => r.status)).toEqual([401, 401, 401, 401, 401, 401])
     expect(fetchFn).not.toHaveBeenCalled()
   })
 
@@ -108,6 +110,49 @@ describe('jobs handlers', () => {
     const r = await handleJobStatus(
       request('PATCH', { x: 'y'.repeat(40000) }),
       ID,
+      deps,
+    )
+    expect(r.status).toBe(422)
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('fetch handler', () => {
+  it('forwards the link, passes the answer and refusals through', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      return String(init.body).includes('blocked')
+        ? reply({ code: 'robots_disallowed', message: 'm' }, 422)
+        : reply({
+            text: 'Build apps.',
+            title: null,
+            finalUrl: 'u',
+            truncated: false,
+          })
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    const ok = await handleJobFetch(
+      request('POST', { url: 'https://x.example/j' }),
+      deps,
+    )
+    expect(ok.status).toBe(200)
+    expect((await ok.json()).text).toBe('Build apps.')
+    const no = await handleJobFetch(
+      request('POST', { url: 'https://blocked.example/' }),
+      deps,
+    )
+    expect(no.status).toBe(422)
+    expect((await no.json()).code).toBe('robots_disallowed')
+    expect(fetchFn.mock.calls[0][0]).toBe(
+      'http://engine.test:8000/internal/jobs/fetch',
+    )
+  })
+
+  it('keeps the short body cap', async () => {
+    const fetchFn = vi.fn()
+    const deps = { requireUser: signedIn, fetchFn, env }
+    const r = await handleJobFetch(
+      request('POST', { url: 'x'.repeat(40000) }),
       deps,
     )
     expect(r.status).toBe(422)

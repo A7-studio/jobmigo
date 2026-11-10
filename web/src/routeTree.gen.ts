@@ -24,6 +24,7 @@ import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsub
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
 import { Route as ApiJobsIndexRouteImport } from './routes/api/jobs/index'
+import { Route as ApiJobsFetchRouteImport } from './routes/api/jobs/fetch'
 import { Route as ApiProfileIndexRouteImport } from './routes/api/profile/index'
 import { Route as ApiProfileConfirmAllRouteImport } from './routes/api/profile/confirm-all'
 import { Route as ApiTracksIndexRouteImport } from './routes/api/tracks/index'
@@ -111,6 +112,11 @@ const ApiCvIndexRoute = ApiCvIndexRouteImport.update({
 const ApiJobsIndexRoute = ApiJobsIndexRouteImport.update({
   id: '/api/jobs/',
   path: '/api/jobs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJobsFetchRoute = ApiJobsFetchRouteImport.update({
+  id: '/api/jobs/fetch',
+  path: '/api/jobs/fetch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiProfileIndexRoute = ApiProfileIndexRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/jobs/': typeof ApiJobsIndexRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv': typeof ApiCvIndexRoute
   '/api/jobs': typeof ApiJobsIndexRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/jobs/': typeof ApiJobsIndexRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
     | '/api/cv/'
     | '/api/jobs/'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
     | '/api/cv'
     | '/api/jobs'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
     | '/api/auth/$'
+    | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
     | '/api/cv/'
     | '/api/jobs/'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   WaitlistConfirmRoute: typeof WaitlistConfirmRoute
   WaitlistUnsubscribeRoute: typeof WaitlistUnsubscribeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiJobsFetchRoute: typeof ApiJobsFetchRoute
   ApiProfileConfirmAllRoute: typeof ApiProfileConfirmAllRoute
   ApiCvIndexRoute: typeof ApiCvIndexRoute
   ApiJobsIndexRoute: typeof ApiJobsIndexRoute
@@ -508,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/api/jobs'
       fullPath: '/api/jobs/'
       preLoaderRoute: typeof ApiJobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jobs/fetch': {
+      id: '/api/jobs/fetch'
+      path: '/api/jobs/fetch'
+      fullPath: '/api/jobs/fetch'
+      preLoaderRoute: typeof ApiJobsFetchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/profile/': {
@@ -636,6 +656,7 @@ const rootRouteChildren: RootRouteChildren = {
   WaitlistConfirmRoute: WaitlistConfirmRoute,
   WaitlistUnsubscribeRoute: WaitlistUnsubscribeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiJobsFetchRoute: ApiJobsFetchRoute,
   ApiProfileConfirmAllRoute: ApiProfileConfirmAllRoute,
   ApiCvIndexRoute: ApiCvIndexRoute,
   ApiJobsIndexRoute: ApiJobsIndexRoute,

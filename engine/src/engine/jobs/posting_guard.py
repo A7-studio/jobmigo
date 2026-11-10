@@ -14,6 +14,7 @@ shaped lines are counted, never removed. This advises; it never blocks.
 
 import html
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -58,21 +59,23 @@ HIDDEN_STYLE = re.compile(
     r"|(?:left|top|text-indent)\s*:\s*-\d{4,}px",
     re.I,
 )
-# Work per opener is bounded (and the name is possessive): an opener with no closing ">"
-# used to scan to the end of the input, and a long name backtracked against the attribute
-# group, both quadratic on repeated openers. A tag whose attribute text is longer than
-# TAG_MAX characters is not read as a tag.
-TAG_MAX = 1000
-PRESTRIP = re.compile(rf"<!DOCTYPE[^>]{{0,{TAG_MAX}}}>|<\?[^>]{{0,{TAG_MAX}}}\?>", re.I)
-COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.S)
-DROP_BLOCKS = re.compile(
-    rf"<(script|style|noscript|svg|template)\b[^>]{{0,{TAG_MAX}}}>.*?(?:</\1\s*>|\Z)",
-    re.I | re.S,
-)
-TAG = re.compile(
-    rf"<(/?)([a-zA-Z][\w:-]*+)((?:[^>\"']|\"[^\"]*\"|'[^']*'){{0,{TAG_MAX}}}+)>", re.S
-)
-ATTR = re.compile(r"([^\s=/\"'>]+)(?:\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>\"']+)))?")
+# The HTML reader below is a single pass: every character is looked at a bounded number of
+# times, whatever the input. There is no regex that can scan to the end of the input per
+# opener, so a hostile page cannot make it slow, and a tag of any length is read as a tag.
+# Anything unterminated (a tag, comment, declaration or script) hides the rest of the input,
+# as a browser reads it, so hidden content can never be revealed by leaving something open.
+_WS = "[ \\t\\n\\f\\r]"
+_NAME_REST = re.compile(rf"[^{_WS[1:-1]}/>]*")
+_SKIP = re.compile(rf"[{_WS[1:-1]}/]*")
+_SPACE = re.compile(rf"{_WS}*")
+_ATTR_NAME = re.compile(rf"[^{_WS[1:-1]}/>=]*")
+_UNQUOTED = re.compile(rf"[^{_WS[1:-1]}>]*")
+_NAME = re.compile(r"(/?)([a-zA-Z][\w:-]*)")
+_OPEN = re.compile(r"<!--|<!|<\?|<(script|style|noscript|svg|template)\b", re.I)
+_CLOSERS = {
+    name: re.compile(rf"</{name}\s*>", re.I)
+    for name in ("script", "style", "noscript", "svg", "template")
+}
 VOID = {
     "br",
     "img",
@@ -260,21 +263,23 @@ def clean_text(text: str) -> tuple[str, dict[str, Any]]:
     }
 
 
-def _attrs(raw: str) -> dict[str, str]:
-    out = {}
-    for m in ATTR.finditer(raw):
-        value = (
-            m.group(2)
-            if m.group(2) is not None
-            else m.group(3)
-            if m.group(3) is not None
-            else (m.group(4) or "")
-        )
-        out[m.group(1).lower()] = value
-    return out
+def _strip_css_comments(css: str) -> str:
+    """Remove /* ... */ in one pass; an unterminated one runs to the end, as in a browser."""
+    out: list[str] = []
+    pos = 0
+    while True:
+        start = css.find("/*", pos)
+        if start < 0:
+            break
+        out.append(css[pos:start])
+        close = css.find("*/", start + 2)
+        if close < 0:
+            return "".join(out)
+        pos = close + 2
+    out.append(css[pos:])
+    return "".join(out)
 
 
-CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 # A box collapsed to nothing with its overflow clipped hides its content as
 # surely as display:none. Either half alone is everyday layout CSS (overflow:
 # hidden is on most cards; height:0 is a spacer), so both must be present.
@@ -291,17 +296,144 @@ def _style(attrs: dict[str, str]) -> str:
     `/**/` inside a declaration, so both hid the content while the regex saw
     neither. Normalise before matching.
     """
-    return CSS_COMMENT.sub("", html.unescape(attrs.get("style", "")))
+    return _strip_css_comments(html.unescape(attrs.get("style", "")))
 
 
-def _is_hidden(raw_attrs: str) -> bool:
-    attrs = _attrs(raw_attrs)
+def _is_hidden(attrs: dict[str, str]) -> bool:
     if "hidden" in attrs or attrs.get("aria-hidden", "").strip().lower() == "true":
         return True
     style = _style(attrs)
     if HIDDEN_STYLE.search(style):
         return True
     return bool(COLLAPSED_BOX.search(style) and CLIPPED.search(style))
+
+
+def _after(pattern: re.Pattern[str], markup: str, i: int) -> int:
+    """Where a run of characters matched at `i` ends (these patterns can match nothing)."""
+    found = pattern.match(markup, i)
+    return found.end() if found else i
+
+
+_KEPT_ATTRS = ("hidden", "aria-hidden", "style")
+
+
+def _scan_tag(markup: str, start: int) -> tuple[int, dict[str, str]]:
+    """Read one start tag; return (index just after its ">", the attributes we look at).
+
+    `start` is where the tag name begins (or just after it). This follows the HTML
+    tokenizer's start-tag states, so the tag ends where a browser ends it and attribute
+    values are the ones a browser sees: the name runs to whitespace, "/" or ">" (so it may
+    hold "=" or a quote); the first character of an attribute name is always part of the
+    name (even "="); a quote opens a value only after "=" (and spaces); an unquoted value
+    runs to whitespace or ">" (quotes inside it are ordinary); the first copy of a repeated
+    attribute wins. Only `hidden`, `aria-hidden` and `style` are kept. One pass: each
+    character is read a bounded number of times. The index is -1 when the tag is never
+    closed.
+    """
+    size = len(markup)
+    attrs: dict[str, str] = {}
+    i = _after(_NAME_REST, markup, start)
+    while True:
+        i = _after(_SKIP, markup, i)  # before attribute name
+        if i >= size:
+            return -1, attrs
+        if markup[i] == ">":
+            return i + 1, attrs
+        name_start = i
+        i = _after(_ATTR_NAME, markup, i + 1)
+        name = markup[name_start:i].lower()
+        i = _after(_SPACE, markup, i)  # after attribute name
+        if i >= size:
+            return -1, attrs
+        value = ""
+        if markup[i] == "=":
+            i = _after(_SPACE, markup, i + 1)
+            if i >= size:
+                return -1, attrs
+            quote = markup[i]
+            if quote in "\"'":
+                close = markup.find(quote, i + 1)
+                if close < 0:
+                    return -1, attrs
+                value = markup[i + 1 : close]
+                i = close + 1
+            elif quote == ">":
+                if name in _KEPT_ATTRS and name not in attrs:
+                    attrs[name] = ""
+                return i + 1, attrs  # a missing value
+            else:
+                value_start = i
+                i = _after(_UNQUOTED, markup, i)
+                value = markup[value_start:i]
+        if name in _KEPT_ATTRS and name not in attrs:
+            attrs[name] = value
+
+
+def _tag_end(markup: str, start: int) -> int:
+    """The index just after the ">" that closes a tag, or -1 when it never closes."""
+    return _scan_tag(markup, start)[0]
+
+
+def _hidden_text(block: str) -> str:
+    """The words inside a block that is dropped, without its markup, for scanning."""
+    block = block.replace("<!--", " ").replace("-->", " ")
+    return html.unescape(re.sub(r"<[^<>]+>", " ", block))
+
+
+def _drop_blocks(markup: str, hidden_parts: list[str]) -> str:
+    """Remove comments, declarations and script, style, noscript, svg and template blocks.
+
+    What is removed goes to `hidden_parts` to be scanned. One pass over the input.
+    """
+    out: list[str] = []
+    pos = 0
+    while True:
+        found = _OPEN.search(markup, pos)
+        if found is None:
+            break
+        start, opener = found.start(), found.group().lower()
+        if opener == "<!--":
+            close = markup.find("-->", found.end())
+            end = len(markup) if close < 0 else close + 3
+        elif opener in ("<!", "<?"):
+            close = markup.find(">", found.end())
+            end = len(markup) if close < 0 else close + 1
+        else:
+            opened = _tag_end(markup, found.end())
+            closer = (
+                _CLOSERS[found.group(1).lower()].search(markup, opened)
+                if opened >= 0
+                else None
+            )
+            end = closer.end() if closer else len(markup)
+        out.append(markup[pos:start])
+        out.append(" ")
+        hidden_parts.append(_hidden_text(markup[start:end]))
+        pos = end
+    out.append(markup[pos:])
+    return "".join(out)
+
+
+def _tags(markup: str) -> Iterator[tuple[int, int, str, str, dict[str, str]]]:
+    """Yield (start, end, closing, name, attributes) for each tag, one pass.
+
+    `end` is -1 for a tag that is never closed: the rest of the input belongs to it.
+    """
+    pos = 0
+    while True:
+        i = markup.find("<", pos)
+        if i < 0:
+            return
+        named = _NAME.match(markup, i + 1)
+        if named is None:
+            pos = i + 1  # a "<" that opens nothing is text
+            continue
+        end, attrs = _scan_tag(markup, named.end())
+        if end < 0:
+            yield i, -1, "", "", {}
+            return
+        yield i, end, named.group(1), named.group(2).lower(), attrs
+        pos = end
 
 
 def clean_html(markup: str) -> tuple[str, dict[str, Any]]:
@@ -315,18 +447,9 @@ def clean_html(markup: str) -> tuple[str, dict[str, Any]]:
     tag is ignored, as browsers do; unterminated comments and script/style
     blocks hide to the end of input, as browsers do.
     """
-    hidden_parts = []
-    hidden_blocks = []
-
-    def collect(match: re.Match[str]) -> str:
-        inner = re.sub(r"<!--|-->", " ", match.group(0))
-        inner = re.sub(r"<[^<>]+>", " ", inner)
-        hidden_parts.append(html.unescape(inner))
-        return " "
-
-    markup = PRESTRIP.sub(" ", markup)
-    markup = COMMENT.sub(collect, markup)
-    markup = DROP_BLOCKS.sub(collect, markup)
+    hidden_parts: list[str] = []
+    hidden_blocks: list[str] = []
+    markup = _drop_blocks(markup, hidden_parts)
 
     visible: list[str] = []
     hidden_buf: list[str] = []
@@ -364,10 +487,13 @@ def clean_html(markup: str) -> tuple[str, dict[str, Any]]:
         found = positions.get(name)
         return found[-1] if found else None
 
-    for m in TAG.finditer(markup):
-        emit(markup[pos : m.start()])
-        pos = m.end()
-        closing, name, raw_attrs = m.group(1), m.group(2).lower(), m.group(3)
+    for start, end, closing, name, attrs in _tags(markup):
+        emit(markup[pos:start])
+        if end < 0:  # never closed: the rest of the input is inside this tag
+            hidden_parts.append(_hidden_text(markup[start:]))
+            pos = len(markup)
+            break
+        pos = end
         if name in BLOCK:
             emit("\n")
         if closing:
@@ -383,7 +509,7 @@ def clean_html(markup: str) -> tuple[str, dict[str, Any]]:
             pop_to(len(stack) - 1)
         stack.append(name)
         positions.setdefault(name, []).append(len(stack) - 1)
-        if hidden_at is None and _is_hidden(raw_attrs):
+        if hidden_at is None and _is_hidden(attrs):
             hidden_at = len(stack) - 1
     emit(markup[pos:])
     if hidden_at is not None:

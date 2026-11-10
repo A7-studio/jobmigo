@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request, Response
 
 from engine.auth import CurrentUser
 from engine.jobs import service
-from engine.jobs.models import MAX_BODY_BYTES, JobFull, JobOut
+from engine.jobs.models import MAX_BODY_BYTES, FetchOut, JobFull, JobOut
 from engine.profile.routes import _body, _database
 
 router = APIRouter()
@@ -16,6 +16,13 @@ async def create_job(request: Request, user_id: CurrentUser) -> JobFull:
         user_id=user_id,
         body=await _body(request, MAX_BODY_BYTES),
         database=_database(request),
+    )
+
+
+@router.post("/fetch")
+async def fetch_page(request: Request, user_id: CurrentUser) -> FetchOut:
+    return await service.fetch_job_page(
+        user_id=user_id, body=await _body(request, 32 * 1024)
     )
 
 
