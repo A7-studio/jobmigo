@@ -20,7 +20,7 @@ def _database(request: Request) -> Database:
     return database
 
 
-async def _body(request: Request) -> dict[str, Any]:
+async def _body(request: Request, max_bytes: int = MAX_BODY_BYTES) -> dict[str, Any]:
     """The JSON object sent, or a stable 422. Never echoes what was sent.
 
     The size is checked from the header first, then as the body streams in, so an
@@ -31,13 +31,13 @@ async def _body(request: Request) -> dict[str, Any]:
         declared
         and declared.isascii()
         and declared.isdigit()
-        and int(declared) > MAX_BODY_BYTES
+        and int(declared) > max_bytes
     ):
         raise invalid()
     raw = bytearray()
     async for chunk in request.stream():
         raw += chunk
-        if len(raw) > MAX_BODY_BYTES:
+        if len(raw) > max_bytes:
             raise invalid()
     try:
         data = json.loads(bytes(raw))

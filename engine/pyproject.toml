@@ -42,6 +42,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "S", "ASYNC", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+# Adapted third-party code: long pattern lines and the invisible characters it lists.
+"src/engine/jobs/posting_guard.py" = ["E501", "RUF001", "RUF003"]
 
 [tool.mypy]
 strict = true

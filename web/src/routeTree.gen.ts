@@ -23,6 +23,7 @@ import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
+import { Route as ApiJobsIndexRouteImport } from './routes/api/jobs/index'
 import { Route as ApiProfileIndexRouteImport } from './routes/api/profile/index'
 import { Route as ApiProfileConfirmAllRouteImport } from './routes/api/profile/confirm-all'
 import { Route as ApiTracksIndexRouteImport } from './routes/api/tracks/index'
@@ -30,6 +31,7 @@ import { Route as ApiCvIdIndexRouteImport } from './routes/api/cv/$id/index'
 import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/download'
 import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
 import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
+import { Route as ApiJobsIdIndexRouteImport } from './routes/api/jobs/$id/index'
 import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/index'
 import { Route as ApiTracksIdPreferencesRouteImport } from './routes/api/tracks/$id/preferences'
 import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
@@ -106,6 +108,11 @@ const ApiCvIndexRoute = ApiCvIndexRouteImport.update({
   path: '/api/cv/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiJobsIndexRoute = ApiJobsIndexRouteImport.update({
+  id: '/api/jobs/',
+  path: '/api/jobs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProfileIndexRoute = ApiProfileIndexRouteImport.update({
   id: '/api/profile/',
   path: '/api/profile/',
@@ -139,6 +146,11 @@ const ApiCvIdParseRoute = ApiCvIdParseRouteImport.update({
 const ApiCvIdProfileRoute = ApiCvIdProfileRouteImport.update({
   id: '/api/cv/$id/profile',
   path: '/api/cv/$id/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJobsIdIndexRoute = ApiJobsIdIndexRouteImport.update({
+  id: '/api/jobs/$id/',
+  path: '/api/jobs/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTracksIdIndexRoute = ApiTracksIdIndexRouteImport.update({
@@ -191,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
+  '/api/jobs/': typeof ApiJobsIndexRoute
   '/api/profile/': typeof ApiProfileIndexRoute
   '/api/tracks/': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
@@ -198,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/jobs/$id/': typeof ApiJobsIdIndexRoute
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
@@ -219,6 +233,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv': typeof ApiCvIndexRoute
+  '/api/jobs': typeof ApiJobsIndexRoute
   '/api/profile': typeof ApiProfileIndexRoute
   '/api/tracks': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
@@ -226,6 +241,7 @@ export interface FileRoutesByTo {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
+  '/api/jobs/$id': typeof ApiJobsIdIndexRoute
   '/api/tracks/$id': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
@@ -249,6 +265,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
+  '/api/jobs/': typeof ApiJobsIndexRoute
   '/api/profile/': typeof ApiProfileIndexRoute
   '/api/tracks/': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
@@ -256,6 +273,7 @@ export interface FileRoutesById {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/jobs/$id/': typeof ApiJobsIdIndexRoute
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
@@ -279,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/profile/confirm-all'
     | '/api/cv/'
+    | '/api/jobs/'
     | '/api/profile/'
     | '/api/tracks/'
     | '/api/cv/$id/download'
@@ -286,6 +305,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
+    | '/api/jobs/$id/'
     | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
     | '/api/profile/items/$kind/$id/confirm'
@@ -307,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/profile/confirm-all'
     | '/api/cv'
+    | '/api/jobs'
     | '/api/profile'
     | '/api/tracks'
     | '/api/cv/$id/download'
@@ -314,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id'
+    | '/api/jobs/$id'
     | '/api/tracks/$id'
     | '/api/profile/items/$kind'
     | '/api/profile/items/$kind/$id/confirm'
@@ -336,6 +358,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/profile/confirm-all'
     | '/api/cv/'
+    | '/api/jobs/'
     | '/api/profile/'
     | '/api/tracks/'
     | '/api/cv/$id/download'
@@ -343,6 +366,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
+    | '/api/jobs/$id/'
     | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
     | '/api/profile/items/$kind/$id/confirm'
@@ -363,6 +387,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiProfileConfirmAllRoute: typeof ApiProfileConfirmAllRoute
   ApiCvIndexRoute: typeof ApiCvIndexRoute
+  ApiJobsIndexRoute: typeof ApiJobsIndexRoute
   ApiProfileIndexRoute: typeof ApiProfileIndexRoute
   ApiTracksIndexRoute: typeof ApiTracksIndexRoute
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
@@ -370,6 +395,7 @@ export interface RootRouteChildren {
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
   ApiTracksIdPreferencesRoute: typeof ApiTracksIdPreferencesRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
+  ApiJobsIdIndexRoute: typeof ApiJobsIdIndexRoute
   ApiTracksIdIndexRoute: typeof ApiTracksIdIndexRoute
   ApiProfileItemsKindIndexRoute: typeof ApiProfileItemsKindIndexRoute
   ApiProfileItemsKindIdConfirmRoute: typeof ApiProfileItemsKindIdConfirmRoute
@@ -477,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCvIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jobs/': {
+      id: '/api/jobs/'
+      path: '/api/jobs'
+      fullPath: '/api/jobs/'
+      preLoaderRoute: typeof ApiJobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/profile/': {
       id: '/api/profile/'
       path: '/api/profile'
@@ -524,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cv/$id/profile'
       fullPath: '/api/cv/$id/profile'
       preLoaderRoute: typeof ApiCvIdProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jobs/$id/': {
+      id: '/api/jobs/$id/'
+      path: '/api/jobs/$id'
+      fullPath: '/api/jobs/$id/'
+      preLoaderRoute: typeof ApiJobsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tracks/$id/': {
@@ -598,6 +638,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiProfileConfirmAllRoute: ApiProfileConfirmAllRoute,
   ApiCvIndexRoute: ApiCvIndexRoute,
+  ApiJobsIndexRoute: ApiJobsIndexRoute,
   ApiProfileIndexRoute: ApiProfileIndexRoute,
   ApiTracksIndexRoute: ApiTracksIndexRoute,
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
@@ -605,6 +646,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
   ApiTracksIdPreferencesRoute: ApiTracksIdPreferencesRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
+  ApiJobsIdIndexRoute: ApiJobsIdIndexRoute,
   ApiTracksIdIndexRoute: ApiTracksIdIndexRoute,
   ApiProfileItemsKindIndexRoute: ApiProfileItemsKindIndexRoute,
   ApiProfileItemsKindIdConfirmRoute: ApiProfileItemsKindIdConfirmRoute,

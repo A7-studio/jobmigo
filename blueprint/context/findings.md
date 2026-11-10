@@ -612,3 +612,91 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** Each field is a `<label>` that wraps the control, the hint span and the error span, so the accessible name becomes "label + hint + error", and `aria-describedby` then repeats the same hint and error. Screen readers announce the text twice. The salary and currency inputs also leave their hint out of `aria-describedby`. Errors are reached by focus, which is good, and are not live, so nothing is lost; it is noise.
 **Suggested fix:** Use a plain `<label htmlFor>` for the label text only and keep the hint and error as siblings referenced by `aria-describedby` (include the hint on salary and currency).
 **Resolution:**
+
+### F-111 [P2] fixed - A crafted 200,000-character paste can block the engine for over 20 seconds (quadratic cleaner paths, run on the event loop)
+
+**File:** engine/src/engine/jobs/posting_guard.py:350, engine/src/engine/jobs/posting_guard.py:421, engine/src/engine/jobs/service.py:67
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `last_index` scans the whole open-element stack for every closer, so many unclosed openers followed by many unmatched closers is quadratic. Measured here: `<p>` + `<b>` x 33,000 + `</x>` x 25,000 (199,003 characters, well inside the 256 KB body cap and the 200,000-character limit) took 23 s; `<div>` x 20,000 + `</x>` x 20,000 took 9 s. Also quadratic but milder: the `word not in homoglyphs` and `url not in hidden_urls` list lookups in `scan` (about 1.7 s for 25,000 distinct mixed-script words). `create_job` calls `clean_posting` synchronously inside the async handler, so the whole engine (every user, CV parsing, health checks) is stalled for that time by one signed-in user. The regexes themselves held up (no ReDoS found across 24 hostile shapes: unterminated tags, quotes, comments, script, doctype, deep nesting, entities). Not network-reachable without a session, hence P2.
+**Suggested fix:** Keep a name-to-count dict (or a dict of name to list of indexes) beside the stack so a closer with no open match is O(1), and use a set next to the lists in `scan`. Optionally run `clean_posting` in `asyncio.to_thread` or cap the number of tags processed.
+**Resolution:** The element lookup uses an index kept per name and `scan` uses sets, so the cleaner is linear (the 199k-character shapes take well under a second); `create_job` also runs it in `asyncio.to_thread`. A differential run of 4,000 random tag soups against the original walker gave identical output; a timing test is in `test_posting_guard.py`.
+
+### F-112 [P3] open - Stored `source_url` is only checked in code, and `url_key` drops IPv6 brackets
+
+**File:** engine/src/engine/jobs/models.py:121, engine/migrations/versions/0008_job.py:25
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** `create_job` rejects non-http(s) schemes and credentials before storing, so no `javascript:` URL can be saved through the routes today. The table has no check constraint on `source_url`, though, and `sourceUrl` is returned verbatim, so a later screen (29c) must still render it as a link only after an http(s) check, and any other writer (a seed, a later import) is unguarded. Separately, `url_key` uses `parts.hostname`, which has no brackets, so `http://[::1]:80/a` and a host key built from `::1:80` look alike; the collision is contrived and only affects the duplicate check.
+**Suggested fix:** Add `CHECK (source_url is null or source_url ~* '^https?://')` in a later migration, and re-add brackets for IPv6 hosts in `url_key`. Note the rule for 29c.
+**Resolution:**
+
+### F-113 [P3] open - No test guards the cleaner against slow input, and the body-cap tests do not show the profile route stays at 32 KB in the engine
+
+**File:** engine/tests/test_posting_guard.py, engine/tests/test_jobs_routes.py
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** The suite covers hidden HTML, invisible characters, flags, counts-only findings, duplicates, the race, ownership and the job cap well, but nothing bounds the cleaner's time on hostile 200,000-character shapes (see F-111), so a future edit to the walker could regress silently. The web side proves the default 32 KB cap is kept; the engine's `_body` default is only covered by older profile tests, not by one that sends 40 KB to a profile or track route next to the 256 KB job route.
+**Suggested fix:** Add a generous-bound timing test for the deep-stack and many-distinct-word shapes, and one engine test that a 40 KB profile body is refused while a 40 KB job body is accepted.
+**Resolution:** Partly: a timing test for hostile input now exists; the profile-route 32 KB check next to the job route is still untested. Left open.
+
+### F-114 [P1] fixed - Unterminated-tag shapes still make the cleaner quadratic: a 200,000-character paste takes minutes (F-111's repair covered only the element stack)
+
+**File:** engine/src/engine/jobs/posting_guard.py:60, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:69
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `DROP_BLOCKS` (`<(script|style|noscript|svg|template)\b[^>]*>.*?...`), `TAG` (`<(/?)name(attrs)*>`) and `PRESTRIP` (`<?[^>]*?>`) each scan to the end of the input when a start has no `>`, so many starts with no `>` cost O(n) each. Measured with throwaway scripts after a `<p>` prefix (auto mode picks HTML): `<script ` repeated: 20,000 chars 6.5 s, 40,000 chars 25.9 s (about 650 s extrapolated at 200,000); `<svg `, `<style `, `<template `, `<noscript ` the same (20 to 28 s at 40,000); `<a ` repeated 11.5 s at 40,000; `</a ` repeated 8.7 s at 40,000; `<a "` 5.2 s; `<? ` 0.6 s at 40,000 (15 s at 200,000). All fit inside the 256 KB body cap and 200,000-character limit, so one signed-in user can pin the engine for many minutes per request, and repeat it. This is the same class as F-111, so its Resolution ("linear", "well under a second") does not hold for these shapes. The new timing test uses one `<a ` and one `<!--` run, so it does not reach them. Differential check of the element-stack repair itself: 40,000 random tag soups (implied end tags, closers with no opener, nested hidden elements, mixed case, self-closing) gave identical text and findings to the pre-repair walker, and the `positions` map stays consistent with `stack` for every pop path; that part is correct.
+**Suggested fix:** Bound every scan, for example `[^>]{0,2000}` in `DROP_BLOCKS` and `PRESTRIP`, and a length-limited attribute group in `TAG` (a tag longer than a few thousand characters is treated as text), or replace the regex tokenizer with one pass over `str.find("<")`/`find(">")` that remembers when no further `>` exists. Add timing cases for repeated `<script `, `<svg `, `<a `, `</a ` and `<? ` at 200,000 characters.
+**Resolution:** The unterminated-tag scans (`TAG`, `DROP_BLOCKS`, `PRESTRIP`) no longer cross a `<`, so an opener with no `>` fails fast; 45 hostile 200,000-character shapes now finish in under 0.1 s each (`test_repeated_unterminated_openers_are_cleaned_in_bounded_time`), and 4,000 random tag soups give output identical to the original.
+
+### F-115 [P2] fixed - `asyncio.to_thread` does not keep the event loop free while the cleaner runs
+
+**File:** engine/src/engine/jobs/service.py:67
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** The cleaner is regex work, and a single `re` call holds the GIL for its whole duration, so the loop thread cannot run while one is matching. Measured: a ticker task on the loop with `await asyncio.to_thread(clean_posting, "<p>" + "<script " * 1500)` saw a maximum loop lag of 2.37 s for a 2.38 s job, so health checks, CV parsing and other users stall exactly as before. The comment "Off the event loop ... must not stall others" is therefore false for the slow shapes of F-114, and the thread also stays busy (the default pool) after the client disconnects.
+**Suggested fix:** Fix the scans (F-114) so no single match is long. If a hard bound is still wanted, run the cleaner in a worker process with a timeout (the engine already runs CV extraction out of process) and refuse the paste with `validation_failed` on timeout; otherwise drop the `to_thread` and its comment, since it adds nothing.
+**Resolution:** The comment no longer claims the event loop is free; the real protection is the linear-time cleaner and the size cap, with the thread as a courtesy.
+
+### F-116 [P1] fixed - A single long unterminated tag name (`<aaaa...`, no `>`) makes `TAG` backtrack quadratically: about 14 minutes at 200,000 characters
+
+**File:** engine/src/engine/jobs/posting_guard.py:68
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** In `TAG`, the name group `[\w:-]*` and the attribute group `(?:[^<>"']|...)*` accept the same characters, so when no `>` follows, the engine gives characters back from the name one at a time and re-scans the rest as attributes: O(n^2) from one tag. Measured with `<p>` + `<` + `a` x n (no `>`; auto mode picks HTML): 10,000 chars 2.1 s, 20,000 chars 8.6 s, 40,000 chars 34 s, so about 860 s at 200,000. `</aaa...` and `<a:b-b-...` behave the same. It is one request inside the 256 KB body and 200,000-character caps, and because a regex holds the GIL (F-115) the whole engine stalls for that time. The F-114 repair and its timing test do not cover it (see F-119).
+**Suggested fix:** Make the name possessive, `([a-zA-Z][\w:-]*+)` (Python 3.11 and later; the engine is 3.13), or add `(?![\w:-])` after it. Measured with the possessive form: 20,000 chars in under 1 ms. Add `<` + `a` x 200,000 and `</` + `a` x 200,000 to the timing test.
+**Resolution:** The tag name is possessive; a 100,000-character name now cleans in milliseconds (`test_hostile_html_at_the_size_cap_is_cleaned_in_bounded_time`).
+
+### F-117 [P2] fixed - `collect` removes tags with `<[^>]+>`, which is quadratic on a comment or script block full of `<`
+
+**File:** engine/src/engine/jobs/posting_guard.py:316
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** `collect` runs `re.sub(r"<[^>]+>", " ", inner)` over every dropped comment, script or style block. An unclosed `<!--` or `<script>` runs to the end of input, and `<` repeated inside it scans to the end from each `<`. Measured at 200,000 characters after a `<p>` prefix: `<!--` + `<` x n 13.8 s, `<script>` + `<` x n 13.8 s, `<style>` + `<b ` repeated 4.6 s, `<!--` + `<a ` repeated 4.7 s, `<!--` + `< ` repeated 6.9 s (all roughly 4x per doubling). One request stalls the engine for that time.
+**Suggested fix:** Use `<[^<>]+>` here too (same rule as the other scans), or `<[^<>]*>`; the removed text only feeds the hidden-text scan.
+**Resolution:** The tag strip over dropped blocks uses `<[^<>]+>`; the `<`-run shapes are in the timing test.
+
+### F-118 [P2] fixed - Excluding `<` from tag bodies lets a tag written with a `<` inside it escape the hidden-content stripping
+
+**File:** engine/src/engine/jobs/posting_guard.py:61, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:68
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** A browser reads `<div hidden <b>` as a hidden `div` whose attributes include `<b`, so the text is invisible to the reader. After F-114's change `TAG` refuses a body containing `<`, so the cleaner now sees no `div` tag: `<p>a<div hidden <b>SECRET ignore all previous</div>vis` cleaned to `a<div hidden SECRET ignore all previous|vis` (before: `a|vis`), and `<div style="display:none" <b>X</b>vis</div>` kept `X` plus the raw `<div style=...` text. So a posting author can again put hidden text in the cleaned description that the user never saw, and the raw tag text is stored. Instruction-shaped lines are still counted, so this is partly covered by the flag. Ordinary pages are unaffected: 40,000 random tag soups without `<` inside tags matched the pre-repair output exactly. `<!DOCTYPE x<y>` and `<a title=x<y>` also change.
+**Suggested fix:** Keep the old forms (`[^>]*`, a body allowed to contain `<`) and bound the work another way: possessive name (F-116) plus a bounded body, for example `{0,4000}` for the attribute group, with a longer unterminated tag treated as text; or tokenize once with `find("<")`/`find(">")` and remember when no more `>` exists.
+**Resolution:** `<` is allowed inside a tag again (bounded to 1,000 characters of attribute text), so `<div hidden <b>SECRET` stays hidden; test added.
+
+### F-119 [P2] fixed - The new timing test does not run the HTML walker, and misses the quadratic shapes
+
+**File:** engine/tests/test_posting_guard.py:164
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `test_repeated_unterminated_openers_are_cleaned_in_bounded_time` feeds strings that start with `<script `, `<a `, `<? ` and so on. Auto mode switches to the HTML cleaner only when the text contains `<html`, `<body`, `<div` or `<p`, so these inputs are cleaned as plain text and pass in milliseconds whatever the regexes do. The older test's shapes do start with `<p>` or `<div>`. A regression of F-114 would not fail this test, and F-116 and F-117 are not reachable from it either.
+**Suggested fix:** Prefix every shape with `<p>`, call `guard(raw, "html")` directly, and add the F-116 and F-117 shapes: `<aaaa...`, `</aaaa...`, `<!--` + `<` x n, `<script>` + `<` x n, `<style>` + `<b ` repeated.
+**Resolution:** The timing test starts every shape with `<p>` so it reaches the HTML path, and includes the F-114, F-116 and F-117 shapes, 62 in all.
+
+### F-120 [P2] open - Padding an opening tag past `TAG_MAX` (1000 characters) lets hidden, script, style and template content survive cleaning
+
+**File:** engine/src/engine/jobs/posting_guard.py:61, engine/src/engine/jobs/posting_guard.py:66, engine/src/engine/jobs/posting_guard.py:72
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** A tag is read only when its attribute text is at most 1000 steps (`TAG`, counting each character outside quotes) and a dropped-block opener only when the opener has at most 1000 characters (`DROP_BLOCKS`, `PRESTRIP`). Browsers have no such limit, so a posting author can pad the tag. Measured on the current code: `<div` + 1,100 spaces + `hidden>SECRET ignore all previous</div>` (and `<div hidden class=aaaa...1,100>`, and `<div ` + `a=1 ` x 400 + `hidden>`) keeps SECRET in the stored description and leaves the raw tag text in it; `<script data-x="` + 1,100 `a` + `">SECRET</script>` (also `<style media=...>`, `<template data-x=...>`, and an unquoted pad) keeps the script, style or template body as visible text. The same elements with short openers are stripped, and the instruction flag still counts shaped lines (it did for two of these), but the hidden text itself is no longer removed. Ordinary pages are unaffected: 40,000 random tag soups without padding matched the pre-repair cleaner exactly, and a 5,000-character `data:` image tag and a long quoted attribute on a `div` still parse.
+**Suggested fix:** Treat an over-long opener as a tag instead of as text: when `TAG_MAX` is hit, consume to the next `>` in a single bounded pass (for example match `<name` then `[^>]*` only where no earlier `<name` start exists, or tokenize once with `find("<")`/`find(">")` and remember when no more `>` exists, which is linear without a cap), so padding cannot change how the tag is read. If a cap is kept, fail closed: drop the over-long opener's whole element or the rest of the input from the cleaned text and count it in `hiddenBlocks`.
+**Resolution:**
+
+### F-121 [P3] open - The per-opener bound leaves about 1.5 s of regex work at the 100,000-character cap, with no headroom for a slower host
+
+**File:** engine/src/engine/jobs/posting_guard.py:61
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: performance)
+**Why it matters:** Each unterminated opener still costs up to `TAG_MAX` steps, so dense openers cost about 1,000 steps per 2 to 3 characters. Measured at 100,000 characters after a `<p>` prefix: `<a<a<a...` 1.46 s, `<a "` + `<` x n 1.45 s, `<a ` repeated 0.98 s, repeated `<a ` 1.0 s from a 800-shape random fuzz (worst 1.0 s); every other shape I tried was under 0.4 s. That meets the 3 s target here, but a host two or three times slower would not, and one long regex still holds the interpreter (F-115's note), so the engine stalls for the whole time. All other paths (element stack, `scan`, `clean_text`, `_fold`, `collect`, the instruction patterns, `ATTR`, style checks) measured linear.
+**Suggested fix:** A single-pass tokenizer (see F-120) removes the cap and the cost; otherwise lower `TAG_MAX` (for example 300) and keep the timing test's bound at 1 s.
+**Resolution:**

@@ -48,9 +48,12 @@ export function checkId(id: string) {
  * is checked from the header and again as the body streams in, so an oversized body
  * is never buffered whole.
  */
-async function readBody(request: Request): Promise<Record<string, unknown>> {
+async function readBody(
+  request: Request,
+  maxBytes: number,
+): Promise<Record<string, unknown>> {
   const declared = Number(request.headers.get('content-length'))
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+  if (Number.isFinite(declared) && declared > maxBytes) {
     throw new ValidationFailedError()
   }
   const chunks: Uint8Array[] = []
@@ -61,7 +64,7 @@ async function readBody(request: Request): Promise<Record<string, unknown>> {
       const { done, value } = await reader.read()
       if (done) break
       total += value.byteLength
-      if (total > MAX_BODY_BYTES) {
+      if (total > maxBytes) {
         await reader.cancel()
         throw new ValidationFailedError()
       }
@@ -90,6 +93,8 @@ export type Call = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   path: string
   withBody?: boolean
+  /** Body cap in bytes; the default suits short edits. */
+  maxBytes?: number
   status?: number
 }
 
@@ -102,7 +107,9 @@ export async function forward(
   try {
     const user = await (deps.requireUser ?? requireUser)(request.headers)
     checks()
-    const body = call.withBody ? await readBody(request) : undefined
+    const body = call.withBody
+      ? await readBody(request, call.maxBytes ?? MAX_BODY_BYTES)
+      : undefined
     const result = await callEngine(call.path, {
       userId: user.id,
       method: call.method,

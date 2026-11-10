@@ -321,3 +321,45 @@ class TrackProfileItem(Base):
     )
     kind: Mapped[str] = mapped_column(Text)
     item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+
+
+class Job(Base):
+    """A job posting the user pasted in. `description` is the cleaned text."""
+
+    __tablename__ = "job"
+    __table_args__ = (
+        CheckConstraint("status in ('saved', 'dismissed')", name="ck_job_status"),
+        CheckConstraint("flag in ('ok', 'review')", name="ck_job_flag"),
+        Index("job_user_dedupe_uniq", "user_id", "dedupe_key", unique=True),
+        Index(
+            "job_user_url_uniq",
+            "user_id",
+            "url_key",
+            unique=True,
+            postgresql_where=text("url_key is not null"),
+        ),
+        Index("job_user_created_idx", "user_id", text("created_at desc")),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    company: Mapped[str] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(Text)
+    location: Mapped[str | None] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    url_key: Mapped[str | None] = mapped_column(Text)
+    dedupe_key: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, server_default=text("'saved'"))
+    flag: Mapped[str] = mapped_column(Text, server_default=text("'ok'"))
+    findings: Mapped[dict[str, int]] = mapped_column(
+        JSONB, server_default=text("'{}'::jsonb")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

@@ -187,7 +187,8 @@ message or model text). Deleting a CV deletes its stored file and its draft.
 | Profile fact edit and confirm routes (4a) and the profile review screen at `/profile` (4b) | Built |
 | Tracks: create, rename, delete and choose which confirmed facts each emphasises, on `/profile` (4c) | Built |
 | Job preferences per track (roles, pay, work modes, places, criteria, dealbreakers, skip list), 5 | Built |
-| Job paste, evaluation, application kit, tracking | Planned |
+| Job table and paste in the engine, with the posting cleaner (29a) | Built |
+| Link fetch and the add-a-job screen (29b, 29c), evaluation, application kit, tracking | Planned |
 | Automatic discovery, alerts, billing, admin and support | Planned (later slices) |
 
 The ordered feature list is [`blueprint/build-plan.md`](blueprint/build-plan.md); the

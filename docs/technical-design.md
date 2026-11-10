@@ -247,6 +247,25 @@ everything else stays in the web app. The modules `ai` and the AI and document p
   three criteria boxes (Must have, Important, Nice to have), errors tied to each field. Nothing
   evaluates against them yet. No board shows this panel (deviation from the Goals wording only).
 
+### Jobs: paste (feature 29a, as built)
+
+- **Table** `engine.job` (migration 0008): `company`, `title`, optional `location` and
+  `source_url`, `url_key` and `dedupe_key` (unique per user), the cleaned `description`, `status`
+  (`saved`, `dismissed`), `flag` (`ok`, `review`) and `findings` (counts only).
+- **Routes.** Engine `POST|GET /internal/jobs`, `GET|PATCH|DELETE /internal/jobs/{id}`; web proxies
+  at `/api/jobs/**`. A paste takes company, title and the raw text (plain or page HTML, up to
+  100,000 characters; the body cap is 256 KB, other bodies keep 32 KB). The stored text is the
+  cleaned text and must be 1 to 30,000 characters. A repeated URL (ignoring `utm_*`, fragment and
+  trailing slash) or company and title is `already_exists`; at most 500 jobs per user.
+- **The cleaner** (`jobs/posting_guard.py`, ported from ai-job-search under MIT, see
+  `THIRD_PARTY_NOTICES.md`) removes hidden HTML, invisible and Unicode tag characters, and counts
+  instruction-shaped lines and look-alike words. It advises and never blocks: `flag` is `review`
+  when a targeting signal is present. Its instruction pattern for "ignore the ..." also matches
+  ordinary prose, so a harmless posting can be marked for review. Tag matching is bounded (a tag
+  with more than 1,000 characters of attribute text is read as text) so hostile input cannot make
+  the cleaner slow; this is why the paste cap is 100,000 characters. Counts are stored, excerpts never.
+- **Not built:** fetching a link and robots.txt (29b), the screens (29c), extracting company and title.
+
 ### Layering inside a module
 
 routes (thin: validate, call service) -> services (business rules) -> repositories
