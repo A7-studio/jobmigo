@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 32748038b999683c1a49c9bace97dd8b8e52ff620f3285d22abcc483414489f5 -->
+<!-- blueprint:source-hash 134a23f6208ad7c35ba106cd6ff3ef80682a6250aced534064440a59df7d1f87 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -42,7 +42,7 @@ _Slice 1, the paste-a-job loop (usable by the founder)_
 3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft. 3a storage, upload and extraction (done); 3b AI parse into an unconfirmed draft, engine and web API routes (done); 3c `/onboarding` upload and parse status screen.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track; 4a engine edit and confirm routes, 4b `/profile` screen, 4c tracks and variants.
 5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-haves per track, dealbreakers, do-not-apply list.
-29. **Add a job by link or paste** - paste a link or posting text; fetch public page text when allowed, paste fallback; normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan.
+29. **Add a job by link or paste** - paste a link or text; fetch public text when allowed; dedupe, light legitimacy flag, saved and dismissed jobs; free on every plan. 29a job table and paste, 29b safe link fetch, 29c screen.
 8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes (`uv run eval`).
 11. **Application kit** - tailored CV, cover letter, answers from confirmed facts, fact check, versions, PDF/DOCX export.
 12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; records each outcome, shows interviews per application by track.
