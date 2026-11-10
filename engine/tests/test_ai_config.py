@@ -116,6 +116,10 @@ def test_cloudflare_needs_an_account_id_that_goes_into_the_url() -> None:
     assert "CLOUDFLARE_ACCOUNT_ID" in config_error(
         lambda: create_provider(setting, bad)
     )
+    non_ascii = base | {"CLOUDFLARE_ACCOUNT_ID": "abcé"}
+    assert "CLOUDFLARE_ACCOUNT_ID" in config_error(
+        lambda: create_provider(setting, non_ascii)
+    )
     good = base | {"CLOUDFLARE_ACCOUNT_ID": "abc123"}
     provider = create_provider(setting, good)
     assert provider._url == (

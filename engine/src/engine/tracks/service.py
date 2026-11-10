@@ -16,6 +16,7 @@ from engine.errors import ApiError
 from engine.models import Track, TrackProfileItem
 from engine.profile.models import KINDS, ROW
 from engine.profile.service import _validated, latest_profile
+from engine.tracks import preferences
 from engine.tracks.models import MAX_TRACKS, TrackIn, TrackOut, track_out
 
 
@@ -209,4 +210,23 @@ async def emphasise(
             await session.commit()
             session.expire_all()
             track = await _locked(session, user_id, wanted)
+        return track_out(track, await _emphasis(session, user_id, track.id))
+
+
+async def patch_preferences(
+    *, user_id: uuid.UUID, track_id: str, body: dict[str, object], database: Database
+) -> TrackOut:
+    wanted = _id(track_id)
+    async with AsyncSession(database.engine) as session:
+        track = await _locked(session, user_id, wanted)
+        if not body:
+            raise ApiError(422, "validation_failed", "The data is not valid.")
+        parsed = _validated(
+            preferences.PreferencesIn, preferences.current(track) | body
+        )
+        preferences.apply(track, parsed)
+        track.updated_at = func.now()
+        await session.commit()
+        session.expire_all()
+        track = await _locked(session, user_id, wanted)
         return track_out(track, await _emphasis(session, user_id, track.id))

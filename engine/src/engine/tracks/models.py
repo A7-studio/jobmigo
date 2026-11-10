@@ -7,6 +7,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstr
 
 from engine.cv.parse import _clean
 from engine.models import Track
+from engine.tracks.preferences import PreferencesOut, out
 
 MAX_TRACKS = 10
 MAX_NAME_CHARS = 60
@@ -36,6 +37,7 @@ class TrackOut(BaseModel):
     name: str
     variant_version: int = Field(serialization_alias="variantVersion")
     emphasis: list[EmphasisOut]
+    preferences: PreferencesOut
 
 
 def track_out(track: Track, emphasis: list[tuple[str, uuid.UUID]]) -> TrackOut:
@@ -44,4 +46,5 @@ def track_out(track: Track, emphasis: list[tuple[str, uuid.UUID]]) -> TrackOut:
         name=track.name,
         variant_version=track.variant_version,
         emphasis=[EmphasisOut(kind=kind, item_id=item) for kind, item in emphasis],
+        preferences=out(track),
     )

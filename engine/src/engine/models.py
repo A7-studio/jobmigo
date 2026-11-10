@@ -24,7 +24,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 SCHEMA = "engine"
@@ -250,6 +250,17 @@ class Track(Base):
     __tablename__ = "track"
     __table_args__ = (
         CheckConstraint("variant_version >= 1", name="ck_track_variant_version"),
+        CheckConstraint(
+            "salary_floor is null or (salary_floor >= 0 and salary_floor <= 10000000)",
+            name="ck_track_salary_floor",
+        ),
+        CheckConstraint(
+            "currency is null or currency ~ '^[A-Z]{3}$'", name="ck_track_currency"
+        ),
+        CheckConstraint(
+            "work_modes <@ array['remote', 'hybrid', 'onsite']",
+            name="ck_track_work_modes",
+        ),
         Index("track_user_name_uniq", "user_id", text("lower(name)"), unique=True),
     )
 
@@ -259,6 +270,27 @@ class Track(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
     name: Mapped[str] = mapped_column(Text)
     variant_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    target_roles: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    salary_floor: Mapped[int | None] = mapped_column(Integer)
+    currency: Mapped[str | None] = mapped_column(Text)
+    work_modes: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    locations: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
+    eligibility: Mapped[str | None] = mapped_column(Text)
+    criteria: Mapped[list[dict[str, str]]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    dealbreakers: Mapped[list[str]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    do_not_apply: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -229,7 +229,23 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Screen.** A "Your tracks" card on `/profile` (chip row from the Goals board, add, rename, delete
   with a question) and an Emphasise toggle (`aria-pressed`) on each confirmed or edited fact while a
   track is chosen. No board shows choosing facts for a track: that toggle and the rename and delete
-  controls are the recorded deviation. Target roles, pay, places and dealbreakers are feature 5.
+  controls are the recorded deviation.
+
+### Job preferences (feature 5, as built)
+
+- **Columns** on `track` (migration 0007): `target_roles`, `salary_floor` + `currency`, `work_modes`
+  (remote, hybrid, onsite; empty means any), `locations`, `eligibility`, `criteria` (jsonb
+  `{label, weight: must|important|nice}`), `dealbreakers` (jsonb of plain-text rules, not typed
+  checks: feature 8 decides how they run), `do_not_apply`. Check constraints mirror the enums, the
+  currency shape and the salary range; list sizes and text lengths are enforced by the API
+  (`engine/tracks/preferences.py`) and mirrored in the browser form.
+- **Route.** `PATCH /internal/tracks/{id}/preferences` (web `/api/tracks/{id}/preferences`) merges
+  the keys sent over the stored values and validates the whole result; unknown keys, repeats
+  (ignoring case) and a salary without a currency are `validation_failed`. Preferences do not change
+  `variant_version` (they are criteria, not the profile variant).
+- **Screen.** A Preferences panel for the chosen track in the Your tracks card: one item per line,
+  three criteria boxes (Must have, Important, Nice to have), errors tied to each field. Nothing
+  evaluates against them yet. No board shows this panel (deviation from the Goals wording only).
 
 ### Layering inside a module
 

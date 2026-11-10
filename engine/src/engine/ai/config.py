@@ -5,6 +5,7 @@ the call with a clear message instead of stopping the engine from starting.
 """
 
 import os
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -146,7 +147,7 @@ def create_provider(
     url = info.url
     if info.account_env:
         account = (source.get(info.account_env) or "").strip()
-        if not account.isalnum():  # also keeps the id from changing the URL's shape
+        if not re.fullmatch(r"[A-Za-z0-9]+", account):  # keeps the URL's shape
             raise AiNotConfiguredError(
                 f"AI is not configured: set {info.account_env} for the "
                 f"{setting.provider} provider."

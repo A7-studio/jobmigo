@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   handleEmphasis,
+  handlePreferences,
   handleTrackCreate,
   handleTrackDelete,
   handleTrackRename,
@@ -41,8 +42,9 @@ describe('tracks handlers', () => {
       handleTrackRename(request('PATCH', { name: 'a' }), ID, deps),
       handleTrackDelete(request('DELETE'), ID, deps),
       handleEmphasis(request('PUT'), ID, 'skill', ITEM, true, deps),
+      handlePreferences(request('PATCH', { locations: ['x'] }), ID, deps),
     ])
-    expect(results.map((r) => r.status)).toEqual([401, 401, 401, 401, 401])
+    expect(results.map((r) => r.status)).toEqual([401, 401, 401, 401, 401, 401])
     expect(fetchFn).not.toHaveBeenCalled()
   })
 
@@ -126,6 +128,37 @@ describe('tracks handlers', () => {
       env,
     })
     expect(r.status).toBe(422)
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('preferences handler', () => {
+  it('forwards a PATCH with the body and returns the track', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      return reply({ id: ID, echoed: init.body })
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    const r = await handlePreferences(
+      request('PATCH', { locations: ['Nairobi'] }),
+      ID,
+      deps,
+    )
+    expect(r.status).toBe(200)
+    expect(fetchFn.mock.calls[0][0]).toBe(
+      `http://engine.test:8000/internal/tracks/${ID}/preferences`,
+    )
+    expect(fetchFn.mock.calls[0][1].method).toBe('PATCH')
+  })
+
+  it('refuses a bad id with 404 and an oversized body with 422', async () => {
+    const fetchFn = vi.fn()
+    const deps = { requireUser: signedIn, fetchFn, env }
+    expect(
+      (await handlePreferences(request('PATCH', {}), 'nope', deps)).status,
+    ).toBe(404)
+    const big = request('PATCH', { eligibility: 'x'.repeat(40000) })
+    expect((await handlePreferences(big, ID, deps)).status).toBe(422)
     expect(fetchFn).not.toHaveBeenCalled()
   })
 })

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BTN, BTN_GHOST, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { MAX_TRACKS, checkName, emphasisCount } from '#/lib/tracks-view'
 import type { Track } from '#/lib/tracks-view'
+import { PreferencesPanel, summary } from './preferences'
 
 /** What the track chips need from the page. Each action returns an error sentence, or null. */
 export type TracksProps = {
@@ -17,6 +18,10 @@ export type TracksProps = {
   onCreate: (name: string) => Promise<string | null>
   onRename: (id: string, name: string) => Promise<string | null>
   onDelete: (id: string) => Promise<string | null>
+  onSavePreferences: (
+    id: string,
+    body: Record<string, unknown>,
+  ) => Promise<string | null>
 }
 
 const INPUT =
@@ -24,7 +29,7 @@ const INPUT =
 const CHIP =
   'inline-flex min-h-11 items-center rounded-full border-[1.5px] px-4 text-[13px] font-bold text-ink hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60'
 
-type Mode = 'idle' | 'adding' | 'renaming' | 'deleting'
+type Mode = 'idle' | 'adding' | 'renaming' | 'deleting' | 'preferences'
 
 /** Tracks as a chip row (the Goals board look), with rename and delete for the chosen one. */
 export function TracksSection(props: TracksProps) {
@@ -39,6 +44,14 @@ export function TracksSection(props: TracksProps) {
   useEffect(() => {
     if (mode === 'adding' || mode === 'renaming') input.current?.focus()
   }, [mode])
+
+  // The chosen track can vanish (deleted in another tab): never stay in a mode about it.
+  useEffect(() => {
+    if (!selected && mode !== 'idle' && mode !== 'adding') {
+      setMode('idle')
+      setError(null)
+    }
+  }, [selected, mode])
 
   /** Leave the form or question; focus goes to `focusId` (the control that opened it). */
   const close = (focusId: string | null = back.current) => {
@@ -127,7 +140,12 @@ export function TracksSection(props: TracksProps) {
                 type="button"
                 id={`track-${track.id}`}
                 aria-pressed={track.id === selectedId}
-                disabled={busy || mode === 'renaming' || mode === 'deleting'}
+                disabled={
+                  busy ||
+                  mode === 'renaming' ||
+                  mode === 'deleting' ||
+                  mode === 'preferences'
+                }
                 onClick={() =>
                   props.onSelect(track.id === selectedId ? null : track.id)
                 }
@@ -201,80 +219,116 @@ export function TracksSection(props: TracksProps) {
           )}
 
           {selected && mode !== 'adding' && mode !== 'renaming' && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-sunken pt-3.5">
-              <p className="text-[13px] text-body">
-                <strong className="font-extrabold text-ink">
-                  {selected.name}
-                </strong>
-                {' · '}
-                {emphasisCount(selected, props.shown) === 1
-                  ? '1 fact emphasised'
-                  : `${emphasisCount(selected, props.shown)} facts emphasised`}
-                . Use “Emphasise” on a confirmed fact below.
-              </p>
-              {mode === 'deleting' ? (
-                <div
-                  role="group"
-                  aria-label="Delete this track?"
-                  className="flex flex-wrap items-center gap-2.5"
-                >
-                  <span className="text-[13px] font-bold text-bad-ink">
-                    Delete “{selected.name}”? Your facts stay.
-                  </span>
-                  <button
-                    type="button"
-                    className={BTN_PRIMARY}
-                    disabled={busy}
-                    onClick={async () => {
-                      const failure = await props.onDelete(selected.id)
-                      if (failure) setError(failure)
-                      else close('track-add') // the track is gone; start over from Add
-                    }}
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-sunken pt-3.5">
+                <p className="text-[13px] text-body">
+                  <strong className="font-extrabold text-ink">
+                    {selected.name}
+                  </strong>
+                  {' · '}
+                  {emphasisCount(selected, props.shown) === 1
+                    ? '1 fact emphasised'
+                    : `${emphasisCount(selected, props.shown)} facts emphasised`}
+                  . Use “Emphasise” on a confirmed fact below.
+                </p>
+                {mode === 'deleting' ? (
+                  <div
+                    role="group"
+                    aria-label="Delete this track?"
+                    className="flex flex-wrap items-center gap-2.5"
                   >
-                    Delete
-                  </button>
-                  <button
-                    type="button"
-                    className={BTN}
-                    disabled={busy}
-                    onClick={() => close()}
-                  >
-                    Keep
-                  </button>
-                  {error && (
-                    <p
-                      role="alert"
-                      className="w-full text-xs font-bold text-bad-ink"
+                    <span className="text-[13px] font-bold text-bad-ink">
+                      Delete “{selected.name}”? Your facts stay.
+                    </span>
+                    <button
+                      type="button"
+                      className={BTN_PRIMARY}
+                      disabled={busy}
+                      onClick={async () => {
+                        const failure = await props.onDelete(selected.id)
+                        if (failure) setError(failure)
+                        else close('track-add') // the track is gone; start over from Add
+                      }}
                     >
-                      {error}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={BTN_GHOST}
-                    disabled={busy}
-                    id="track-rename"
-                    onClick={() =>
-                      open('renaming', 'track-rename', selected.name)
-                    }
-                  >
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    className={BTN_GHOST}
-                    disabled={busy}
-                    id="track-delete"
-                    onClick={() => open('deleting', 'track-delete')}
-                  >
-                    Delete
-                  </button>
-                </div>
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      className={BTN}
+                      disabled={busy}
+                      onClick={() => close()}
+                    >
+                      Keep
+                    </button>
+                    {error && (
+                      <p
+                        role="alert"
+                        className="w-full text-xs font-bold text-bad-ink"
+                      >
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={BTN_GHOST}
+                      disabled={busy}
+                      id="track-prefs"
+                      aria-expanded={mode === 'preferences'}
+                      onClick={() =>
+                        mode === 'preferences'
+                          ? close()
+                          : open('preferences', 'track-prefs')
+                      }
+                    >
+                      Preferences · {summary(selected)}
+                    </button>
+                    {mode !== 'preferences' && (
+                      <>
+                        <button
+                          type="button"
+                          className={BTN_GHOST}
+                          disabled={busy}
+                          id="track-rename"
+                          onClick={() =>
+                            open('renaming', 'track-rename', selected.name)
+                          }
+                        >
+                          Rename
+                        </button>
+                        <button
+                          type="button"
+                          className={BTN_GHOST}
+                          disabled={busy}
+                          id="track-delete"
+                          onClick={() => open('deleting', 'track-delete')}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              {mode === 'preferences' && (
+                <PreferencesPanel
+                  key={`${selected.id}-${selected.variantVersion}`}
+                  track={selected}
+                  busy={busy}
+                  onClose={() => close()}
+                  onSave={async (body) => {
+                    const failure = await props.onSavePreferences(
+                      selected.id,
+                      body,
+                    )
+                    if (!failure) close()
+                    return failure
+                  }}
+                />
               )}
-            </div>
+            </>
           )}
         </>
       )}

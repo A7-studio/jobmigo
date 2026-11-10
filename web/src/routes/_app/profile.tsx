@@ -22,6 +22,7 @@ import {
   createTrack,
   deleteTrack,
   listTracks,
+  patchPreferences,
   renameTrack,
   setEmphasis,
 } from '#/lib/tracks-api'
@@ -357,6 +358,14 @@ function ProfilePage() {
               onRename={async (id, name) =>
                 (await track(() => renameTrack(id, name), 'Track renamed.'))
                   .failure
+              }
+              onSavePreferences={async (id, body) =>
+                (
+                  await track(
+                    () => patchPreferences(id, body),
+                    'Preferences saved.',
+                  )
+                ).failure
               }
               onDelete={async (id) => {
                 const done = await track(

@@ -46,6 +46,18 @@ async def delete_track(
     return Response(status_code=204)
 
 
+@router.patch("/{track_id}/preferences")
+async def patch_preferences(
+    request: Request, track_id: str, user_id: CurrentUser
+) -> TrackOut:
+    return await service.patch_preferences(
+        user_id=user_id,
+        track_id=track_id,
+        body=await _body(request),
+        database=_database(request),
+    )
+
+
 def _toggle(on: bool) -> Any:
     async def handler(
         request: Request, track_id: str, kind: str, item_id: str, user_id: CurrentUser

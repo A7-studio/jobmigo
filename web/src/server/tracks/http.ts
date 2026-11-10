@@ -1,10 +1,5 @@
-import {
-  checkId,
-  checkKind,
-  forward
-  
-} from '../profile/http'
-import type {ProfileHttpDeps} from '../profile/http';
+import { checkId, checkKind, forward } from '../profile/http'
+import type { ProfileHttpDeps } from '../profile/http'
 
 /** Proxies to the engine's track routes. Sign-in, size cap and errors are the profile layer's. */
 export type TracksHttpDeps = ProfileHttpDeps
@@ -67,4 +62,20 @@ export const handleEmphasis = (
       checkKind(kind)
       checkId(itemId)
     },
+  )
+
+export const handlePreferences = (
+  request: Request,
+  id: string,
+  deps: TracksHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    {
+      method: 'PATCH',
+      path: `/internal/tracks/${id}/preferences`,
+      withBody: true,
+    },
+    () => checkId(id),
   )

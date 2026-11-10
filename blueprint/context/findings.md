@@ -557,21 +557,21 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Suggested fix:** Clear `rowError` when editing opens or a save succeeds; clear the server error on the next submit attempt (or on input); remove `autoOpen`.
 **Resolution:**
 
-### F-104 [P2] open - A delete or rename that answers `not_found` leaves the track controls stuck in the delete or rename mode
+### F-104 [P2] fixed - A delete or rename that answers `not_found` leaves the track controls stuck in the delete or rename mode
 
 **File:** web/src/components/profile/tracks.tsx:38, web/src/components/profile/tracks.tsx:180, web/src/routes/_app/profile.tsx:153
 **Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
 **Why it matters:** `mode` is local to `TracksSection` and is only reset by `close()`. If the track was already deleted elsewhere (another tab or device), the engine answers `not_found`, `track()` refreshes the list, and `selected` becomes null while `mode` is still `deleting`. The confirm block is hidden (`selected &&`), every chip is disabled (`mode === 'deleting'`) and "+ Add a track" is disabled (`mode !== 'idle'`), and nothing on screen can set the mode back, so the section is unusable until a reload. For `renaming` the form stays titled "Rename track" but `submit()` falls through to `onCreate` because `selected` is null, so Save silently creates a new track. Found by reading; not run in a browser.
 **Suggested fix:** Reset `mode` to `idle` when `selected` disappears (an effect on `selected?.id`), and in `submit()` never fall back to create while `mode === 'renaming'`.
-**Resolution:**
+**Resolution:** The panel modes reset when the chosen track disappears (effect in `tracks.tsx`), and a stale save refreshes the list; browser-checked (panel gone, Add enabled).
 
-### F-105 [P3] open - `str.isalnum()` accepts non-ASCII letters in `CLOUDFLARE_ACCOUNT_ID`
+### F-105 [P3] fixed - `str.isalnum()` accepts non-ASCII letters in `CLOUDFLARE_ACCOUNT_ID`
 
 **File:** engine/src/engine/ai/config.py:149
 **Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
 **Why it matters:** The check is meant to keep the account id from changing the URL's shape, but Python's `isalnum()` is Unicode-aware, so an id such as `abcé` passes and is formatted into the URL. It cannot add a path, host or query (httpx percent-encodes it), and the value comes from operator config, so the impact is a confusing 4xx rather than an exploit. Cloudflare account ids are 32 hex characters.
 **Suggested fix:** Match `[0-9A-Za-z]+` (or `[0-9a-f]{32}`) with `re.fullmatch`, and add a case with a non-ASCII value to `test_cloudflare_needs_an_account_id_that_goes_into_the_url`.
-**Resolution:**
+**Resolution:** Account id is checked with an ASCII regex; test covers a non-ASCII id.
 
 ### F-106 [P3] open - Emphasis rows can be orphaned by a race with a fact delete, and the list route returns orphans
 
@@ -587,4 +587,28 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
 **Why it matters:** The view model, client, proxy and engine routes are well covered (cap race, ownership, older drafts, concurrency, cleanup), but the component behaviour is only in the unrecorded browser pass: one mutation at a time, focus after add, rename, delete and toggle, the live-region announcements and the `not_found` path that F-104 breaks. There is no engine test for the `delete_item` and `emphasise` race either. Same gap as F-99 (no DOM test harness).
 **Suggested fix:** Add a component or browser test when `/tests browser` is set up, starting with delete-then-`not_found`.
+**Resolution:**
+
+### F-108 [P3] open - The preferences panel remounts, and loses typed text, when the track's variant version changes
+
+**File:** web/src/components/profile/tracks.tsx:248
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The panel is keyed by `${selected.id}-${selected.variantVersion}`. Preferences do not bump `variant_version`, but toggling "Emphasise" on a fact does (`tracks/service.py` lines 114 and 207), and the fact buttons stay enabled while the panel is open (only the chips are disabled by `mode`). Emphasising a fact, or a refetch after another tab emphasised one, changes the key, so the form remounts from stored values, discards unsaved typing and moves focus to the first field. Found by reading; not run in a browser.
+**Suggested fix:** Key the panel by `selected.id` only (the diff-only body already tolerates stale originals), or disable the emphasis toggles while the panel is open.
+**Resolution:**
+
+### F-109 [P3] open - The form's duplicate and length checks are not an exact mirror of the engine's cleaning
+
+**File:** web/src/lib/tracks-view.ts:117, web/src/lib/tracks-view.ts:128
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The engine drops control, format and surrogate characters (for example U+200B) and compares with `casefold()`; the form only collapses `\s+` and compares with `toLowerCase()`. So "Straße" and "STRASSE" pass the form and get a generic 422; a line holding only a zero-width character passes the form and is refused as empty; a pasted line whose length fits only after the format characters are dropped is refused client-side. All outcomes are calm and nothing is saved wrongly, but the per-field message is lost for these inputs.
+**Suggested fix:** Strip `\p{Cc}\p{Cf}\p{Cs}` (keeping tab and newline) in `tidyName` before collapsing, and compare with a case-fold approximation (`toLowerCase()` plus `toUpperCase().toLowerCase()`).
+**Resolution:**
+
+### F-110 [P3] open - Preferences fields put the hint and error inside the label, so the accessible name is long and read twice
+
+**File:** web/src/components/profile/preferences.tsx:47, web/src/components/profile/preferences.tsx:111
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Each field is a `<label>` that wraps the control, the hint span and the error span, so the accessible name becomes "label + hint + error", and `aria-describedby` then repeats the same hint and error. Screen readers announce the text twice. The salary and currency inputs also leave their hint out of `aria-describedby`. Errors are reached by focus, which is good, and are not live, so nothing is lost; it is noise.
+**Suggested fix:** Use a plain `<label htmlFor>` for the label text only and keep the hint and error as siblings referenced by `aria-describedby` (include the hint on salary and currency).
 **Resolution:**

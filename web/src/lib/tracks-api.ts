@@ -51,6 +51,21 @@ export const renameTrack = (id: string, name: string, deps: Deps = {}) =>
 export const deleteTrack = (id: string, deps: Deps = {}) =>
   call<undefined>(`/api/tracks/${id}`, { method: 'DELETE' }, deps)
 
+export const patchPreferences = (
+  id: string,
+  body: Record<string, unknown>,
+  deps: Deps = {},
+) =>
+  call<Track>(
+    `/api/tracks/${id}/preferences`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    deps,
+  )
+
 export const setEmphasis = (
   id: string,
   kind: Kind,

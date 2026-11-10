@@ -31,6 +31,7 @@ import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/downloa
 import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
 import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
 import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/index'
+import { Route as ApiTracksIdPreferencesRouteImport } from './routes/api/tracks/$id/preferences'
 import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
 import { Route as ApiProfileItemsKindIdIndexRouteImport } from './routes/api/profile/items/$kind/$id/index'
 import { Route as ApiProfileItemsKindIdConfirmRouteImport } from './routes/api/profile/items/$kind/$id/confirm'
@@ -145,6 +146,11 @@ const ApiTracksIdIndexRoute = ApiTracksIdIndexRouteImport.update({
   path: '/api/tracks/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTracksIdPreferencesRoute = ApiTracksIdPreferencesRouteImport.update({
+  id: '/api/tracks/$id/preferences',
+  path: '/api/tracks/$id/preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProfileItemsKindIndexRoute =
   ApiProfileItemsKindIndexRouteImport.update({
     id: '/api/profile/items/$kind/',
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
   '/api/tracks/$id': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind': typeof ApiProfileItemsKindIndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
     | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/tracks/$id/preferences'
     | '/api/cv/$id'
     | '/api/tracks/$id'
     | '/api/profile/items/$kind'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
     | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
   ApiCvIdParseRoute: typeof ApiCvIdParseRoute
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
+  ApiTracksIdPreferencesRoute: typeof ApiTracksIdPreferencesRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
   ApiTracksIdIndexRoute: typeof ApiTracksIdIndexRoute
   ApiProfileItemsKindIndexRoute: typeof ApiProfileItemsKindIndexRoute
@@ -520,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTracksIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tracks/$id/preferences': {
+      id: '/api/tracks/$id/preferences'
+      path: '/api/tracks/$id/preferences'
+      fullPath: '/api/tracks/$id/preferences'
+      preLoaderRoute: typeof ApiTracksIdPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/profile/items/$kind/': {
       id: '/api/profile/items/$kind/'
       path: '/api/profile/items/$kind'
@@ -583,6 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
   ApiCvIdParseRoute: ApiCvIdParseRoute,
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
+  ApiTracksIdPreferencesRoute: ApiTracksIdPreferencesRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
   ApiTracksIdIndexRoute: ApiTracksIdIndexRoute,
   ApiProfileItemsKindIndexRoute: ApiProfileItemsKindIndexRoute,

@@ -3,6 +3,7 @@ import {
   createTrack,
   deleteTrack,
   listTracks,
+  patchPreferences,
   renameTrack,
   setEmphasis,
 } from '#/lib/tracks-api'
@@ -19,6 +20,7 @@ describe('tracks-api', () => {
     await listTracks({ fetchFn })
     await createTrack('Mobile', { fetchFn })
     await renameTrack(ID, 'New', { fetchFn })
+    await patchPreferences(ID, { locations: ['x'] }, { fetchFn })
     await setEmphasis(ID, 'skill', ITEM, true, { fetchFn })
     await setEmphasis(ID, 'skill', ITEM, false, { fetchFn })
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
@@ -36,6 +38,11 @@ describe('tracks-api', () => {
       ['GET', '/api/tracks', undefined],
       ['POST', '/api/tracks', JSON.stringify({ name: 'Mobile' })],
       ['PATCH', `/api/tracks/${ID}`, JSON.stringify({ name: 'New' })],
+      [
+        'PATCH',
+        `/api/tracks/${ID}/preferences`,
+        JSON.stringify({ locations: ['x'] }),
+      ],
       ['PUT', `/api/tracks/${ID}/items/skill/${ITEM}`, undefined],
       ['DELETE', `/api/tracks/${ID}/items/skill/${ITEM}`, undefined],
     ])
