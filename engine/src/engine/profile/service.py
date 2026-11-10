@@ -8,7 +8,7 @@ import uuid
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from engine.cv.parse_service import (
@@ -23,7 +23,7 @@ from engine.cv.parse_service import (
 from engine.cv.service import not_found
 from engine.db import Database
 from engine.errors import ApiError
-from engine.models import CvFile, Experience, Profile, Skill
+from engine.models import CvFile, Experience, Profile, Skill, TrackProfileItem
 from engine.profile.models import (
     INPUT,
     KINDS,
@@ -292,6 +292,13 @@ async def delete_item(
     async with AsyncSession(database.engine) as session:
         profile = await _current(session, user_id)
         row = await _item(session, profile, kind, item_id)
+        await session.execute(
+            delete(TrackProfileItem).where(
+                TrackProfileItem.user_id == user_id,
+                TrackProfileItem.kind == kind,
+                TrackProfileItem.item_id == row.id,
+            )
+        )
         await session.delete(row)
         await _bump(session, profile)
         await session.commit()

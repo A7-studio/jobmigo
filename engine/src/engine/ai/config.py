@@ -29,6 +29,8 @@ class ProviderInfo:
     key_env: str
     # Only providers whose docs describe `response_format: json_object`.
     json_mode: bool
+    # Env var holding an account id that the URL needs, as `{account}`.
+    account_env: str | None = None
 
 
 # Confirmed against each provider's public docs when this was written: DeepSeek
@@ -44,6 +46,22 @@ PROVIDERS: dict[str, ProviderInfo] = {
     ),
     "openrouter": ProviderInfo(
         "https://openrouter.ai/api/v1/chat/completions", "OPENROUTER_API_KEY", False
+    ),
+    # Free-tier providers; each documents an OpenAI-compatible endpoint (checked
+    # 2026-11-10) without describing `response_format`, so JSON mode stays off.
+    "gemini": ProviderInfo(
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "GEMINI_API_KEY",
+        False,
+    ),
+    "groq": ProviderInfo(
+        "https://api.groq.com/openai/v1/chat/completions", "GROQ_API_KEY", False
+    ),
+    "cloudflare": ProviderInfo(
+        "https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions",
+        "CLOUDFLARE_API_TOKEN",
+        False,
+        "CLOUDFLARE_ACCOUNT_ID",
     ),
 }
 
@@ -125,9 +143,18 @@ def create_provider(
             f"AI is not configured: set {info.key_env} for the "
             f"{setting.provider} provider."
         )
+    url = info.url
+    if info.account_env:
+        account = (source.get(info.account_env) or "").strip()
+        if not account.isalnum():  # also keeps the id from changing the URL's shape
+            raise AiNotConfiguredError(
+                f"AI is not configured: set {info.account_env} for the "
+                f"{setting.provider} provider."
+            )
+        url = url.format(account=account)
     return OpenAiCompatibleProvider(
         name=setting.provider,
-        url=info.url,
+        url=url,
         api_key=api_key,
         json_mode=info.json_mode,
         client=client,

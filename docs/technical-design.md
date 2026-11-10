@@ -212,8 +212,24 @@ everything else stays in the web app. The modules `ai` and the AI and document p
 - **Accessibility.** A polite live region announces Saved, Confirmed, Added and Deleted; focus
   returns to the Edit button after a save or cancel, to the safe choice when a delete is asked, and
   to the section heading after a delete or add.
-- **Not built yet** against the Profile board: variant tabs (4c), job preferences (5), alerts (10)
-  and the data controls (17).
+- **Not built yet** against the Profile board: job preferences (5), alerts (10) and the data
+  controls (17).
+
+### Tracks (feature 4c, as built)
+
+- **Tables** (engine, migration 0006): `track` (`name`, `variant_version`, unique per user ignoring
+  case) and `track_profile_item` (`track_id`, `kind`, `item_id`; `item_id` has no foreign key because
+  it points at one of five fact tables, so deleting a fact removes its emphasis rows in the same
+  transaction and the screen ignores any left behind by a deleted CV).
+- **Routes.** Engine `GET|POST /internal/tracks`, `PATCH|DELETE /internal/tracks/{id}`, and
+  `PUT|DELETE /internal/tracks/{id}/items/{kind}/{itemId}`; web proxies at `/api/tracks/**`.
+  At most 10 tracks per user (`limit_reached`, creation serialised with an advisory lock). Only a
+  confirmed or edited fact of the latest parsed profile can be emphasised (`not_confirmed`).
+  Renaming and each emphasis change bump `variant_version`; repeating a change does not.
+- **Screen.** A "Your tracks" card on `/profile` (chip row from the Goals board, add, rename, delete
+  with a question) and an Emphasise toggle (`aria-pressed`) on each confirmed or edited fact while a
+  track is chosen. No board shows choosing facts for a track: that toggle and the rename and delete
+  controls are the recorded deviation. Target roles, pay, places and dealbreakers are feature 5.
 
 ### Layering inside a module
 
@@ -468,7 +484,7 @@ against schemas, results cached by content hash, and every call writes a
 Code: the gateway lives in the Python engine (`engine/src/engine/ai/`, feature 31); the
 earlier TypeScript version and its two tables were removed. Entry point `run_task(task, input,
 user_id=..., database=...)` with two model tiers set by `AI_CHEAP_MODEL` and `AI_STRONG_MODEL`
-(`provider/model-id`), the DeepSeek, Moonshot and OpenRouter providers over one
+(`provider/model-id`), the DeepSeek, Moonshot, OpenRouter, Gemini, Groq and Cloudflare providers over one
 OpenAI-compatible adapter (httpx), task definitions with a prompt `version` and Pydantic input
 and output models, a per-user cache (`engine.ai_cache`), and a ledger (`engine.usage_event`)
 that never stores prompt or output text. The first task, CV parsing (feature 3b), is reached
@@ -592,7 +608,7 @@ allowed together with `CLOUDFLARE_ONLY=true`, so a visitor cannot spoof the head
 
 - Local: `docker compose`. Staging: a second small VPS or the same one on another port set, with provider test modes. Production: the VPS above.
 - Config only through environment variables. Secrets never enter the repository or logs.
-- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `STORAGE_PUBLIC_ENDPOINT`, `STORAGE_REGION`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `SENTRY_DSN`.
+- Config names: `DATABASE_URL`, `STORAGE_*`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PAYSTACK_SECRET_KEY`, `PADDLE_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `STORAGE_PUBLIC_ENDPOINT`, `STORAGE_REGION`, `ENGINE_URL`, `ENGINE_TOKEN`, `AI_CHEAP_MODEL`, `AI_STRONG_MODEL`, `AI_CHEAP_PRICE`, `AI_STRONG_PRICE`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SENTRY_DSN`.
 - CI: lint, type check, tests, build; migrations run before the app starts; deploy on merge to main with a manual production gate.
 
 ## 16. Cost and scaling plan

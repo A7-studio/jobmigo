@@ -20,6 +20,7 @@ from sqlalchemy import (
     Numeric,
     PrimaryKeyConstraint,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -241,3 +242,50 @@ class Education(_Child, Base):
     qualification: Mapped[str | None] = mapped_column(Text)
     start: Mapped[str | None] = mapped_column(Text)
     end: Mapped[str | None] = mapped_column(Text)
+
+
+class Track(Base):
+    """A named job-search track; it emphasises some of the user's confirmed facts."""
+
+    __tablename__ = "track"
+    __table_args__ = (
+        CheckConstraint("variant_version >= 1", name="ck_track_variant_version"),
+        Index("track_user_name_uniq", "user_id", text("lower(name)"), unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    name: Mapped[str] = mapped_column(Text)
+    variant_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class TrackProfileItem(Base):
+    """One fact a track emphasises. `item_id` points at one of five fact tables."""
+
+    __tablename__ = "track_profile_item"
+    __table_args__ = (
+        CheckConstraint(
+            "kind in ('experience', 'skill', 'achievement', 'project', 'education')",
+            name="ck_track_profile_item_kind",
+        ),
+        UniqueConstraint("track_id", "kind", "item_id", name="track_profile_item_uniq"),
+        Index("track_profile_item_item_idx", "user_id", "kind", "item_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    track_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.track.id", ondelete="CASCADE")
+    )
+    kind: Mapped[str] = mapped_column(Text)
+    item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))

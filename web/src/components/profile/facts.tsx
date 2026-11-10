@@ -35,6 +35,13 @@ export type Ctx = {
     focusSection?: Kind,
   ) => Promise<Result<T>>
   experiences: Experience[]
+  /** Present while a track is chosen: the emphasis toggle on confirmed facts. */
+  emphasis?: {
+    track: string
+    isOn: (kind: Kind, id: string) => boolean
+    /** Flip it; returns an error sentence, or null when it worked. */
+    toggle: (kind: Kind, id: string) => Promise<string | null>
+  }
 }
 
 const INPUT =
@@ -299,6 +306,7 @@ export function FactRow({
 }) {
   const [editing, setEditing] = useState(autoOpen === true)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const emphasisButton = useRef<HTMLButtonElement>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [rowError, setRowError] = useState<string | null>(null)
   const editButton = useRef<HTMLButtonElement>(null)
@@ -376,6 +384,29 @@ export function FactRow({
           }}
         >
           Confirm
+        </button>
+      )}
+      {ctx.emphasis && fact.status !== 'extracted' && (
+        <button
+          ref={emphasisButton}
+          type="button"
+          className={`${BTN} ${
+            ctx.emphasis.isOn(kind, fact.id)
+              ? 'border-accent-mid bg-accent-soft'
+              : ''
+          }`}
+          disabled={ctx.busy}
+          aria-pressed={ctx.emphasis.isOn(kind, fact.id)}
+          aria-label={`Emphasise ${title} for ${ctx.emphasis.track}`}
+          onClick={async () => {
+            setRowError(null)
+            const failure = await ctx.emphasis?.toggle(kind, fact.id)
+            if (failure) setRowError(failure)
+            // The button was disabled while the change ran; keep focus on it.
+            requestAnimationFrame(() => emphasisButton.current?.focus())
+          }}
+        >
+          {ctx.emphasis.isOn(kind, fact.id) ? 'Emphasised' : 'Emphasise'}
         </button>
       )}
       {!editing && (

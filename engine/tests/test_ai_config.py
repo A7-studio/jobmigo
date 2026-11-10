@@ -98,3 +98,26 @@ def test_cost_is_computed_from_tokens_and_rounded_to_six_decimals() -> None:
 def test_cost_is_none_without_a_price() -> None:
     # costUsd: 'is null without a price'
     assert cost_usd(100, 100, None) is None
+
+
+def test_knows_the_free_tier_providers() -> None:
+    for name in ("gemini", "groq", "cloudflare"):
+        assert read_tier("cheap", {"AI_CHEAP_MODEL": f"{name}/m"}).provider == name
+
+
+def test_cloudflare_needs_an_account_id_that_goes_into_the_url() -> None:
+    setting = read_tier("cheap", {"AI_CHEAP_MODEL": "cloudflare/@cf/vendor/m"})
+    assert setting.model == "@cf/vendor/m"
+    base = {"CLOUDFLARE_API_TOKEN": "t"}
+    assert "CLOUDFLARE_ACCOUNT_ID" in config_error(
+        lambda: create_provider(setting, base)
+    )
+    bad = base | {"CLOUDFLARE_ACCOUNT_ID": "../x"}
+    assert "CLOUDFLARE_ACCOUNT_ID" in config_error(
+        lambda: create_provider(setting, bad)
+    )
+    good = base | {"CLOUDFLARE_ACCOUNT_ID": "abc123"}
+    provider = create_provider(setting, good)
+    assert provider._url == (
+        "https://api.cloudflare.com/client/v4/accounts/abc123/ai/v1/chat/completions"
+    )

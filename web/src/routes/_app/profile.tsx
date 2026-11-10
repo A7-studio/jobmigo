@@ -9,6 +9,7 @@ import {
   Problem,
 } from '#/components/cv/parts'
 import { FactRow, Section } from '#/components/profile/facts'
+import { TracksSection } from '#/components/profile/tracks'
 import type { Ctx } from '#/components/profile/facts'
 import {
   addItem,
@@ -17,6 +18,15 @@ import {
   patchProfile,
 } from '#/lib/profile-api'
 import type { Result } from '#/lib/profile-api'
+import {
+  createTrack,
+  deleteTrack,
+  listTracks,
+  renameTrack,
+  setEmphasis,
+} from '#/lib/tracks-api'
+import { isEmphasised, trackCopy } from '#/lib/tracks-view'
+import type { Track } from '#/lib/tracks-view'
 import {
   KINDS,
   LIST_KEY,
@@ -84,6 +94,19 @@ function ProfilePage() {
     retry: false,
   })
 
+  const tracksQuery = useQuery({
+    queryKey: ['tracks'],
+    queryFn: async (): Promise<Track[]> => {
+      const result = await listTracks()
+      if (!result.ok) throw new LoadError(result.code)
+      return result.data
+    },
+    retry: false,
+  })
+  const tracks = tracksQuery.isError ? [] : (tracksQuery.data ?? [])
+  const [trackId, setTrackId] = useState<string | null>(null)
+  const chosen = tracks.find((t) => t.id === trackId) ?? null
+
   const loadCode = query.error instanceof LoadError ? query.error.code : null
   const unauthorized = loadCode === 'unauthorized'
   useEffect(() => {
@@ -125,6 +148,51 @@ function ProfilePage() {
         setBusy(false)
       }
     },
+  }
+
+  /** One track change. Returns an error sentence, or null; `not_found` refreshes both lists. */
+  async function track<T>(
+    action: () => Promise<Result<T>>,
+    done: string,
+  ): Promise<{ failure: string | null; data?: T }> {
+    setProblem(null)
+    setBusy(true)
+    try {
+      const result = await action()
+      if (result.ok) {
+        announce(done)
+        await queryClient.invalidateQueries({ queryKey: ['tracks'] })
+        return { failure: null, data: result.data }
+      }
+      if (result.code === 'unauthorized') {
+        void navigate({ to: '/sign-in' })
+        return { failure: '' }
+      }
+      if (result.code === 'not_found') {
+        await queryClient.invalidateQueries({ queryKey: ['tracks'] })
+        await queryClient.invalidateQueries({ queryKey: ['profile'] })
+      }
+      return { failure: trackCopy(result.code).body }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (chosen) {
+    ctx.emphasis = {
+      track: chosen.name,
+      isOn: (kind, id) => isEmphasised(chosen, kind, id),
+      toggle: async (kind, id) =>
+        (
+          await track(
+            () =>
+              setEmphasis(chosen.id, kind, id, !isEmphasised(chosen, kind, id)),
+            isEmphasised(chosen, kind, id)
+              ? 'Removed from this track.'
+              : 'Emphasised for this track.',
+          )
+        ).failure,
+    }
   }
 
   async function add(kind: Kind, values: FormValues): Promise<boolean> {
@@ -257,6 +325,49 @@ function ProfilePage() {
             editing={editingText}
             setEditing={setEditingText}
           />
+          {tracksQuery.isPending ? (
+            <div
+              role="status"
+              aria-label="Loading your tracks"
+              className="h-24 animate-pulse rounded-[20px] bg-surface-sunken"
+            />
+          ) : (
+            <TracksSection
+              tracks={tracks}
+              selectedId={chosen?.id ?? null}
+              shown={shownIds(profile)}
+              busy={busy}
+              loadFailed={tracksQuery.isError}
+              retrying={tracksQuery.isFetching}
+              onRetry={() => void tracksQuery.refetch()}
+              onSelect={setTrackId}
+              onCreate={async (name) => {
+                const done = await track(
+                  () => createTrack(name),
+                  'Track added.',
+                )
+                if (!done.failure && done.data) {
+                  setTrackId(done.data.id)
+                  requestAnimationFrame(() =>
+                    document.getElementById(`track-${done.data?.id}`)?.focus(),
+                  )
+                }
+                return done.failure
+              }}
+              onRename={async (id, name) =>
+                (await track(() => renameTrack(id, name), 'Track renamed.'))
+                  .failure
+              }
+              onDelete={async (id) => {
+                const done = await track(
+                  () => deleteTrack(id),
+                  'Track deleted.',
+                )
+                if (!done.failure) setTrackId(null)
+                return done.failure
+              }}
+            />
+          )}
           {KINDS.map((kind) => {
             const facts = profile[LIST_KEY[kind]] as Fact[]
             return (
@@ -299,6 +410,15 @@ function ProfilePage() {
       )}
     </div>
   )
+}
+
+/** The ids of every fact on screen. */
+function shownIds(profile: Profile): Set<string> {
+  const ids = new Set<string>()
+  for (const kind of KINDS) {
+    for (const fact of profile[LIST_KEY[kind]] as Fact[]) ids.add(fact.id)
+  }
+  return ids
 }
 
 function Progress({ profile }: { profile: Profile }) {

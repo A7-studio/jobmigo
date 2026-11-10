@@ -35,11 +35,11 @@ function failure(error: unknown): Response {
   return json({ code, message }, status)
 }
 
-function checkKind(kind: string) {
+export function checkKind(kind: string) {
   if (!(KINDS as readonly string[]).includes(kind)) throw new NotFoundError()
 }
 
-function checkId(id: string) {
+export function checkId(id: string) {
   if (!UUID.test(id)) throw new NotFoundError()
 }
 
@@ -86,14 +86,14 @@ async function readBody(request: Request): Promise<Record<string, unknown>> {
   return value as Record<string, unknown>
 }
 
-type Call = {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+export type Call = {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   path: string
   withBody?: boolean
   status?: number
 }
 
-async function forward(
+export async function forward(
   request: Request,
   deps: ProfileHttpDeps,
   call: Call,
@@ -110,7 +110,7 @@ async function forward(
       fetchFn: deps.fetchFn,
       env: deps.env,
     })
-    if (call.method === 'DELETE') return new Response(null, { status: 204 })
+    if (result === undefined) return new Response(null, { status: 204 })
     return json(result, call.status ?? 200)
   } catch (error) {
     return failure(error)

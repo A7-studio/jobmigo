@@ -556,3 +556,35 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** `rowError` (a failed Confirm or Delete) is cleared only by the next Confirm or Delete on that row; opening Edit, saving or cancelling leaves "We could not save that. Your profile is unchanged." showing, now wrong after a successful edit. In `FactEditor`, `serverError` is passed in and remains while the user fixes a field and a client error appears, so two alerts can show for one form. Also the `autoOpen` prop on `FactRow` is unused. Narrow, calm, not reproduced.
 **Suggested fix:** Clear `rowError` when editing opens or a save succeeds; clear the server error on the next submit attempt (or on input); remove `autoOpen`.
 **Resolution:**
+
+### F-104 [P2] open - A delete or rename that answers `not_found` leaves the track controls stuck in the delete or rename mode
+
+**File:** web/src/components/profile/tracks.tsx:38, web/src/components/profile/tracks.tsx:180, web/src/routes/_app/profile.tsx:153
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `mode` is local to `TracksSection` and is only reset by `close()`. If the track was already deleted elsewhere (another tab or device), the engine answers `not_found`, `track()` refreshes the list, and `selected` becomes null while `mode` is still `deleting`. The confirm block is hidden (`selected &&`), every chip is disabled (`mode === 'deleting'`) and "+ Add a track" is disabled (`mode !== 'idle'`), and nothing on screen can set the mode back, so the section is unusable until a reload. For `renaming` the form stays titled "Rename track" but `submit()` falls through to `onCreate` because `selected` is null, so Save silently creates a new track. Found by reading; not run in a browser.
+**Suggested fix:** Reset `mode` to `idle` when `selected` disappears (an effect on `selected?.id`), and in `submit()` never fall back to create while `mode === 'renaming'`.
+**Resolution:**
+
+### F-105 [P3] open - `str.isalnum()` accepts non-ASCII letters in `CLOUDFLARE_ACCOUNT_ID`
+
+**File:** engine/src/engine/ai/config.py:149
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: security)
+**Why it matters:** The check is meant to keep the account id from changing the URL's shape, but Python's `isalnum()` is Unicode-aware, so an id such as `abcé` passes and is formatted into the URL. It cannot add a path, host or query (httpx percent-encodes it), and the value comes from operator config, so the impact is a confusing 4xx rather than an exploit. Cloudflare account ids are 32 hex characters.
+**Suggested fix:** Match `[0-9A-Za-z]+` (or `[0-9a-f]{32}`) with `re.fullmatch`, and add a case with a non-ASCII value to `test_cloudflare_needs_an_account_id_that_goes_into_the_url`.
+**Resolution:**
+
+### F-106 [P3] open - Emphasis rows can be orphaned by a race with a fact delete, and the list route returns orphans
+
+**File:** engine/src/engine/tracks/service.py:155, engine/src/engine/profile/service.py:295
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `emphasise` checks the fact and inserts under the track lock, but `delete_item` removes the emphasis rows without locking any track. A delete that commits between the fact check and the insert leaves an emphasis row for a fact that no longer exists. Rows for facts of older drafts or a deleted CV are likewise never cleaned (no foreign key, by design), and `GET /internal/tracks` returns every row, so the response and `variantVersion`-based consumers (features 8 and 11) must filter against the live profile. The screen already filters, and the spec accepts orphans, so this is a note for the generation features rather than a defect today.
+**Suggested fix:** When a consumer is added, join emphasis to the live fact tables (or filter in `_emphasis`), and consider locking the track rows or using `FOR SHARE` on the fact row in `emphasise`.
+**Resolution:**
+
+### F-107 [P3] open - The tracks UI states that carry the risk have no automated test
+
+**File:** web/tests/tracks-view.test.ts, web/tests/tracks-api.test.ts
+**Found:** 2026-11-10 by /audit independent (scope: current; lens: tests)
+**Why it matters:** The view model, client, proxy and engine routes are well covered (cap race, ownership, older drafts, concurrency, cleanup), but the component behaviour is only in the unrecorded browser pass: one mutation at a time, focus after add, rename, delete and toggle, the live-region announcements and the `not_found` path that F-104 breaks. There is no engine test for the `delete_item` and `emphasise` race either. Same gap as F-99 (no DOM test harness).
+**Suggested fix:** Add a component or browser test when `/tests browser` is set up, starting with delete-then-`not_found`.
+**Resolution:**

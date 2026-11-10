@@ -25,13 +25,16 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
 import { Route as ApiProfileIndexRouteImport } from './routes/api/profile/index'
 import { Route as ApiProfileConfirmAllRouteImport } from './routes/api/profile/confirm-all'
+import { Route as ApiTracksIndexRouteImport } from './routes/api/tracks/index'
 import { Route as ApiCvIdIndexRouteImport } from './routes/api/cv/$id/index'
 import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/download'
 import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
 import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
+import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/index'
 import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
 import { Route as ApiProfileItemsKindIdIndexRouteImport } from './routes/api/profile/items/$kind/$id/index'
 import { Route as ApiProfileItemsKindIdConfirmRouteImport } from './routes/api/profile/items/$kind/$id/confirm'
+import { Route as ApiTracksIdItemsKindItemIdRouteImport } from './routes/api/tracks/$id/items/$kind/$itemId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -112,6 +115,11 @@ const ApiProfileConfirmAllRoute = ApiProfileConfirmAllRouteImport.update({
   path: '/api/profile/confirm-all',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTracksIndexRoute = ApiTracksIndexRouteImport.update({
+  id: '/api/tracks/',
+  path: '/api/tracks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCvIdIndexRoute = ApiCvIdIndexRouteImport.update({
   id: '/api/cv/$id/',
   path: '/api/cv/$id/',
@@ -132,6 +140,11 @@ const ApiCvIdProfileRoute = ApiCvIdProfileRouteImport.update({
   path: '/api/cv/$id/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTracksIdIndexRoute = ApiTracksIdIndexRouteImport.update({
+  id: '/api/tracks/$id/',
+  path: '/api/tracks/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProfileItemsKindIndexRoute =
   ApiProfileItemsKindIndexRouteImport.update({
     id: '/api/profile/items/$kind/',
@@ -148,6 +161,12 @@ const ApiProfileItemsKindIdConfirmRoute =
   ApiProfileItemsKindIdConfirmRouteImport.update({
     id: '/api/profile/items/$kind/$id/confirm',
     path: '/api/profile/items/$kind/$id/confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiTracksIdItemsKindItemIdRoute =
+  ApiTracksIdItemsKindItemIdRouteImport.update({
+    id: '/api/tracks/$id/items/$kind/$itemId',
+    path: '/api/tracks/$id/items/$kind/$itemId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -167,12 +186,15 @@ export interface FileRoutesByFullPath {
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/profile/': typeof ApiProfileIndexRoute
+  '/api/tracks/': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -191,12 +213,15 @@ export interface FileRoutesByTo {
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv': typeof ApiCvIndexRoute
   '/api/profile': typeof ApiProfileIndexRoute
+  '/api/tracks': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
+  '/api/tracks/$id': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRoutesById {
@@ -217,12 +242,15 @@ export interface FileRoutesById {
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
   '/api/cv/': typeof ApiCvIndexRoute
   '/api/profile/': typeof ApiProfileIndexRoute
+  '/api/tracks/': typeof ApiTracksIndexRoute
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
+  '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
+  '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -243,12 +271,15 @@ export interface FileRouteTypes {
     | '/api/profile/confirm-all'
     | '/api/cv/'
     | '/api/profile/'
+    | '/api/tracks/'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id/'
+    | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
     | '/api/profile/items/$kind/$id/confirm'
+    | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -267,12 +298,15 @@ export interface FileRouteTypes {
     | '/api/profile/confirm-all'
     | '/api/cv'
     | '/api/profile'
+    | '/api/tracks'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id'
+    | '/api/tracks/$id'
     | '/api/profile/items/$kind'
     | '/api/profile/items/$kind/$id/confirm'
+    | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id'
   id:
     | '__root__'
@@ -292,12 +326,15 @@ export interface FileRouteTypes {
     | '/api/profile/confirm-all'
     | '/api/cv/'
     | '/api/profile/'
+    | '/api/tracks/'
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
     | '/api/cv/$id/'
+    | '/api/tracks/$id/'
     | '/api/profile/items/$kind/'
     | '/api/profile/items/$kind/$id/confirm'
+    | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -315,12 +352,15 @@ export interface RootRouteChildren {
   ApiProfileConfirmAllRoute: typeof ApiProfileConfirmAllRoute
   ApiCvIndexRoute: typeof ApiCvIndexRoute
   ApiProfileIndexRoute: typeof ApiProfileIndexRoute
+  ApiTracksIndexRoute: typeof ApiTracksIndexRoute
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
   ApiCvIdParseRoute: typeof ApiCvIdParseRoute
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
+  ApiTracksIdIndexRoute: typeof ApiTracksIdIndexRoute
   ApiProfileItemsKindIndexRoute: typeof ApiProfileItemsKindIndexRoute
   ApiProfileItemsKindIdConfirmRoute: typeof ApiProfileItemsKindIdConfirmRoute
+  ApiTracksIdItemsKindItemIdRoute: typeof ApiTracksIdItemsKindItemIdRoute
   ApiProfileItemsKindIdIndexRoute: typeof ApiProfileItemsKindIdIndexRoute
 }
 
@@ -438,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProfileConfirmAllRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tracks/': {
+      id: '/api/tracks/'
+      path: '/api/tracks'
+      fullPath: '/api/tracks/'
+      preLoaderRoute: typeof ApiTracksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cv/$id/': {
       id: '/api/cv/$id/'
       path: '/api/cv/$id'
@@ -466,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCvIdProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tracks/$id/': {
+      id: '/api/tracks/$id/'
+      path: '/api/tracks/$id'
+      fullPath: '/api/tracks/$id/'
+      preLoaderRoute: typeof ApiTracksIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/profile/items/$kind/': {
       id: '/api/profile/items/$kind/'
       path: '/api/profile/items/$kind'
@@ -485,6 +539,13 @@ declare module '@tanstack/react-router' {
       path: '/api/profile/items/$kind/$id/confirm'
       fullPath: '/api/profile/items/$kind/$id/confirm'
       preLoaderRoute: typeof ApiProfileItemsKindIdConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tracks/$id/items/$kind/$itemId': {
+      id: '/api/tracks/$id/items/$kind/$itemId'
+      path: '/api/tracks/$id/items/$kind/$itemId'
+      fullPath: '/api/tracks/$id/items/$kind/$itemId'
+      preLoaderRoute: typeof ApiTracksIdItemsKindItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -518,12 +579,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfileConfirmAllRoute: ApiProfileConfirmAllRoute,
   ApiCvIndexRoute: ApiCvIndexRoute,
   ApiProfileIndexRoute: ApiProfileIndexRoute,
+  ApiTracksIndexRoute: ApiTracksIndexRoute,
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
   ApiCvIdParseRoute: ApiCvIdParseRoute,
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
+  ApiTracksIdIndexRoute: ApiTracksIdIndexRoute,
   ApiProfileItemsKindIndexRoute: ApiProfileItemsKindIndexRoute,
   ApiProfileItemsKindIdConfirmRoute: ApiProfileItemsKindIdConfirmRoute,
+  ApiTracksIdItemsKindItemIdRoute: ApiTracksIdItemsKindItemIdRoute,
   ApiProfileItemsKindIdIndexRoute: ApiProfileItemsKindIdIndexRoute,
 }
 export const routeTree = rootRouteImport

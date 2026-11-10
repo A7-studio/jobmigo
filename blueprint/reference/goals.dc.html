@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jobmigo Goals</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;font-family:'Nunito',system-ui,sans-serif;color:#1A1A18}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.btn{border:1px solid #D9D5C7;background:#fff;border-radius:999px;padding:12px 22px;font-size:15px;font-weight:700;color:#1A1A18;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.pri{background-color:#B04A27;border-color:#B04A27;color:#fff}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:700;color:#4A4944}
+.field input,.field select{font:inherit;font-size:16px;font-weight:500;color:#1A1A18;border:1.5px solid #D9D5C7;border-radius:12px;padding:0 14px;min-height:48px;background:#fff}
+.chip{border:1.5px solid #D9D5C7;background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#4A4944;min-height:44px}
+.chip.on{background:#F8E3D8;border-color:#D97757;color:#8A3B1E}
+.link{font-size:14px;font-weight:700;color:#B04A27;min-height:44px;display:inline-flex;align-items:center}
+
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,24,.10)}
+.btn.pri:hover{background:#963E1F;border-color:#963E1F}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #D97757;outline-offset:2px}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-2deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+@keyframes growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes flame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.14) rotate(4deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(217,119,87,0)}50%{box-shadow:0 0 0 6px rgba(217,119,87,.28)}}
+@keyframes ringfill{from{stroke-dashoffset:213.6}}
+.migo{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+.migo-eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+.growx{transform-origin:left;animation:growx .9s cubic-bezier(.2,.8,.2,1) both}
+.growy{transform-origin:bottom;animation:growy .9s cubic-bezier(.2,.8,.2,1) both}
+.floaty{animation:floaty 4s ease-in-out infinite}
+.pop{animation:pop .5s ease-out both}
+.flame{animation:flame 1.4s ease-in-out infinite;transform-origin:50% 90%}
+.glow{animation:glow 2.4s ease-in-out infinite}
+.ringfill{animation:ringfill 1.2s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
+@keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+h1,h2,h3,.disp{font-family:'Fredoka','Nunito',system-ui,sans-serif}
+.card{animation:rise .55s ease-out both}
+.card:hover{box-shadow:0 8px 24px rgba(26,26,24,.06)}
+.btn.pri{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.2) 50%,transparent 65%);background-size:220% 100%;animation:shine 4s ease-in-out infinite}
+.migo:hover{animation:wiggle .6s ease-in-out}
+.confetti{position:absolute;top:0;border-radius:2px;animation:fall 5s linear infinite}
+
+.ib{position:relative;width:44px;height:44px;flex:0 0 44px;border:1px solid transparent;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:#4A4944;cursor:pointer;padding:0;list-style:none}
+.ib:hover{background:#F0EEE6;color:#1A1A18}
+.ib .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A18;color:#fff;font-size:12px;font-weight:700;border-radius:8px;padding:5px 9px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:30}
+.ib:hover .tip,.ib:focus-visible .tip{opacity:1}
+.ib[aria-pressed="true"]{color:#B04A27}
+.btn.ghost{border-color:transparent;background:transparent;color:#8A3B1E;padding:10px 14px}
+.btn.ghost:hover{background:#FDF3EE;box-shadow:none;transform:none}
+.btn.ghost.danger{color:#8A1F1F}
+.btn.ghost.danger:hover{background:#FDECEC}
+.cr{font-size:12px;font-weight:700;color:#5E5D59}
+details.menu{position:relative}
+details.menu>summary{list-style:none;cursor:pointer}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu .pop-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:#fff;border:1px solid #E8E5DA;border-radius:14px;box-shadow:0 12px 32px rgba(26,26,24,.14);padding:6px;z-index:20;display:flex;flex-direction:column}
+details.menu .pop-menu button,details.menu .pop-menu a{border:0;background:transparent;border-radius:10px;min-height:44px;padding:0 12px;font:inherit;font-size:14px;font-weight:700;color:#1A1A18;display:flex;align-items:center;gap:10px;text-align:left}
+details.menu .pop-menu button:hover,details.menu .pop-menu a:hover{background:#F7F5EE}
+</style>
+</helmet>
+<header style="display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between;padding:20px 32px;box-sizing:border-box"><a href="Home.dc.html" aria-label="Jobmigo home"><span style="display:inline-flex;align-items:center;gap:8px"><svg class="migo" width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><span class="disp" style="font-size:22px;font-weight:700;letter-spacing:0;color:#1A1A18">job<span style="color:#B04A27">migo</span></span></span></a><div style="flex:1 1 280px;max-width:420px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#4A4944"><span>Step 3 of 4</span><span>Make it yours</span></div><div role="img" aria-label="Step 3 of 4" style="display:flex;gap:6px"><span style="flex:1;height:8px;border-radius:99px;background:#D97757"></span><span style="flex:1;height:8px;border-radius:99px;background:#D97757"></span><span style="flex:1;height:8px;border-radius:99px;background:#D97757"></span><span style="flex:1;height:8px;border-radius:99px;background:#E8E5DA"></span></div></div><a class="link" href="Main.dc.html">Save and finish later</a></header>
+<main style="max-width:880px;margin:0 auto;padding:8px 24px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:flex-end"><svg class="migo" width="84" height="84" viewBox="0 0 48 48" role="img" aria-label="Migo, the Jobmigo mascot"><path d="M17 15v-3.5A3.5 3.5 0 0 1 20.5 8h7a3.5 3.5 0 0 1 3.5 3.5V15" fill="none" stroke="#1A1A18" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="29" rx="10" fill="#D97757"/><g class="migo-eyes"><circle cx="17.5" cy="26" r="4.2" fill="#fff"/><circle cx="30.5" cy="26" r="4.2" fill="#fff"/><circle cx="18.3" cy="26.4" r="2" fill="#1A1A18"/><circle cx="31.3" cy="26.4" r="2" fill="#1A1A18"/></g><path d="M19.5 34.5q4.5 4 9 0" fill="none" stroke="#1A1A18" stroke-width="2.4" stroke-linecap="round"/><circle cx="11.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/><circle cx="36.5" cy="32" r="2.3" fill="#F1CBBA" opacity=".8"/></svg><div style="background:#FDF3EE;border:1px solid #F1CBBA;border-radius:16px 16px 16px 4px;padding:12px 16px;font-size:15px;line-height:1.55;color:#3D3D3A">Great, I have read your CV. A few quick questions. There are no wrong answers, and you can change all of this later.</div></div>
+  <section class="card" aria-labelledby="g1" style="background:#fff;border:1px solid #E8E5DA;border-radius:20px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:12px"><h1 id="g1" style="margin:0;font-size:30px;font-weight:700">What are you hoping to find?</h1>
+      <div role="group" aria-label="Tracks" style="display:flex;flex-wrap:wrap;gap:10px"><button class="chip on" type="button" aria-pressed="true">Flutter and mobile</button><button class="chip on" type="button" aria-pressed="true">AI coding evaluation</button><button class="chip" type="button" aria-pressed="false">AI application engineering</button><button class="chip" type="button">+ Add your own</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:20px;font-weight:600">What pace feels right each week?</h2>
+      <div role="group" aria-label="Weekly goal" style="display:flex;flex-wrap:wrap;gap:10px"><button class="chip" type="button" aria-pressed="false">3 applications</button><button class="chip on" type="button" aria-pressed="true">5 applications</button><button class="chip" type="button" aria-pressed="false">8 applications</button></div>
+      <p style="margin:0;font-size:14px;color:#5E5D59;line-height:1.5">Small and steady beats a big burst. We count careful applications and follow-ups, not volume.</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+      <label class="field">Lowest salary you would consider<input type="text" value="$65,000 a year"></label>
+      <label class="field">Where can you work?<input type="text" value="Remote in EMEA, or Nairobi"></label>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:20px;font-weight:600">Anything that is a firm no?</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:10px"><span class="chip on" style="display:inline-flex;align-items:center;gap:8px">No on-site only<span aria-hidden="true">×</span></span><span class="chip on" style="display:inline-flex;align-items:center;gap:8px">No sponsorship needed elsewhere<span aria-hidden="true">×</span></span><button class="chip" type="button">+ Add</button></div>
+      <p style="margin:0;font-size:14px;color:#5E5D59">Optional. Migo skips these jobs before spending any of your credits.</p></div>
+    <div style="border:1.5px dashed #F1CBBA;border-radius:16px;padding:18px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;background:#FDF3EE">
+      <div style="flex:1 1 300px"><div style="font-size:16px;font-weight:800">A gentle daily nudge on Telegram</div><div style="font-size:14px;color:#4A4944;margin-top:4px;line-height:1.5">One short message each morning at 07:30 with your best new jobs. Mute it any time.</div></div>
+      <button class="btn" type="button">Connect Telegram</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;border-top:1px solid #EFECE2;padding-top:20px">
+      <a class="btn" href="Profile.dc.html">Back</a>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><a class="link" href="Welcome.dc.html">Skip for now</a><a class="btn pri" href="Welcome.dc.html">Show me my shortlist</a></div></div>
+  </section>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
