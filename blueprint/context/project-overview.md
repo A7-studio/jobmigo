@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash ca2acffcf96b17ed23a6b31abf97540fb7f017e548f20ab922407000a8a0b7a7 -->
+<!-- blueprint:source-hash 65d7c442717f49fb18cc8a503ee3fb0de06e84364f10497751831738df9267ad -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -23,7 +23,7 @@ Principles for every feature:
 ## Usage model
 
 - Scale: founder first, then tens of users; no larger scale assumed.
-- Internet-facing, multi-user: per-user data isolation is a real requirement. Users are ordinary job seekers, not assumed adversarial.
+- Internet-facing, multi-user: per-user isolation is a real requirement; users are ordinary job seekers, not assumed adversarial.
 - Sensitive data: CVs and contact details; private storage, owner-scoped access, export and deletion, no personal CV data in logs or public content.
 - Recruiter data: publicly available information only.
 - Not required now: enterprise SSO, compliance certifications, multi-region, team accounts, HA.
@@ -32,22 +32,22 @@ Principles for every feature:
 
 Slice 1 is the paste-a-job loop usable by the founder; the **headline feature is #8, AI job evaluation**. Automatic discovery and alerts are the premium slice (3) and reuse the evaluator.
 
-0. **Waitlist launch (features 27, 28a, 28b)** - 27 TypeScript full-stack switch (done); 28a public homepage and consented waitlist with a Resend confirmation email; 28b production deploy on one VPS behind Cloudflare with backups; 32 animated homepage and design sync (scripted demo, scroll reveals, reduced motion; canvas update published only with approval).
+0. **Waitlist launch (27, 28a, 28b, 32; done)** - TypeScript full-stack switch; public homepage and consented waitlist with a Resend confirmation email; production deploy on one VPS behind Cloudflare with backups; animated homepage and design sync (canvas update published only with approval).
 
 _Slice 1, the paste-a-job loop (usable by the founder)_
 1. **Foundation and app shell** - sign-up/sign-in via Better Auth (sessions read by server functions) behind an auth interface, per-user scoping, staff roles skeleton and audit log, sidebar shell with theme, health check.
-2. **AI gateway and usage ledger** (done; lives in the engine since 31) - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
+2. **AI gateway and usage ledger** (done; in the engine since 31) - provider interface, task routing, prompt versions, validated outputs, cost and cache logging.
 30. **Python AI engine foundation** - FastAPI service in `engine/` (uv, Pydantic, Ruff, strict typing, pytest), Docker entry, health, internal bearer auth with the user id from the verified web session, own Postgres schema with Alembic, TypeScript client in the web server.
 31. **Port the AI gateway and ledger to the engine** (done) - Python version with parity tests; the TypeScript gateway and its two tables are removed.
-3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft; 3a storage, upload and extraction, 3b AI parse and status screen.
+3. **CV upload and parsing** (in the engine) - private storage, text extraction in a resource-limited subprocess, AI parse into a profile draft. 3a storage, upload and extraction (done); 3b AI parse into an unconfirmed draft, engine and web API routes (done); 3c `/onboarding` upload and parse status screen.
 4. **Profile review and track variants** - edit and confirm extracted facts, variants per track.
 5. **Job preferences and track criteria** - roles, salary floor, location, eligibility, must-haves per track, dealbreakers, do-not-apply list.
 29. **Add a job by link or paste** - paste a link or posting text; fetch public page text when allowed, paste fallback; normalise, dedupe by URL, light legitimacy flag, saved and dismissed jobs; free on every plan.
-8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes, run by a Python command (`uv run eval`).
+8. **AI job evaluation** - dealbreaker gates before AI calls, cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; runs on a pasted job first, then on discovered jobs; a golden set of 30 to 50 real jobs with the founder's verdicts gates model and prompt changes (`uv run eval`).
 11. **Application kit** - tailored CV, cover letter, answer drafts from confirmed facts, fact check, versions, PDF/DOCX export.
-12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; records each outcome and shows interviews per application by track.
+12. **Application CRM** - canonical stages with terminal flags, dates, notes, interview stages, board view; free on every plan; records each outcome, shows interviews per application by track.
 9. **Dashboard** - evaluated jobs, needs-action list, application progress, empty/loading states; discovery widgets arrive with 10.
-19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-evaluation moment (paste a job, see an evidence-based evaluation); first-shortlist moment arrives with discovery; demand validation (homepage and waitlist ship in 28).
+19. **Sign-up and onboarding flow** - sign-up page, four-step onboarding ending in a first-evaluation moment (paste a job, see an evidence-based evaluation); the first-shortlist moment arrives with discovery.
 
 _Slice 2, apply better and follow through_
 13. **Follow-ups and ghost watch** - due items on dashboard and Telegram, flag applications silent for 10+ days and draft a nudge.
@@ -71,7 +71,7 @@ _Slice 4, grow and operate_
 26. **Support desk** - help form, inbound email to tickets, admin inbox, notes, canned replies.
 22. **Ask Migo** - natural-language questions over the user's own data, with cited answers.
 
-Excluded or later: browser automation/auto-apply, LinkedIn scraping, BYOK (gateway designed for it, not built), autonomous agents, services beyond the web app and engine, Python job-source adapters (scraping only if approved within site terms), native app, team accounts, interview prep and coaching (later), AI insights dashboards (later), sending email from the user's mailbox (a read-only status scan may come later).
+Excluded or later: auto-apply and browser automation, LinkedIn scraping, BYOK (gateway designed for it), autonomous agents, extra services, Python job-source adapters (only if scraping is approved within site terms), native app, team accounts, interview prep and coaching, AI insights dashboards, sending email from the user's mailbox (a read-only status scan may come later).
 
 ## Data model
 
@@ -80,12 +80,12 @@ Every user-owned row has `user_id`; all queries are scoped by it. Canonical jobs
 ### User
 - `id` (uuid), `email` (text, unique), `auth` fields (managed by the auth feature), `plan` (enum, default free), `telegram_chat_id` (text, nullable), `created_at` (timestamp)
 
-### CvFile
-- `id`, `user_id` (FK User), `storage_key` (text, private object), `filename`, `mime` (pdf|docx), `extracted_text` (text), `parse_status` (enum), `created_at`
+### CvFile (built in 3a/3b)
+- `id`, `user_id` (plain uuid, no FK across schemas), `storage_key` (private object), `filename`, `mime` (pdf|docx), `size_bytes`, `extracted_text`, `parse_status` (extracted|parsing|parsed|failed), `parse_error` (stable code, only when failed), `created_at`, `updated_at`
 
 ### Profile (the user's confirmed facts)
-- `id`, `user_id`, `headline`, `summary`, `source_cv_id` (FK CvFile)
-- Children, each with `profile_id`, `status` (extracted|confirmed|edited): `Experience` (`company`, `role`, `start`, `end`, `bullets` json), `Skill` (`name`, `evidence_ref`, `used_in_role` bool), `Achievement` (`text`, `experience_id`), `Project`, `Education`
+- `id`, `user_id`, `headline`, `summary`, `source_cv_id` (FK CvFile, unique: one draft per CV, cascade delete)
+- Children, each with `user_id`, `profile_id`, `position`, `status` (extracted|confirmed|edited): `Experience` (`company`, `role`, `start`, `end` as `YYYY` or `YYYY-MM`, `is_current`, `bullets` json), `Skill` (`name`; `evidence_ref` and `used_in_role` arrive with the feature that first uses them), `Achievement` (`text`, `experience_id`), `Project` (`name`, `description`), `Education` (`institution`, `qualification`, `start`, `end`). Drafts from 3b are all `extracted`; feature 4 confirms or edits.
 
 > Lock: generated documents and evaluations may only cite rows with `status` confirmed or edited.
 
@@ -146,7 +146,7 @@ Two services over one Postgres: the TypeScript web app and a Python AI engine. N
 
 - **TanStack Start (Router, Query), React, TypeScript, Tailwind CSS** - UI layer only
 - **TypeScript server code in TanStack Start** - accounts, billing, CRM, server functions and routes, Zod validation, Vitest
-- **Python AI engine (FastAPI)** - Python 3.13 with uv, Pydantic v2, SQLAlchemy 2 async and Alembic, httpx, pytest, Ruff, strict typing. Owns everything that calls a model or parses a file. No public port: the web server calls it over internal HTTP with a bearer token and the verified user id. Decision (2026-11-08): the project also demonstrates AI engineering, and document parsing needs process isolation (`docs/python-engine-proposal.md`)
+- **Python AI engine (FastAPI)** - Python 3.13 with uv, Pydantic v2, SQLAlchemy 2 async and Alembic, httpx, pytest, Ruff, strict typing. Owns everything that calls a model or parses a file. No public port: the web server calls it over internal HTTP with a bearer token and the verified user id. Decision (2026-11-08): the project also demonstrates AI engineering and parsing needs process isolation (`docs/python-engine-proposal.md`)
 - **PostgreSQL, Drizzle, drizzle-kit** - web app data and migrations
 - **Postgres-backed queue (pg-boss) + Node worker + scheduler** - background work; Redis only when volume or retries justify it
 - **Private S3-compatible object storage** - CVs and exports via signed URLs
@@ -169,11 +169,11 @@ Subscription plus AI credits. Prices are hypotheses to test and differ by region
 - **Pro (~$19):** multiple tracks and profiles, Telegram alerts, tailored documents, CRM, larger credits.
 - **Power (~$39):** recruiter research and outreach, highest credits, priority processing, exports.
 
-Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10 customers. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Daily hook: morning digest and "needs action" list. Reference study: `docs/reference-study.md`. Distribution: LinkedIn build-in-public.
+Credits meter evaluation, tailoring and outreach with separate monthly quotas per workflow; cached results are free. Consider early-bird pricing for the first 10 customers. Smallest paid set to test: verified daily discovery, evidence-based evaluation, Telegram digest, tailored CV. Daily hook: morning digest and "needs action" list. Distribution: LinkedIn build-in-public.
 
 ## UI/UX
 
-Calm, focused SaaS workspace; data-rich but uncluttered. Product Jobmigo; mascot Migo (briefcase character); light motion that respects reduced-motion; light gamification for quality actions only. Light theme, warm ivory ground, white cards, orange accent #D97757 (dark text; primary buttons #B04A27 with white text), Fredoka headings, Nunito body. Not a chatbot or job board. Approved design canvas: https://claude.ai/artifact/2jc4qnjcWgNi6cFLu72k7Q. Locked tokens: `prototypes/theme.css`. Fit and status always use text labels, never colour alone; 44px minimum touch targets; sidebar stacks on small screens, boards scroll horizontally.
+Calm, focused SaaS workspace; data-rich but uncluttered. Mascot Migo (briefcase); light motion that respects reduced-motion; light gamification for quality actions only. Light theme, warm ivory ground, white cards, orange accent #D97757 (dark text; primary buttons #B04A27 with white text), Fredoka headings, Nunito body. Not a chatbot or job board. Approved design canvas: https://claude.ai/artifact/2jc4qnjcWgNi6cFLu72k7Q. Locked tokens: `prototypes/theme.css`. Fit and status use text labels, never colour alone; 44px touch targets; sidebar stacks on small screens, boards scroll horizontally.
 
 Screens (route names proposed, all designed except `/settings`):
 - `/` - public homepage with waitlist; signed-in `/dashboard` (includes progress and quests)
@@ -186,11 +186,11 @@ Screens (route names proposed, all designed except `/settings`):
 ## Deployment
 
 - Containers: `app` (TanStack Start Node server), `engine` (Python FastAPI, internal network only, no published port), `worker` (jobs and scheduler), Postgres, object storage.
-- Host: one small VPS with Docker Compose behind Cloudflare, object storage for files and backups; staged scaling path in `docs/technical-design.md` (sections 15 and 16). Provider and region chosen on price, stock and Kenya latency.
+- Host: one small VPS with Docker Compose behind Cloudflare, object storage for files and backups; scaling path in `docs/technical-design.md` (sections 15, 16). Provider and region chosen on price, stock and Kenya latency.
 - Env vars (see `docs/technical-design.md`): `DATABASE_URL`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_KEY`, `STORAGE_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `RESEND_API_KEY`, `MAIL_FROM`, `AI_PROVIDER_KEYS`, `ENGINE_URL`, `ENGINE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `PAYSTACK_SECRET_KEY` and `PADDLE_API_KEY` (later).
 - Health check: `GET /healthz` on the app.
 - Cron: daily discovery and digest run by the worker scheduler.
-- Backups: daily Postgres backups with a tested restore. Structured logs with request IDs and error tracking.
+- Backups: daily Postgres backups, restore tested. Structured logs with request IDs; error tracking.
 - > TODO domain.
 
 ## Open questions
@@ -199,6 +199,5 @@ Screens (route names proposed, all designed except `/settings`):
 
 - Feature 17 (export and deletion) comes after CVs are stored (feature 3); consider moving it earlier.
 - "Credit limits from day one" (plan section 3) vs enforcement only arriving with billing (feature 16): decide whether the engine gateway (31) enforces a hard cap.
-- Confirm the engine proposal defaults (`docs/python-engine-proposal.md` section 5): the engine owns AI-derived data with the profile screen built in TypeScript, one Postgres with two schemas, Python 3.13 with uv.
 - Job source list (which ATS/career-page adapters first) is not chosen.
 - In-app notifications are needed by feature 9 (dashboard) but built in feature 10.
