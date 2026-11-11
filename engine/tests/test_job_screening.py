@@ -110,10 +110,11 @@ async def test_two_tracks_can_reach_different_outcomes(
         user_id=USER, job_id=job, database=database, env=ENV, provider=provider
     )
     by_track = {str(r.track_id): r for r in results}
-    assert by_track[strict].outcome == "removed"
-    assert by_track[strict].removed_by == "screen"
+    assert by_track[strict].outcome == "flagged"
+    assert by_track[strict].removed_by is None  # a screen never removes
     assert by_track[strict].reason_code == "dealbreaker"
     assert "trade crypto tokens" in (by_track[strict].reason or "")
+    assert (by_track[strict].reason or "").startswith("Possible match")
     assert by_track[easy].outcome == "passed"
     easy_screen = by_track[easy].screen
     assert easy_screen is not None
@@ -122,7 +123,7 @@ async def test_two_tracks_can_reach_different_outcomes(
     assert not by_track[strict].stale
 
 
-async def test_a_dealbreaker_stated_only_in_the_title_can_remove_a_job(
+async def test_a_dealbreaker_stated_only_in_the_title_is_flagged(
     db_url: str, database: Database
 ) -> None:
     job = uuid.uuid4()
@@ -156,8 +157,23 @@ async def test_a_dealbreaker_stated_only_in_the_title_can_remove_a_job(
         env=ENV,
         provider=TitleOnly(),
     )
-    assert results[0].outcome == "removed"
+    assert results[0].outcome == "flagged"
+    assert results[0].removed_by is None
     assert "Crypto Exchange Engineer" in (results[0].reason or "")
+
+
+async def test_a_flag_is_not_an_outcome_a_screen_can_remove_with(
+    db_url: str, database: Database
+) -> None:
+    job = await add_job(db_url)
+    await add_track(db_url, "One", dealbreakers=["no crypto"])
+    await screen_job(
+        user_id=USER, job_id=job, database=database, env=ENV, provider=Smart()
+    )
+    rows = await fetch(db_url, "select outcome, removed_by from engine.job_screen")
+    assert [(r["outcome"], r["removed_by"]) for r in rows] == [("flagged", None)]
+    # The job itself is untouched.
+    assert len(await fetch(db_url, "select 1 from engine.job")) == 1
 
 
 async def test_a_gate_removal_makes_no_model_call(
@@ -441,7 +457,7 @@ async def test_a_very_long_posting_is_cut_for_the_model_but_checked_whole(
         user_id=USER, job_id=job, database=database, env=ENV, provider=provider
     )
     # The model only read the first part, yet a quote from the end still counts.
-    assert results[0].outcome == "removed"
+    assert results[0].outcome == "flagged"
     assert provider.requests[0].user.count("Plain filler") <= 700
     assert "crypto tokens" not in provider.requests[0].user
 

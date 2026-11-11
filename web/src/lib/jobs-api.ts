@@ -87,7 +87,11 @@ export const setJobStatus = (id: string, status: JobStatus, deps: Deps = {}) =>
 export const deleteJob = (id: string, deps: Deps = {}) =>
   call<undefined>(`/api/jobs/${id}`, { method: 'DELETE' }, deps)
 
-export type ScreenOutcome = 'passed' | 'removed' | 'unscreened'
+/**
+ * `removed` is only ever set by a rule checked in code. `flagged` is a possible match for
+ * a dealbreaker of yours found by the screen: it removes nothing, and you decide.
+ */
+export type ScreenOutcome = 'passed' | 'flagged' | 'removed' | 'unscreened'
 
 /** What the rules and the cheap screen decided about one job for one track. */
 export type JobScreen = {
@@ -101,7 +105,7 @@ export type JobScreen = {
   outcome: ScreenOutcome
   removedBy: 'gate' | 'screen' | null
   reasonCode: string | null
-  /** One plain sentence. It may hold your dealbreaker and a quote from the posting: show it as text. */
+  /** One plain sentence. It may hold your dealbreaker and a quote from the posting: show it as text. A `flagged` result says "Possible match ...". */
   reason: string | null
   screen: { roleMatch: 'yes' | 'partial' | 'no'; note: string } | null
   updatedAt: string

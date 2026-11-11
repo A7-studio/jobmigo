@@ -55,6 +55,8 @@ def _do_not_apply(company: str, entries: Sequence[str]) -> Removal | None:
 _NEGATION = re.compile(
     r"(?:\bnot|\bno|\bnon|n['\u2019]t|\bnever|\bwithout)\W+(?:\w+\W+){0,2}$", re.I
 )
+# A location that gives choices ("Nairobi or Remote", "Remote / Hybrid").
+_OFFERS = re.compile(r"\bor\b|\band\b|[/&]", re.I)
 _LISTED = re.compile(r"(?:,|/|&|\bor|\band)\s*$", re.I)
 # A region phrase turned inside out ("candidates outside the US only").
 _OUTSIDE = re.compile(
@@ -124,9 +126,17 @@ def _modes_stated(title: str, location: str | None, description: str) -> set[str
     for mode, pattern in _MODE_PHRASES.items():
         if _stated(pattern, text):
             found.add(mode)
-    for mode, pattern in _MODE_LOCATION.items():
-        if location and _stated(pattern, location):
-            found.add(mode)
+    if location:
+        in_location = {
+            mode
+            for mode, pattern in _MODE_LOCATION.items()
+            if _stated(pattern, location)
+        }
+        found |= in_location
+        # "Nairobi or Remote" offers remote as one of several: that is not a clear
+        # statement of one mode, so the mark below makes the whole posting unclear.
+        if in_location and _OFFERS.search(location):
+            found.add("unclear")
     return found
 
 

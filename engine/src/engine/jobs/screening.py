@@ -214,7 +214,7 @@ async def _decide(
     posting = ". ".join(
         part for part in (job.title, job.company, job.location, job.description) if part
     )
-    found = screen.verdict(screened.output, track.dealbreakers, posting)
+    found = screen.flag(screened.output, track.dealbreakers, posting)
     note = {
         "role_match": screened.output.role_match,
         "note": screened.output.note,
@@ -223,8 +223,8 @@ async def _decide(
         **base,
         "screen": note,
         "usage_event_id": screened.usage_event_id,
-        "outcome": "removed" if found else "passed",
-        "removed_by": "screen" if found else None,
+        "outcome": "flagged" if found else "passed",
+        "removed_by": None,
         "reason_code": "dealbreaker" if found else None,
         "reason": found.reason if found else None,
     }

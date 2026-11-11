@@ -727,35 +727,43 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Suggested fix:** Run the invalid-reply and unavailable paths under `caplog` and assert no posting or dealbreaker text; expose `_clean` under a public name.
 **Resolution:** Partly (2026-11-11): failure-path log tests added for the screen task and the service. The private `_clean` import from `engine.cv.parse` stays: `tracks/preferences.py` does the same, so moving it is a separate cleanup. Left open.
 
-### F-133 [P2] open - The relatedness check passes on any single shared common word, so posting text can still remove a job
-
-**File:** engine/src/engine/jobs/screen.py:141
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: security)
-**Why it matters:** `_related` accepts a quote that shares one meaningful word (or a 4+ letter prefix) with the dealbreaker. Probed with `verdict`: dealbreaker "No weekend work" with quote "We work with Python and Go" returns a Verdict; dealbreaker "no crypto or gambling companies" with quote "Join one of the best companies" returns a Verdict; "we never ask for an unpaid trial period" removes for "unpaid trial", because a negated mention counts too. A posting that tells the model to report a hit, or a model that misreads, therefore still removes a job on text that does not state the dealbreaker, which is the outcome F-127 and the spec sentence "text inside a posting cannot remove a job unless it contains one of the user's dealbreakers" rule out. The removal is visible and reversible, and the reason shows the quote.
-**Suggested fix:** Require the quote to contain all meaningful words (or the whole dealbreaker phrase, folded) and skip a quote preceded by a negation, as the gates do; add tests with a generic-word dealbreaker and a negated quote. Accept a few more extra looks instead of lost jobs.
-**Resolution:** Repaired 2026-11-11 (fix `repair-screen-gates-and-quote-rule`): a hit must now show a whole way of meeting the dealbreaker (alternatives split at or, commas and slashes; every meaningful word of one in the quote) and none of those words may sit in a negated sentence of the posting. Tests: generic word, alternatives, partial phrase, denial wordings, a denial in an earlier sentence, the posting repeating the rule itself.
-Reopened 2026-11-11 by independent review: the single-common-word hole is gone, but `_shows` still removes on text that is a denial or unrelated, probed with `verdict`: (1) a negator after the match is ignored, so "Weekend work is not required", "Relocation not required" and "Weekend work isn't a problem" remove (screen.py:220 looks only before the word); (2) `_CLAUSE_CHARS = 80` means a negator more than 80 characters earlier in the same sentence is missed ("We never ask staff, whatever their seniority ... across our many offices in the region, to do an unpaid trial period" removes); (3) the prefix rule plus "every word anywhere in the quote" lets "no Java" remove on "JavaScript and React experience", "no crypto" on "We use cryptography for security", and "weekend work" on "We work Monday to Friday and weekends are free". Suggested fix: also treat a negator after the match words in the same sentence/quote as a denial, drop or widen the 80-character window to the whole sentence, and require whole-word equality (or a small suffix list) plus words within a short span.
-
-### F-137 [P3] open - The negation check ignores line breaks, so a denial in one bullet hides a real hit in the next
-
-**File:** engine/src/engine/jobs/screen.py:151
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
-**Why it matters:** The spec says a negator "earlier in the same sentence or line". `_fold` turns every newline into a space before `_negated` runs, so a bullet list without full stops is one sentence: "Benefits:\n- No degree required\n- Unpaid trial period of two weeks" with dealbreaker "unpaid trial" returns no verdict. The error is in the safe direction (a missed removal), but the stated contract is not met and bulleted postings are common.
-**Suggested fix:** Run `_negated` on text that keeps line breaks (or fold newlines to ". " for this check only) and add a bulleted-list test.
-**Resolution:**
-
 ### F-138 [P2] open - A location that offers remote as an alternative removes an on-site-only track
 
 **File:** engine/src/engine/jobs/gates.py:126
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** `_modes_stated` counts a bare `remote`, `hybrid` or `on-site` in the location field. Probed on an on-site-only track: location "Nairobi or Remote" and "Nairobi / Remote" return `work_mode`, although the job offers on-site work; "Nairobi (Remote work not allowed)" also removes because `_LIMITED` only catches a denial right after the word. A wrongly removed job is the outcome the spec rules out. The repair added negation to this field but not the list/alternative case that the region check already handles with `_LISTED`.
 **Suggested fix:** Skip a location mode that is one item of a list or alternative ("or", "/", "," before or after), and treat a denial anywhere in the same parenthesis as unclear; add tests.
+**Resolution:** Repaired 2026-11-11: a location that offers choices (`or`, `and`, `/`, `&`) next to a mode word makes the whole posting unclear, so the gate keeps the job. Tests: five offer wordings for on-site-only and remote-only tracks, and that `Remote, EMEA`, `On-site` and `Hybrid` still remove.
+Reopened 2026-11-11 by independent review (fresh subagent): the list wording is fixed (probed "Nairobi or Remote", "Remote / Hybrid", "remote OR on-site": kept), but the other wording named in the original finding still removes. Probe of `run_gates` on an on-site-only track: location "Nairobi (Remote work not allowed)" returns `work_mode` (removal), because `_stated` only skips a denial immediately after the word (`_LIMITED`, gates.py:68/83) and the new `_OFFERS` mark does not apply. A job that says remote is not allowed is on-site, so the removal is wrong. No test covers it. Suggested fix: treat a denial anywhere in the same parenthesis or clause as unclear and add the test.
+
+### F-140 [P2] open - Rows removed by the old screen stay removed, and `screen` is still an allowed remover
+
+**File:** engine/migrations/versions/0010_job_screen_flagged.py:21, engine/src/engine/models.py:378, web/src/lib/jobs-api.ts:106
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality, security)
+**Why it matters:** The decision is that only a code gate removes a job, and the spec (step 4) says `removedBy` stays `'gate' | null`. But `upgrade` only swaps the outcome check: any `job_screen` row already written by the old word-matching (`outcome = 'removed'`, `removed_by = 'screen'`) is kept as a removal. `rules_key` does not include the prompt or rule version, so such a row is not `stale` and nothing re-screens it; it is exactly the wrong-removal class F-133, F-137 and F-139 recorded. `ck_job_screen_removed_by` still allows `'screen'`, `JobScreenOut.removed_by` is a free string, and the web `JobScreen.removedBy` type is still `'gate' | 'screen' | null`, so the contract still describes a screen removal. The new migration test seeds only a `gate` row, so this path is untested.
+**Suggested fix:** In 0010 `upgrade`, convert `removed`/`screen` rows (to `flagged`, keeping their reason with the new wording, or to `unscreened` so they are re-run) before narrowing; tighten `ck_job_screen_removed_by` to `('gate')` in the migration and model; change the web type to `'gate' | null`; add a migration test with a legacy `screen` row.
 **Resolution:**
 
-### F-139 [P3] open - New tests only cover negators before the match and one sentence, so the remaining holes pass unnoticed
+### F-141 [P3] open - A flag can show a "posting says" quote that spans two fields or is only punctuation
 
-**File:** engine/tests/test_job_screen.py:96, engine/tests/test_job_gates.py:70
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: tests)
-**Why it matters:** `test_a_denial_in_the_posting_is_not_a_hit` uses only negators before the words in a short sentence; nothing covers a trailing denial ("is not required"), a negator beyond the 80-character window, a bulleted list, a prefix match ("Java" against "JavaScript"), words scattered across a long quote, or "Nairobi or Remote" in the location. Those are the behaviours F-133, F-137 and F-138 record, so the suite proves the repaired wordings but not the rule it claims.
-**Suggested fix:** Add one test per wording above once the rule is decided.
+**File:** engine/src/engine/jobs/screening.py:213, engine/src/engine/jobs/screen.py:164
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security)
+**Why it matters:** The spec's honesty rule is that a shown quote is a stretch of the title, company, location or description. `_decide` joins the four fields with ". " and `flag` searches that joined text, so a model quote such as "Acme. Eng" (end of company plus ". " plus start of title) passes although no field contains it. The 6-character minimum is measured after folding, so a quote of "......" also passes when the posting contains it. Probed with `flag`: both return a `Flag`. Impact is low (nothing is removed; the user sees a odd quote) and no text outside the posting can appear.
+**Suggested fix:** Check the quote against each field separately (any one containing it), and require at least one letter or digit in the quote.
+**Resolution:**
+
+### F-142 [P3] open - Stale comment and tests that do not prove what they claim in the flag change
+
+**File:** engine/src/engine/jobs/screening.py:213, engine/tests/test_job_screen.py:124, engine/tests/test_job_screen_routes.py:62
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality, tests)
+**Why it matters:** (1) The comment "Joined with a full stop so a denial in one field cannot spill into the next" describes the deleted negation check; the join now only separates fields. (2) `assert not hasattr(found, "removed")` is true of any dataclass without that attribute and proves nothing; the real proof is the service-level test. (3) No test makes a `flagged` row go through the route and `JobScreenOut` (the route test only covers a gate removal), and `test_a_failed_rerun_does_not_erase_an_earlier_result` starts from a `passed` row, so the rule that a failed re-run keeps an earlier `flagged` result is not tested. (4) `test_a_very_long_posting_is_cut_for_the_model_but_checked_whole` now asserts a flag from a quote the model could not have seen; it no longer matches a real model's behaviour.
+**Suggested fix:** Reword the comment, replace the hasattr assertion with a route-level check that a flagged result has `removedBy` null, and add a flagged-then-failed-rerun test.
+**Resolution:**
+
+### F-143 [P3] open - Downgrade turns a flag into a `passed` row that still carries the flag reason
+
+**File:** engine/migrations/versions/0010_job_screen_flagged.py:29
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `downgrade` sets `outcome = 'passed'` for flagged rows but leaves `reason_code = 'dealbreaker'` and the "Possible match" reason, so a `passed` row has a dealbreaker reason, a state the 0009-era code never wrote. The signal is also lost silently. The constraint swap itself is correct and the test shows rows survive.
+**Suggested fix:** Also clear `reason_code` and `reason` for those rows (or map them to `unscreened` with a re-run reason).
 **Resolution:**

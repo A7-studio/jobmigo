@@ -249,3 +249,23 @@ def test_a_long_hostile_posting_is_checked_quickly() -> None:
     gates(description=text, work_modes=["onsite"], eligibility="Kenya")
     gates(location="Not remote " * 20_000, work_modes=["onsite"], eligibility="Kenya")
     assert time.perf_counter() - started < 1.0
+
+
+def test_a_location_that_offers_choices_is_not_one_clear_mode() -> None:
+    for location in (
+        "Nairobi or Remote",
+        "Remote / Hybrid",
+        "On-site & remote",
+        "Remote or on-site",
+        "Hybrid and remote",
+    ):
+        assert gates(location=location, work_modes=["onsite"]) is None, location
+        assert gates(location=location, work_modes=["remote"]) is None, location
+
+
+def test_a_plain_location_still_states_its_mode() -> None:
+    assert gates(location="Remote, EMEA", work_modes=["onsite"]) == "work_mode"
+    assert gates(location="On-site", work_modes=["remote"]) == "work_mode"
+    assert gates(location="Hybrid", work_modes=["remote"]) == "work_mode"
+    # An "or" in a place name that names no mode changes nothing.
+    assert gates(location="Nairobi or Mombasa", work_modes=["remote"]) is None

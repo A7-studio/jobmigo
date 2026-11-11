@@ -5,7 +5,7 @@ import uuid
 import asyncpg
 import pytest
 
-from tests.db import fetch, upgrade
+from tests.db import downgrade, fetch, upgrade
 
 USER = uuid.UUID("3f2b8c1e-7d4a-4c19-9a55-0b6f1d2e3a44")
 
@@ -75,6 +75,23 @@ async def test_check_constraints_reject_bad_rows(
         await run(db_url, INSERT, USER, job, track, outcome, removed_by)
 
 
+async def test_a_flagged_row_is_valid_and_needs_no_removed_by(db_url: str) -> None:
+    await upgrade(db_url)
+    job, track = await seed(db_url)
+    await run(db_url, INSERT, USER, job, track, "flagged", None)
+    rows = await fetch(db_url, "select outcome, removed_by from engine.job_screen")
+    assert [(r["outcome"], r["removed_by"]) for r in rows] == [("flagged", None)]
+
+
+async def test_a_flagged_row_cannot_claim_to_be_removed_by_someone(
+    db_url: str,
+) -> None:
+    await upgrade(db_url)
+    job, track = await seed(db_url)
+    with pytest.raises(asyncpg.CheckViolationError, match="ck_job_screen_removed"):
+        await run(db_url, INSERT, USER, job, track, "flagged", "screen")
+
+
 async def test_one_row_per_job_and_track(db_url: str) -> None:
     await upgrade(db_url)
     job, track = await seed(db_url)
@@ -100,3 +117,20 @@ async def test_a_row_needs_a_real_job_and_track(db_url: str) -> None:
     await upgrade(db_url)
     with pytest.raises(asyncpg.ForeignKeyViolationError):
         await run(db_url, INSERT, USER, uuid.uuid4(), uuid.uuid4(), "passed", None)
+
+
+async def test_upgrading_from_0009_keeps_rows_and_downgrading_unflags(
+    db_url: str,
+) -> None:
+    await upgrade(db_url, "0009")
+    job, track = await seed(db_url)
+    await run(db_url, INSERT, USER, job, track, "removed", "gate")
+    with pytest.raises(asyncpg.CheckViolationError, match="ck_job_screen_outcome"):
+        other_job, other_track = await seed(db_url)
+        await run(db_url, INSERT, USER, other_job, other_track, "flagged", None)
+    await upgrade(db_url)
+    other_job, other_track = await seed(db_url)
+    await run(db_url, INSERT, USER, other_job, other_track, "flagged", None)
+    await downgrade(db_url, "0009")
+    rows = await fetch(db_url, "select outcome from engine.job_screen order by outcome")
+    assert [r["outcome"] for r in rows] == ["passed", "removed"]

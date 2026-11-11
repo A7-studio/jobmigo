@@ -371,7 +371,7 @@ class JobScreen(Base):
     __tablename__ = "job_screen"
     __table_args__ = (
         CheckConstraint(
-            "outcome in ('passed', 'removed', 'unscreened')",
+            "outcome in ('passed', 'flagged', 'removed', 'unscreened')",
             name="ck_job_screen_outcome",
         ),
         CheckConstraint(

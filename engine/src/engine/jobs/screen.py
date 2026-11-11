@@ -1,9 +1,9 @@
 """The cheap screen: does the posting break one of the user's own dealbreakers?
 
 The posting is untrusted. It goes to the model as delimited data, and the reply is
-trusted only far enough to remove a job when it names one of the user's own
-dealbreakers and quotes the posting word for word. Nothing here logs the posting, a
-dealbreaker or a quote.
+trusted only far enough to flag a job when it names one of the user's own dealbreakers
+and quotes the posting word for word. A flag never removes a job. Nothing here logs the
+posting, a dealbreaker or a quote.
 """
 
 import re
@@ -137,144 +137,42 @@ SCREEN_TASK: AiTask[ScreenInput, ScreenOutput] = AiTask(
 
 
 @dataclass(frozen=True)
-class Verdict:
-    """The dealbreaker that removes the job, with the quote that proves it."""
+class Flag:
+    """A possible match for a dealbreaker of the user, in the posting's own words."""
 
     dealbreaker: str
     quote: str
 
     @property
     def reason(self) -> str:
-        return f'You ruled out "{self.dealbreaker}". The posting says: "{self.quote}"'
+        return (
+            f'Possible match for your dealbreaker "{self.dealbreaker}". '
+            f'The posting says: "{self.quote}"'
+        )
 
 
 def _fold(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().casefold()
 
 
-# Words that carry no meaning of their own in a dealbreaker such as "no crypto".
-_FUNCTION_WORDS = frozenset(
-    {
-        "no",
-        "not",
-        "non",
-        "without",
-        "any",
-        "a",
-        "an",
-        "the",
-        "of",
-        "to",
-        "in",
-        "on",
-        "for",
-        "and",
-        "or",
-        "with",
-        "at",
-        "by",
-        "is",
-        "are",
-        "be",
-        "i",
-        "my",
-        "me",
-        "you",
-        "your",
-        "we",
-        "our",
-        "it",
-        "its",
-    }
-)
-
-
-def _words(text: str) -> list[str]:
-    return re.findall(r"\w+", text.casefold())
-
-
-def _same_word(wanted: str, seen: str) -> bool:
-    """Equal, or one is a longer form of the other ("crypto", "cryptocurrency")."""
-    if wanted == seen:
-        return True
-    return min(len(wanted), len(seen)) >= 4 and (
-        wanted.startswith(seen) or seen.startswith(wanted)
-    )
-
-
-_ALTERNATIVES = re.compile(r",|/|;|\bor\b", re.IGNORECASE)
-_SENTENCE_END = re.compile(r"[.;:!?]")
-_NEGATOR = re.compile(r"\b(?:not|no|never|without|neither|nor)\b|n['\u2019]t\b", re.I)
-_CLAUSE_CHARS = 80
-
-
-def _alternatives(dealbreaker: str) -> list[list[str]]:
-    """The meaningful words of each way a dealbreaker can be met ("a or b" is two)."""
-    found = [
-        [w for w in _words(part) if w not in _FUNCTION_WORDS]
-        for part in _ALTERNATIVES.split(dealbreaker)
-    ]
-    return [words for words in found if words]
-
-
-def _negated(posting: str, at: int) -> bool:
-    """Whether a negator comes earlier in the same sentence as position `at`."""
-    before = posting[max(0, at - _CLAUSE_CHARS) : at]
-    ends = list(_SENTENCE_END.finditer(before))
-    clause = before[ends[-1].end() :] if ends else before
-    return _NEGATOR.search(clause) is not None
-
-
-def _shows(dealbreaker: str, posting: str, quote: str) -> bool:
-    """Whether the quote states the dealbreaker, in the posting, and not as a denial.
-
-    One way of meeting the dealbreaker must have every one of its meaningful words in
-    the quote, and none of those words may sit in a negated sentence of the posting
-    ("we never ask for an unpaid trial", or "No weekend work" for the dealbreaker "No
-    weekend work", which is the opposite of the rule). Posting text that merely shares
-    a common word with the dealbreaker proves nothing, and a meaning in different words
-    stays in: that costs one extra look, while the reverse costs a lost job.
-    """
-    start = posting.find(quote)
-    if start < 0:
-        return False
-    tokens = [(m.group(), m.start()) for m in re.finditer(r"\w+", quote)]
-    for words in _alternatives(dealbreaker):
-        spots: list[int] = []
-        for word in words:
-            at = next((pos for token, pos in tokens if _same_word(word, token)), None)
-            if at is None:
-                break
-            spots.append(at)
-        else:
-            if not any(_negated(posting, start + pos) for pos in spots):
-                return True
-    return False
-
-
-def verdict(
+def flag(
     output: ScreenOutput, dealbreakers: Sequence[str], posting: str
-) -> Verdict | None:
+) -> Flag | None:
     """The first hit that names one of the user's dealbreakers and quotes the posting.
 
-    A hit counts only when its dealbreaker is one the user wrote, its quote (ignoring
-    case and spacing) is a stretch of the posting at least `MIN_QUOTE_CHARS` long, and
-    the quote states the dealbreaker and does not deny it (see `_shows`). A reply that
-    fails any of these
-    leaves the job in.
+    A flag removes nothing: the user reads the quote and decides. It is shown only when
+    the dealbreaker is one the user wrote and the quote, ignoring case and spacing, is a
+    stretch of the posting at least `MIN_QUOTE_CHARS` long, so the model can never show
+    posting words that are not there. A weak or generic quote can still produce a flag;
+    that costs one glance, and no check of ours judges meaning.
     """
     mine = {_fold(item): item for item in dealbreakers}
     text = _fold(posting)
     for hit in output.dealbreaker_hits:
         own = mine.get(_fold(hit.dealbreaker))
         quote = _fold(hit.quote)
-        if (
-            own
-            and len(quote) >= MIN_QUOTE_CHARS
-            and quote in text
-            and _shows(own, text, quote)
-        ):
-            return Verdict(own, hit.quote)
+        if own and len(quote) >= MIN_QUOTE_CHARS and quote in text:
+            return Flag(own, hit.quote)
     return None
 
 
