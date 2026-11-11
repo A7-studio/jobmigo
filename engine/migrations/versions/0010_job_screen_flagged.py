@@ -26,8 +26,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # A flag is not a pass: drop its reason too, so no `passed` row carries one.
     op.execute(
-        "update engine.job_screen set outcome = 'passed' where outcome = 'flagged'"
+        "update engine.job_screen set outcome = 'passed', reason_code = null, "
+        "reason = null where outcome = 'flagged'"
     )
     op.drop_constraint(CONSTRAINT, "job_screen", schema=SCHEMA, type_="check")
     op.create_check_constraint(

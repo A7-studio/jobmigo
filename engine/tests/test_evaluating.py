@@ -564,3 +564,39 @@ async def test_an_edit_to_the_salary_floor_or_currency_is_not_served_from_the_ol
     assert not again.stale
     assert again.checks["salary"]["status"] == expected
     assert provider.calls == 2  # the model's answers did not depend on the floor
+
+
+async def test_another_users_row_at_the_same_key_is_never_read_or_replaced(
+    db_url: str, database: Database
+) -> None:
+    seeded = await confirmed_profile(db_url)
+    job = await add_job(db_url)
+    track = await add_track(db_url)
+    # A row owned by someone else that happens to sit on this job and track.
+    await run(
+        db_url,
+        "insert into engine.evaluation (user_id, job_id, track_id, profile_id, "
+        "profile_version, rules_key, cache_key, band, summary, requirements, checks) "
+        "values ($1, $2, $3, $4, 1, 'r', 'c', 'poor', 'theirs', '[]'::jsonb, "
+        "'{}'::jsonb)",
+        OTHER,
+        uuid.UUID(job),
+        uuid.UUID(track),
+        seeded.profile_id,
+    )
+    provider = Smart()
+    with pytest.raises(ApiError) as error:
+        await evaluate_job(
+            user_id=USER,
+            job_id=job,
+            body=body(track),
+            database=database,
+            env=ENV,
+            provider=provider,
+        )
+    assert error.value.code == "not_found"
+    rows = await fetch(db_url, "select user_id, band, summary from engine.evaluation")
+    assert [(r["user_id"], r["band"], r["summary"]) for r in rows] == [
+        (OTHER, "poor", "theirs")
+    ]
+    assert await list_evaluations(user_id=USER, job_id=job, database=database) == []

@@ -11,7 +11,7 @@ import hashlib
 import json
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
@@ -70,7 +70,7 @@ class JobScreenOut(BaseModel):
     variant_version: int = Field(serialization_alias="variantVersion")
     stale: bool
     outcome: str
-    removed_by: str | None = Field(serialization_alias="removedBy")
+    removed_by: Literal["gate"] | None = Field(serialization_alias="removedBy")
     reason_code: str | None = Field(serialization_alias="reasonCode")
     reason: str | None
     screen: ScreenNoteOut | None
@@ -210,11 +210,9 @@ async def _decide(
             "reason_code": code,
             "reason": reason,
         }
-    # Joined with a full stop so a denial in one field cannot spill into the next.
-    posting = ". ".join(
-        part for part in (job.title, job.company, job.location, job.description) if part
-    )
-    found = screen.flag(screened.output, track.dealbreakers, posting)
+    # Each field is checked on its own: a quote never spans two of them.
+    fields = [job.title, job.company, job.location, job.description]
+    found = screen.flag(screened.output, track.dealbreakers, fields)
     note = {
         "role_match": screened.output.role_match,
         "note": screened.output.note,

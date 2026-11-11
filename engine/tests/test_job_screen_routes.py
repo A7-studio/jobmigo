@@ -128,3 +128,40 @@ async def test_the_routes_need_the_engine_token(app: FastAPI) -> None:
         for method, suffix in (("POST", "screen"), ("GET", "screens")):
             r = await client.request(method, f"/internal/jobs/{job['id']}/{suffix}")
             assert r.status_code in (401, 403)
+
+
+async def test_a_flagged_result_goes_through_the_route_as_a_flag_not_a_removal(
+    app: FastAPI, db_url: str
+) -> None:
+    async with http(app) as client:
+        job = await add(client)
+        track = await add_gated_track(db_url, USER_A)
+        await run_sql(
+            db_url,
+            "insert into engine.job_screen (user_id, job_id, track_id, "
+            "variant_version, rules_key, outcome, reason_code, reason, screen) "
+            "values ($1, $2, $3, 1, 'k', 'flagged', 'dealbreaker', $4, $5::jsonb)",
+            USER_A,
+            uuid.UUID(job["id"]),
+            uuid.UUID(track),
+            'Possible match for your dealbreaker "no crypto". The posting says: "x"',
+            '{"role_match": "yes", "note": "Close."}',
+        )
+        r = await client.get(
+            f"/internal/jobs/{job['id']}/screens", headers=auth(USER_A)
+        )
+        assert r.status_code == 200, r.text
+        (row,) = r.json()
+        assert row["outcome"] == "flagged"
+        assert row["removedBy"] is None
+        assert row["reasonCode"] == "dealbreaker"
+        assert row["reason"].startswith("Possible match")
+        assert row["screen"] == {"roleMatch": "yes", "note": "Close."}
+
+
+async def run_sql(url: str, query: str, *args: object) -> None:
+    connection = await asyncpg.connect(url)
+    try:
+        await connection.execute(query, *args)
+    finally:
+        await connection.close()

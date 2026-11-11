@@ -176,7 +176,9 @@ async def evaluate_job(
         key = _cache_key(job, profile.id, profile.version, track)
         existing = await session.scalar(
             select(Evaluation).where(
-                Evaluation.job_id == jid, Evaluation.track_id == track.id
+                Evaluation.user_id == user_id,
+                Evaluation.job_id == jid,
+                Evaluation.track_id == track.id,
             )
         )
         current = (profile.id, profile.version)
@@ -264,6 +266,8 @@ async def evaluate_job(
                     index_elements=["job_id", "track_id"],
                     set_={k: statement.excluded[k] for k in values}
                     | {"updated_at": func.now()},
+                    # Only this user's own row is ever replaced.
+                    where=Evaluation.user_id == user_id,
                 )
             )
             await session.commit()
@@ -273,7 +277,9 @@ async def evaluate_job(
             raise not_found() from None  # the job, track or profile is gone
         row = await session.scalar(
             select(Evaluation).where(
-                Evaluation.job_id == jid, Evaluation.track_id == track.id
+                Evaluation.user_id == user_id,
+                Evaluation.job_id == jid,
+                Evaluation.track_id == track.id,
             )
         )
         if row is None:

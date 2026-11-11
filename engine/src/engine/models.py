@@ -374,9 +374,7 @@ class JobScreen(Base):
             "outcome in ('passed', 'flagged', 'removed', 'unscreened')",
             name="ck_job_screen_outcome",
         ),
-        CheckConstraint(
-            "removed_by in ('gate', 'screen')", name="ck_job_screen_removed_by"
-        ),
+        CheckConstraint("removed_by in ('gate')", name="ck_job_screen_removed_by"),
         CheckConstraint(
             "(outcome = 'removed') = (removed_by is not null)",
             name="ck_job_screen_removed",

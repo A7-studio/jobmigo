@@ -289,3 +289,8 @@ def test_a_reply_with_a_very_long_label_list_is_cut_not_refused() -> None:
     facts = [fact(f"S{i}") for i in range(1, 40)]
     result = verify(parsed, 1, facts)
     assert [f.label for f in result[0].evidence] == ["S1", "S2", "S3", "S4", "S5"]
+
+
+def test_more_than_sixty_judgements_are_cut_not_refused() -> None:
+    many = [one(i, "unknown", []) for i in range(1, 62)]
+    assert len(out(*many).judgements) == 60

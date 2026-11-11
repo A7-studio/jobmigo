@@ -57,6 +57,8 @@ _NEGATION = re.compile(
 )
 # A location that gives choices ("Nairobi or Remote", "Remote / Hybrid").
 _OFFERS = re.compile(r"\bor\b|\band\b|[/&]", re.I)
+# A denial anywhere in a location ("Nairobi (Remote work not allowed)").
+_DENIAL = re.compile(r"\b(?:not|no|never|without|cannot)\b|n['\u2019]t\b", re.I)
 _LISTED = re.compile(r"(?:,|/|&|\bor|\band)\s*$", re.I)
 # A region phrase turned inside out ("candidates outside the US only").
 _OUTSIDE = re.compile(
@@ -70,6 +72,21 @@ _LIMITED = re.compile(
     r"|\s*(?:during|until|while|initially|temporarily|at first|for the first)\b",
     re.I,
 )
+
+
+_BOUNDARY = re.compile(r"[\n.;:!?]")
+
+
+def is_negated(text: str, at: int) -> bool:
+    """Whether a negation ("not", "no", "never", ...) sits just before position `at`.
+
+    Only the same line or sentence counts: a denial on an earlier line says nothing
+    about what comes after the break.
+    """
+    before = text[max(0, at - 24) : at]
+    ends = list(_BOUNDARY.finditer(before))
+    clause = before[ends[-1].end() :] if ends else before
+    return _NEGATION.search(clause) is not None
 
 
 def _stated(pattern: re.Pattern[str], text: str, *, region: bool = False) -> bool:
@@ -133,9 +150,10 @@ def _modes_stated(title: str, location: str | None, description: str) -> set[str
             if _stated(pattern, location)
         }
         found |= in_location
-        # "Nairobi or Remote" offers remote as one of several: that is not a clear
-        # statement of one mode, so the mark below makes the whole posting unclear.
-        if in_location and _OFFERS.search(location):
+        # "Nairobi or Remote" offers remote as one of several, and "Nairobi (Remote work
+        # not allowed)" denies it: neither states one mode, so the mark below makes the
+        # whole posting unclear.
+        if in_location and (_OFFERS.search(location) or _DENIAL.search(location)):
             found.add("unclear")
     return found
 

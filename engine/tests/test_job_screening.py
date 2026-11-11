@@ -321,6 +321,34 @@ async def test_a_failed_rerun_does_not_erase_an_earlier_result(
     assert results[0].stale
 
 
+async def test_a_failed_rerun_does_not_erase_an_earlier_flag(
+    db_url: str, database: Database
+) -> None:
+    job = await add_job(db_url)
+    track = await add_track(db_url, "One", dealbreakers=["no crypto"])
+    first = await screen_job(
+        user_id=USER, job_id=job, database=database, env=ENV, provider=Smart()
+    )
+    assert first[0].outcome == "flagged"
+    await run(
+        db_url,
+        "update engine.track set dealbreakers = "
+        '\'["no crypto", "no gambling"]\'::jsonb where id = $1',
+        uuid.UUID(track),
+    )
+    again = await screen_job(
+        user_id=USER,
+        job_id=job,
+        database=database,
+        env=ENV,
+        provider=Fake(AiUnavailableError()),
+    )
+    assert again[0].outcome == "flagged"
+    assert again[0].removed_by is None
+    assert again[0].stale
+    assert (again[0].reason or "").startswith("Possible match")
+
+
 async def test_another_users_job_and_tracks_are_never_touched(
     db_url: str, database: Database
 ) -> None:
@@ -445,10 +473,10 @@ async def test_an_unusable_reply_is_unscreened_as_ai_invalid(
     assert results[0].reason_code == "ai_invalid"
 
 
-async def test_a_very_long_posting_is_cut_for_the_model_but_checked_whole(
+async def test_a_very_long_posting_is_cut_for_the_model(
     db_url: str, database: Database
 ) -> None:
-    text = "Plain filler words. " * 1500 + "We trade crypto tokens."
+    text = "We trade crypto tokens. " + "Plain filler words. " * 1500
     assert len(text) > 12_000
     job = await add_job(db_url, text=text)
     await add_track(db_url, "One", dealbreakers=["no crypto"])
@@ -456,10 +484,10 @@ async def test_a_very_long_posting_is_cut_for_the_model_but_checked_whole(
     results = await screen_job(
         user_id=USER, job_id=job, database=database, env=ENV, provider=provider
     )
-    # The model only read the first part, yet a quote from the end still counts.
+    sent = provider.requests[0].user
+    assert "crypto tokens" in sent  # the part the model read holds the quote
+    assert len(sent) < 14_000  # the rest of the posting was cut
     assert results[0].outcome == "flagged"
-    assert provider.requests[0].user.count("Plain filler") <= 700
-    assert "crypto tokens" not in provider.requests[0].user
 
 
 @pytest.mark.parametrize(

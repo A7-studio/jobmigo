@@ -62,6 +62,7 @@ async def test_a_valid_row_gets_defaults(db_url: str) -> None:
     [
         ("done", None, "ck_job_screen_outcome"),
         ("removed", "me", "ck_job_screen_removed_by"),
+        ("removed", "screen", "ck_job_screen_removed_by"),
         ("removed", None, "ck_job_screen_removed"),
         ("passed", "gate", "ck_job_screen_removed"),
     ],
@@ -130,7 +131,74 @@ async def test_upgrading_from_0009_keeps_rows_and_downgrading_unflags(
         await run(db_url, INSERT, USER, other_job, other_track, "flagged", None)
     await upgrade(db_url)
     other_job, other_track = await seed(db_url)
-    await run(db_url, INSERT, USER, other_job, other_track, "flagged", None)
+    await run(
+        db_url,
+        "insert into engine.job_screen (user_id, job_id, track_id, variant_version, "
+        "rules_key, outcome, reason_code, reason) values ($1, $2, $3, 1, 'k', "
+        "'flagged', 'dealbreaker', 'Possible match for your dealbreaker \"x\"')",
+        USER,
+        other_job,
+        other_track,
+    )
     await downgrade(db_url, "0009")
-    rows = await fetch(db_url, "select outcome from engine.job_screen order by outcome")
+    rows = await fetch(
+        db_url,
+        "select outcome, reason_code, reason from engine.job_screen order by outcome",
+    )
     assert [r["outcome"] for r in rows] == ["passed", "removed"]
+    # The flag became a plain pass: it must not keep a dealbreaker reason.
+    assert (rows[0]["reason_code"], rows[0]["reason"]) == (None, None)
+
+
+LEGACY = (
+    "insert into engine.job_screen (user_id, job_id, track_id, variant_version, "
+    "rules_key, outcome, removed_by, reason_code, reason) values ($1, $2, $3, 1, 'k', "
+    "'removed', 'screen', 'dealbreaker', $4)"
+)
+
+
+async def test_a_removal_by_the_old_screen_becomes_a_flag(db_url: str) -> None:
+    await upgrade(db_url, "0011")
+    job, track = await seed(db_url)
+    other_job, other_track = await seed(db_url)
+    await run(
+        db_url,
+        LEGACY,
+        USER,
+        job,
+        track,
+        'You ruled out "no crypto". The posting says: "x"',
+    )
+    await run(db_url, INSERT, USER, other_job, other_track, "removed", "gate")
+    await upgrade(db_url)
+    rows = await fetch(
+        db_url,
+        "select outcome, removed_by, reason_code, reason from engine.job_screen "
+        "order by outcome",
+    )
+    assert [(r["outcome"], r["removed_by"]) for r in rows] == [
+        ("flagged", None),
+        ("removed", "gate"),
+    ]
+    assert rows[0]["reason_code"] == "dealbreaker"
+    assert rows[0]["reason"] == (
+        'Possible match for your dealbreaker "no crypto". The posting says: "x"'
+    )
+    third_job, third_track = await seed(db_url)
+    with pytest.raises(asyncpg.CheckViolationError, match="ck_job_screen_removed_by"):
+        await run(
+            db_url,
+            LEGACY,
+            USER,
+            third_job,
+            third_track,
+            "old",
+        )
+
+
+async def test_downgrading_to_0011_allows_the_wider_check_again(db_url: str) -> None:
+    await upgrade(db_url)
+    await downgrade(db_url, "0011")
+    job, track = await seed(db_url)
+    await run(db_url, LEGACY, USER, job, track, "old")
+    assert len(await fetch(db_url, "select 1 from engine.job_screen")) == 1

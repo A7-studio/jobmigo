@@ -434,3 +434,319 @@ def test_pay_figures_written_with_k_or_decimals_are_read() -> None:
         posting,
     )
     assert result.pay is not None
+
+
+def one_importance(
+    description: str, quote: str, marker: str | None, claimed: str = "nice"
+) -> tuple[str, str]:
+    posting = ExtractInput(
+        title="t", company="c", location=None, description=description
+    )
+    result = verify(output(raw("Need", quote, claimed, marker)), posting)
+    only = result.requirements[0]
+    return only.importance, only.importance_source
+
+
+@pytest.mark.parametrize(
+    ("description", "marker"),
+    [
+        ("Not required: Kubernetes experience", "Not required"),
+        ("Not required: Kubernetes experience", "required"),
+        ("No requirements for: Kubernetes experience", "No requirements"),
+        ("You must not need: Kubernetes experience", "must not"),
+        ("Not a plus: Kubernetes experience", "a plus"),
+        ("Never optional: Kubernetes experience", "optional"),
+    ],
+)
+def test_a_negated_importance_wording_states_nothing(
+    description: str, marker: str
+) -> None:
+    for claimed in ("must", "nice", "important"):
+        _, source = one_importance(
+            description, "Kubernetes experience", marker, claimed
+        )
+        assert source == "inferred", (description, marker, claimed)
+
+
+def test_a_new_section_replaces_the_importance_above_it() -> None:
+    posting = (
+        "Requirements\n- Flutter experience\nGood to have\n- Kubernetes experience"
+    )
+    assert one_importance(posting, "Kubernetes experience", "Requirements", "must") == (
+        "important",
+        "inferred",
+    )
+    assert one_importance(posting, "Kubernetes experience", "Good to have", "must") == (
+        "nice",
+        "posting",
+    )
+    assert one_importance(posting, "Flutter experience", "Requirements", "nice") == (
+        "must",
+        "posting",
+    )
+
+
+@pytest.mark.parametrize("heading", ["Optional extras", "Extra credit", "Optional"])
+def test_optional_headings_state_nice(heading: str) -> None:
+    posting = f"Requirements\n- Flutter experience\n{heading}\n- Kubernetes experience"
+    assert one_importance(posting, "Kubernetes experience", "Requirements", "must")[
+        1
+    ] == ("inferred")
+    assert one_importance(posting, "Kubernetes experience", heading, "must") == (
+        "nice",
+        "posting",
+    )
+
+
+@pytest.mark.parametrize(
+    "section",
+    ["Responsibilities", "Benefits", "About us", "What we offer", "How to apply"],
+)
+def test_an_unrelated_section_below_the_heading_states_nothing(section: str) -> None:
+    posting = f"Requirements\n- Flutter experience\n{section}\n- Kubernetes experience"
+    assert one_importance(posting, "Kubernetes experience", "Requirements", "must") == (
+        "important",
+        "inferred",
+    )
+
+
+def test_a_quote_that_occurs_twice_states_nothing() -> None:
+    posting = "Requirements: Dart skills. Nice to have: Dart skills."
+    assert (
+        one_importance(posting, "Dart skills", "Requirements", "must")[1] == "inferred"
+    )
+
+
+def test_a_marker_inside_a_longer_word_is_not_a_marker() -> None:
+    assert one_importance("mustard skills", "mustard skills", "must", "must") == (
+        "important",
+        "inferred",
+    )
+    assert one_importance("requirements: go skills", "go skills", "irements", "must")[
+        1
+    ] == ("inferred")
+
+
+def test_a_quote_that_starts_mid_word_is_dropped() -> None:
+    posting = ExtractInput(
+        title="t", company="c", location=None, description="mustard skills"
+    )
+    assert (
+        verify(output(raw("Need", "ard skills", "must", "must")), posting).requirements
+        == []
+    )
+
+
+def test_a_quote_cannot_span_two_fields() -> None:
+    posting = ExtractInput(
+        title="Senior Engineer",
+        company="Acme Labs",
+        location=None,
+        description="Build apps",
+    )
+    spanning = verify(output(raw("Need", "Engineer Acme Labs")), posting)
+    assert spanning.requirements == []
+    inside = verify(output(raw("Need", "Acme Labs")), posting)
+    assert len(inside.requirements) == 1
+
+
+def test_a_requirement_in_the_title_states_nothing() -> None:
+    posting = ExtractInput(
+        title="Senior Flutter Engineer",
+        company="Acme",
+        location=None,
+        description="Requirements",
+    )
+    result = verify(
+        output(raw("Senior", "Senior Flutter Engineer", "must", "Requirements")),
+        posting,
+    )
+    assert result.requirements[0].importance_source == "inferred"
+
+
+def test_the_headings_postings_commonly_use_still_state_their_importance() -> None:
+    for heading, expected in (
+        ("What you need", "must"),
+        ("Must have", "must"),
+        ("Requirements", "must"),
+        ("Good to have", "nice"),
+        ("Nice to have", "nice"),
+        ("Preferred qualifications", "nice"),
+        ("Bonus points", "nice"),
+    ):
+        posting = f"{heading}\n- Strong Dart skills"
+        got = one_importance(posting, "Strong Dart skills", heading, "important")
+        assert got == (expected, "posting"), heading
+
+
+@pytest.mark.parametrize(
+    ("quote", "low", "high"),
+    [
+        ("pay 3-4k per month", 3000, 4000),
+        ("USD 80-100k a year", 80000, 100000),
+        ("between 80 to 100k", 80000, 100000),
+        ("3.000 to 4.500 per month", 3000, 4500),
+        ("3 000 to 4 500 per month", 3000, 4500),
+        ("up to 3.5k a month", None, 3500),
+        ("USD 3,000 to 4,500", 3000, 4500),
+    ],
+)
+def test_the_pay_formats_postings_use_are_read(
+    quote: str, low: int | None, high: int
+) -> None:
+    posting = ExtractInput(title="t", company="c", location=None, description=quote)
+    result = verify(
+        output(
+            pay={
+                "min": low,
+                "max": high,
+                "currency": "USD",
+                "period": "month",
+                "quote": quote,
+            }
+        ),
+        posting,
+    )
+    assert result.pay is not None
+    assert (result.pay.minimum, result.pay.maximum) == (low, high)
+
+
+@pytest.mark.parametrize(
+    ("quote", "low", "high"),
+    [
+        ("pay 3-4k per month", 3, 4000),  # a bare 3 is not in the posting
+        ("pay 3-4k per month", 3, 4),
+        ("USD 80-100k a year", 80, 100000),
+        ("3.000 to 4.500 per month", 3, 4500),
+    ],
+)
+def test_a_figure_the_range_does_not_contain_is_refused(
+    quote: str, low: int, high: int
+) -> None:
+    posting = ExtractInput(title="t", company="c", location=None, description=quote)
+    result = verify(
+        output(
+            pay={
+                "min": low,
+                "max": high,
+                "currency": "USD",
+                "period": "month",
+                "quote": quote,
+            }
+        ),
+        posting,
+    )
+    assert result.pay is None
+
+
+def test_more_than_sixty_requirements_are_cut_not_refused() -> None:
+    many = [raw(f"Skill {i}", f"Skill number {i:02d}") for i in range(61)]
+    parsed = ExtractOutput.model_validate({"requirements": many, "pay": None})
+    assert len(parsed.requirements) == 60
+
+
+@pytest.mark.parametrize(
+    "denial",
+    ["No degree needed", "no thanks.", "Never mind", "Not relevant here", "No"],
+)
+def test_a_denial_on_an_earlier_line_does_not_hide_the_next_heading(
+    denial: str,
+) -> None:
+    posting = f"Requirements\n- Python\n{denial}\nNice to have\n- Rust experience"
+    # "Requirements" is real, but "Nice to have" is the nearer heading.
+    assert one_importance(posting, "Rust experience", "Requirements", "must") == (
+        "important",
+        "inferred",
+    )
+    assert one_importance(posting, "Rust experience", "Nice to have", "must") == (
+        "nice",
+        "posting",
+    )
+
+
+def test_a_denial_on_the_same_line_still_states_nothing() -> None:
+    posting = "Requirements\n- Python\nNot a nice to have: Rust experience"
+    assert one_importance(posting, "Rust experience", "nice to have", "nice")[1] == (
+        "inferred"
+    )
+
+
+def test_a_denial_in_an_earlier_sentence_on_the_same_line_does_not_carry_over() -> None:
+    posting = "Not for everyone. Requirements: Rust experience"
+    assert one_importance(posting, "Rust experience", "Requirements", "nice") == (
+        "must",
+        "posting",
+    )
+
+
+def test_a_quote_wrapped_over_two_lines_is_still_found() -> None:
+    posting = ExtractInput(
+        title="t",
+        company="c",
+        location=None,
+        description="Requirements\nStrong Dart\nskills",
+    )
+    result = verify(
+        output(raw("Dart", "Strong Dart skills", "must", "Requirements")), posting
+    )
+    assert result.requirements[0].importance == "must"
+
+
+@pytest.mark.parametrize(
+    ("quote", "low", "high"),
+    [
+        ("USD 75,000.00 a year", None, 75000),
+        ("USD 3,000.50 a month", None, 3000),
+        ("EUR 3.000,00 a month", None, 3000),
+        ("EUR 3.500,50 a month", None, 3500),
+        ("EUR 3,5k a month", None, 3500),
+        ("80,000-100k a year", 80000, 100000),
+        ("USD 1,250,000 a year", None, 1250000),
+    ],
+)
+def test_the_number_formats_of_postings_are_read(
+    quote: str, low: int | None, high: int
+) -> None:
+    posting = ExtractInput(title="t", company="c", location=None, description=quote)
+    result = verify(
+        output(
+            pay={
+                "min": low,
+                "max": high,
+                "currency": "USD",
+                "period": "year",
+                "quote": quote,
+            }
+        ),
+        posting,
+    )
+    assert result.pay is not None, quote
+    assert (result.pay.minimum, result.pay.maximum) == (low, high)
+
+
+@pytest.mark.parametrize(
+    ("quote", "low", "high"),
+    [
+        ("USD 3,000 a month", 3, 3000),  # three digits after a comma are thousands
+        ("EUR 3.000 a month", 3, 3000),
+        ("USD 75,000.00 a year", 75, 75000),
+        ("80,000-100k a year", 80000000, 100000),
+    ],
+)
+def test_a_wrong_reading_of_a_format_is_refused(
+    quote: str, low: int, high: int
+) -> None:
+    posting = ExtractInput(title="t", company="c", location=None, description=quote)
+    result = verify(
+        output(
+            pay={
+                "min": low,
+                "max": high,
+                "currency": "USD",
+                "period": "year",
+                "quote": quote,
+            }
+        ),
+        posting,
+    )
+    assert result.pay is None, (quote, low, high)

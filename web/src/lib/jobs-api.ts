@@ -103,7 +103,7 @@ export type JobScreen = {
   /** The track changed after this result was made. */
   stale: boolean
   outcome: ScreenOutcome
-  removedBy: 'gate' | 'screen' | null
+  removedBy: 'gate' | null
   reasonCode: string | null
   /** One plain sentence. It may hold your dealbreaker and a quote from the posting: show it as text. A `flagged` result says "Possible match ...". */
   reason: string | null

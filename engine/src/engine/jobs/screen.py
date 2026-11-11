@@ -20,6 +20,7 @@ from engine.ai.provider import AiProvider
 from engine.ai.tasks import AiTask
 from engine.cv.parse import _clean
 from engine.db import Database
+from engine.jobs.quotes import fold, locate
 
 PROMPT_VERSION = "screen-3"
 # What the model reads of one posting. The quote check still uses the whole posting.
@@ -151,27 +152,24 @@ class Flag:
         )
 
 
-def _fold(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().casefold()
-
-
 def flag(
-    output: ScreenOutput, dealbreakers: Sequence[str], posting: str
+    output: ScreenOutput,
+    dealbreakers: Sequence[str],
+    posting: str | Sequence[str | None],
 ) -> Flag | None:
     """The first hit that names one of the user's dealbreakers and quotes the posting.
 
     A flag removes nothing: the user reads the quote and decides. It is shown only when
-    the dealbreaker is one the user wrote and the quote, ignoring case and spacing, is a
-    stretch of the posting at least `MIN_QUOTE_CHARS` long, so the model can never show
-    posting words that are not there. A weak or generic quote can still produce a flag;
-    that costs one glance, and no check of ours judges meaning.
+    the dealbreaker is one the user wrote and the quote is a stretch of one field of
+    the posting (see `quotes.locate`) at least `MIN_QUOTE_CHARS` long, so the model can
+    never show posting words that are not there. A weak or generic quote can still
+    produce a flag; that costs one glance, and no check of ours judges meaning.
     """
-    mine = {_fold(item): item for item in dealbreakers}
-    text = _fold(posting)
+    fields = [posting] if isinstance(posting, str) else list(posting)
+    mine = {fold(item): item for item in dealbreakers}
     for hit in output.dealbreaker_hits:
-        own = mine.get(_fold(hit.dealbreaker))
-        quote = _fold(hit.quote)
-        if own and len(quote) >= MIN_QUOTE_CHARS and quote in text:
+        own = mine.get(fold(hit.dealbreaker))
+        if own and locate(fields, hit.quote, min_chars=MIN_QUOTE_CHARS) is not None:
             return Flag(own, hit.quote)
     return None
 

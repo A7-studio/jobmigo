@@ -147,10 +147,17 @@ class Judgement(BaseModel):
     note: _Note = ""
 
 
+def _first_sixty(value: object) -> object:
+    """A long list is cut to its first entries, not refused."""
+    return value[:60] if isinstance(value, list) else value
+
+
 class EvidenceOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    judgements: list[Judgement] = Field(default_factory=list, max_length=60)
+    judgements: Annotated[list[Judgement], BeforeValidator(_first_sixty)] = Field(
+        default_factory=list
+    )
 
 
 SYSTEM = """\

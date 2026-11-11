@@ -269,3 +269,42 @@ def test_a_plain_location_still_states_its_mode() -> None:
     assert gates(location="Hybrid", work_modes=["remote"]) == "work_mode"
     # An "or" in a place name that names no mode changes nothing.
     assert gates(location="Nairobi or Mombasa", work_modes=["remote"]) is None
+
+
+def test_a_location_with_a_denial_is_not_one_clear_mode() -> None:
+    for location in (
+        "Nairobi (Remote work not allowed)",
+        "Nairobi - no remote work",
+        "Remote working isn't possible, Nairobi",
+        "On-site only, never remote",
+    ):
+        assert gates(location=location, work_modes=["onsite"]) is None, location
+        assert gates(location=location, work_modes=["remote"]) is None, location
+
+
+def test_a_plain_location_with_other_words_still_states_its_mode() -> None:
+    assert gates(location="Nairobi, Kenya (Remote)", work_modes=["onsite"]) == (
+        "work_mode"
+    )
+    assert gates(location="On-site, Nairobi", work_modes=["remote"]) == "work_mode"
+
+
+def test_is_negated_reads_the_words_just_before_a_position() -> None:
+    from engine.jobs.gates import is_negated
+
+    text = "This is not required here"
+    assert is_negated(text, text.index("required"))
+    assert not is_negated("This is required here", 8)
+    assert not is_negated("Required", 0)
+    assert is_negated("It isn't required", 17 - len("required"))
+
+
+def test_is_negated_only_looks_inside_the_same_line_or_sentence() -> None:
+    from engine.jobs.gates import is_negated
+
+    text = "No degree needed\nNice to have"
+    assert not is_negated(text, text.index("Nice"))
+    text = "Not for all. Required"
+    assert not is_negated(text, text.index("Required"))
+    text = "Not a plus"
+    assert is_negated(text, text.index("plus") - 2)

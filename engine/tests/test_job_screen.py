@@ -118,11 +118,32 @@ def test_a_role_match_of_no_never_flags_a_job() -> None:
     assert flag(reply_, ["no crypto"], POSTING) is None
 
 
-def test_a_flag_is_a_possible_match_it_is_never_a_removal() -> None:
-    found = flag(output(("no crypto", "trade crypto tokens")), ["no crypto"], POSTING)
+def test_a_flag_is_a_possible_match_with_the_users_own_wording() -> None:
+    found = flag(output(("NO CRYPTO", "trade crypto tokens")), ["no crypto"], POSTING)
     assert found is not None
-    assert not hasattr(found, "removed")
-    assert "Possible match" in found.reason
+    assert found.reason.startswith('Possible match for your dealbreaker "no crypto"')
+
+
+def test_a_quote_may_not_span_two_fields() -> None:
+    fields = ["Flutter Engineer", "Acme Labs", "Remote", "Build apps for patients."]
+    for quote in ("Engineer Acme Labs", "Engineer. Acme Labs", "Acme Labs Remote"):
+        assert flag(output(("no acme", quote)), ["no acme"], fields) is None, quote
+    assert flag(output(("no acme", "Acme Labs")), ["no acme"], fields) is not None
+
+
+def test_a_quote_in_the_title_or_location_can_flag() -> None:
+    fields = ["Crypto Exchange Engineer", "Acme", "On-site, Berlin", "Build apps."]
+    assert flag(
+        output(("no crypto", "Crypto Exchange Engineer")), ["no crypto"], fields
+    )
+    assert flag(output(("no berlin", "On-site, Berlin")), ["no berlin"], fields)
+
+
+def test_a_quote_that_starts_mid_word_or_is_only_punctuation_is_not_shown() -> None:
+    fields = ["Title", "Acme", None, "We need mustard skills......"]
+    assert flag(output(("no must", "ard skills")), ["no must"], fields) is None
+    assert flag(output(("no dots", "......")), ["no dots"], fields) is None
+    assert flag(output(("no mustard", "mustard skills")), ["no mustard"], fields)
 
 
 async def test_the_task_returns_the_validated_reply(database: Database) -> None:
