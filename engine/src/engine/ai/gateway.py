@@ -16,12 +16,16 @@ from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from engine.ai.config import Env, ModelSetting, cost_usd, create_provider, read_tier
-from engine.ai.errors import AiInputInvalidError, AiOutputInvalidError
+from engine.ai.errors import (
+    AiInputInvalidError,
+    AiOutputInvalidError,
+    AiUnavailableError,
+)
 from engine.ai.json import parse_model_output
 from engine.ai.provider import AiProvider, AiRequest
 from engine.ai.tasks import AiTask
@@ -89,6 +93,7 @@ async def _record(
     tokens_out: int,
     cost: Decimal | None,
     cache_hit: bool,
+    outcome: str = "ok",
 ) -> uuid.UUID:
     async with AsyncSession(database.engine, expire_on_commit=False) as session:
         row = UsageEvent(
@@ -101,12 +106,24 @@ async def _record(
             tokens_out=tokens_out,
             cost_usd=cost,
             cache_hit=cache_hit,
+            outcome=outcome,
         )
         session.add(row)
         await session.flush()
         event_id = row.id
         await session.commit()
     return event_id
+
+
+async def _mark_rejected(database: Database, event_id: uuid.UUID) -> None:
+    """The reply paid for in this row did not pass validation."""
+    async with AsyncSession(database.engine) as session:
+        await session.execute(
+            update(UsageEvent)
+            .where(UsageEvent.id == event_id)
+            .values(outcome="rejected")
+        )
+        await session.commit()
 
 
 async def _store(
@@ -225,14 +242,26 @@ async def run_task[I: BaseModel, O: BaseModel](
     message = user_message
 
     for attempt in (1, 2):
-        response = await adapter.complete(
-            AiRequest(
-                model=setting.model,
-                system=system,
-                user=message,
-                timeout_s=task.timeout_s,
+        try:
+            response = await adapter.complete(
+                AiRequest(
+                    model=setting.model,
+                    system=system,
+                    user=message,
+                    timeout_s=task.timeout_s,
+                )
             )
-        )
+        except AiUnavailableError:
+            await _record(
+                database,
+                base,
+                tokens_in=0,
+                tokens_out=0,
+                cost=Decimal(0),
+                cache_hit=False,
+                outcome="failed",
+            )
+            raise
         event_id = await _record(
             database,
             base,
@@ -259,6 +288,7 @@ async def run_task[I: BaseModel, O: BaseModel](
             )
             return RunResult(parsed.value, False, task.prompt_version, event_id)
 
+        await _mark_rejected(database, event_id)
         log.warning(
             "ai output rejected",
             extra={

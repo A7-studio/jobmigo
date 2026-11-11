@@ -62,6 +62,9 @@ class UsageEvent(Base):
         CheckConstraint(
             "tokens_in >= 0 and tokens_out >= 0", name="ck_usage_event_tokens"
         ),
+        CheckConstraint(
+            "outcome in ('ok', 'rejected', 'failed')", name="ck_usage_event_outcome"
+        ),
         Index("usage_event_user_created_idx", "user_id", "created_at"),
     )
 
@@ -77,6 +80,8 @@ class UsageEvent(Base):
     tokens_out: Mapped[int] = mapped_column(Integer)
     cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
     cache_hit: Mapped[bool] = mapped_column(Boolean)
+    # ok: a usable answer. rejected: a reply that failed validation. failed: no reply.
+    outcome: Mapped[str] = mapped_column(Text, server_default="ok")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

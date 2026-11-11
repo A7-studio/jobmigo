@@ -750,3 +750,19 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** Probed `RequirementOut.model_validate` with an old row (`importance: "must"`, `importance_source: "posting"`): it validates, drops the extra key and returns `importance: "must"`. `_out` computes `stale` only from profile id/version and the rules key, not from the prompt version, so such a row (band and "of N must-haves" summary decided by posting-read musts) is listed as current and not re-evaluated until the profile or rules change, although the cache key now includes `eval-extract-3`. The web `Importance` type no longer allows `must`, so the type is wrong for that data. No UI renders importance yet, so nothing user-visible breaks today; development data only.
 **Suggested fix:** None needed if no real rows exist; otherwise treat a row whose cache key no longer matches as stale, or reset the Evaluation table. Requirement lost: none.
 **Resolution:**
+
+### F-172 [P3] open - Report totals are rounded to whole cents, so a small total shows "$0.00" while its own rows show a price
+
+**File:** engine/src/engine/ai/usage_report.py:229
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
+**Why it matters:** `total_cost_usd`, `cache_savings_usd` and `compare.estimate_usd` are quantized to $0.01, but the per-workflow and per-row figures keep six places, and the page formats anything under a cent with four ("never a bare zero"). Reproduced with two priced `screen` calls at $0.001 and one cache hit: the workflow shows cost $0.002000, the row shows savings $0.001000, and the report totals are `0.00`, so the "Cost" and "Saved by the cache" tiles read "$0.00" and "Every call has a price" next to a table that shows $0.0020. The same happens to the paid-model estimate with small usage. A roll-up that disagrees with the rows it sums is the kind of mistake F-171 was; the spec says "to cents" for money, but not at the cost of a nonzero amount reading as zero.
+**Suggested fix:** Keep the totals at six places (the page's `usd()` already formats for people), or round only when the value is at least one cent.
+**Resolution:**
+
+### F-173 [P3] open - A workflow or row whose calls were all rejected shows "Unknown" for the average although every price is known
+
+**File:** engine/src/engine/ai/usage_report.py:131
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
+**Why it matters:** The average counts only `ok` calls with a price, so a row with only rejected (priced) calls has `avg_cost_usd = None`, and the page prints "Unknown" in "Per call" with `unknownCostCalls` 0 and a real cost beside it. Reproduced with two priced rejected `evaluate` calls: cost $0.040000, average `None`. This is the state a broken prompt version produces, the one staff most need to read correctly; "Unknown" contradicts the "cost unknown, never zero" rule's meaning. Cache savings for that row are also 0 for the same reason.
+**Suggested fix:** Show "No usable answers" (or a dash) when `calls > 0`, nothing is unpriced and the average is null, or add a field the page can use to say so.
+**Resolution:**

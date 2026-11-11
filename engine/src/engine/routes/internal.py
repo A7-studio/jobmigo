@@ -2,9 +2,10 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
+from engine.ai.usage_report import UsageReport, usage_report
 from engine.auth import CurrentUser, require_user
 from engine.cv import routes as cv_routes
 from engine.jobs import routes as job_routes
@@ -30,3 +31,9 @@ class WhoAmI(BaseModel):
 async def whoami(user_id: CurrentUser) -> WhoAmI:
     """Prove the boundary: echo the user id the caller vouched for."""
     return WhoAmI(user_id=user_id)
+
+
+@router.get("/admin/ai-usage")
+async def ai_usage(request: Request, days: int = 30) -> UsageReport:
+    """Aggregates over every user's ledger rows. The web server checks staff access."""
+    return await usage_report(request.app.state.database, days=days)

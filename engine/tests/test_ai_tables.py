@@ -49,6 +49,7 @@ async def test_the_ledger_and_cache_have_the_documented_columns(db_url: str) -> 
         "cost_usd",
         "cache_hit",
         "created_at",
+        "outcome",
     ]
     assert columns["ai_cache"] == [
         "user_id",
@@ -103,3 +104,22 @@ async def test_downgrade_removes_both_tables(db_url: str) -> None:
         "select table_name from information_schema.tables where table_schema='engine'",
     )
     assert [row["table_name"] for row in tables] == ["alembic_version"]
+
+
+async def test_the_ledger_outcome_defaults_to_ok_and_refuses_other_words(
+    db_url: str,
+) -> None:
+    await upgrade(db_url)
+    user = uuid.uuid4()
+    insert = (
+        "insert into engine.usage_event (user_id, workflow, provider, model,"
+        " prompt_version, tokens_in, tokens_out, cache_hit{extra})"
+        " values ($1, 'parse', 'p', 'm', 'v1', 1, 1, false{value})"
+    )
+    await run(db_url, insert.format(extra="", value=""), user)
+    rows = await fetch(
+        db_url, "select outcome from engine.usage_event where user_id = $1", user
+    )
+    assert [r["outcome"] for r in rows] == ["ok"]
+    with pytest.raises(asyncpg.CheckViolationError):
+        await run(db_url, insert.format(extra=", outcome", value=", 'maybe'"), user)

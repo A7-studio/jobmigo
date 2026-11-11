@@ -24,7 +24,9 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTodayRouteImport } from './routes/_app/today'
 import { Route as WaitlistConfirmRouteImport } from './routes/waitlist/confirm'
 import { Route as WaitlistUnsubscribeRouteImport } from './routes/waitlist/unsubscribe'
+import { Route as AppAdminAiRouteImport } from './routes/_app/admin.ai'
 import { Route as AppJobsJobIdRouteImport } from './routes/_app/jobs_.$jobId'
+import { Route as ApiAdminAiUsageRouteImport } from './routes/api/admin/ai-usage'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCvIndexRouteImport } from './routes/api/cv/index'
 import { Route as ApiJobsIndexRouteImport } from './routes/api/jobs/index'
@@ -122,10 +124,20 @@ const WaitlistUnsubscribeRoute = WaitlistUnsubscribeRouteImport.update({
   path: '/waitlist/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAdminAiRoute = AppAdminAiRouteImport.update({
+  id: '/admin/ai',
+  path: '/admin/ai',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppJobsJobIdRoute = AppJobsJobIdRouteImport.update({
   id: '/jobs_/$jobId',
   path: '/jobs/$jobId',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiAdminAiUsageRoute = ApiAdminAiUsageRouteImport.update({
+  id: '/api/admin/ai-usage',
+  path: '/api/admin/ai-usage',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -257,7 +269,9 @@ export interface FileRoutesByFullPath {
   '/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/admin/ai': typeof AppAdminAiRoute
   '/jobs/$jobId': typeof AppJobsJobIdRoute
+  '/api/admin/ai-usage': typeof ApiAdminAiUsageRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -296,7 +310,9 @@ export interface FileRoutesByTo {
   '/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/admin/ai': typeof AppAdminAiRoute
   '/jobs/$jobId': typeof AppJobsJobIdRoute
+  '/api/admin/ai-usage': typeof ApiAdminAiUsageRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -337,7 +353,9 @@ export interface FileRoutesById {
   '/_app/today': typeof AppTodayRoute
   '/waitlist/confirm': typeof WaitlistConfirmRoute
   '/waitlist/unsubscribe': typeof WaitlistUnsubscribeRoute
+  '/_app/admin/ai': typeof AppAdminAiRoute
   '/_app/jobs_/$jobId': typeof AppJobsJobIdRoute
+  '/api/admin/ai-usage': typeof ApiAdminAiUsageRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/jobs/fetch': typeof ApiJobsFetchRoute
   '/api/profile/confirm-all': typeof ApiProfileConfirmAllRoute
@@ -378,7 +396,9 @@ export interface FileRouteTypes {
     | '/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/admin/ai'
     | '/jobs/$jobId'
+    | '/api/admin/ai-usage'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -417,7 +437,9 @@ export interface FileRouteTypes {
     | '/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/admin/ai'
     | '/jobs/$jobId'
+    | '/api/admin/ai-usage'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -457,7 +479,9 @@ export interface FileRouteTypes {
     | '/_app/today'
     | '/waitlist/confirm'
     | '/waitlist/unsubscribe'
+    | '/_app/admin/ai'
     | '/_app/jobs_/$jobId'
+    | '/api/admin/ai-usage'
     | '/api/auth/$'
     | '/api/jobs/fetch'
     | '/api/profile/confirm-all'
@@ -492,6 +516,7 @@ export interface RootRouteChildren {
   SignUpRoute: typeof SignUpRoute
   WaitlistConfirmRoute: typeof WaitlistConfirmRoute
   WaitlistUnsubscribeRoute: typeof WaitlistUnsubscribeRoute
+  ApiAdminAiUsageRoute: typeof ApiAdminAiUsageRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiJobsFetchRoute: typeof ApiJobsFetchRoute
   ApiProfileConfirmAllRoute: typeof ApiProfileConfirmAllRoute
@@ -623,12 +648,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WaitlistUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/admin/ai': {
+      id: '/_app/admin/ai'
+      path: '/admin/ai'
+      fullPath: '/admin/ai'
+      preLoaderRoute: typeof AppAdminAiRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/jobs_/$jobId': {
       id: '/_app/jobs_/$jobId'
       path: '/jobs/$jobId'
       fullPath: '/jobs/$jobId'
       preLoaderRoute: typeof AppJobsJobIdRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/admin/ai-usage': {
+      id: '/api/admin/ai-usage'
+      path: '/api/admin/ai-usage'
+      fullPath: '/api/admin/ai-usage'
+      preLoaderRoute: typeof ApiAdminAiUsageRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -794,6 +833,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTodayRoute: typeof AppTodayRoute
+  AppAdminAiRoute: typeof AppAdminAiRoute
   AppJobsJobIdRoute: typeof AppJobsJobIdRoute
 }
 
@@ -804,6 +844,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTodayRoute: AppTodayRoute,
+  AppAdminAiRoute: AppAdminAiRoute,
   AppJobsJobIdRoute: AppJobsJobIdRoute,
 }
 
@@ -819,6 +860,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpRoute: SignUpRoute,
   WaitlistConfirmRoute: WaitlistConfirmRoute,
   WaitlistUnsubscribeRoute: WaitlistUnsubscribeRoute,
+  ApiAdminAiUsageRoute: ApiAdminAiUsageRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiJobsFetchRoute: ApiJobsFetchRoute,
   ApiProfileConfirmAllRoute: ApiProfileConfirmAllRoute,

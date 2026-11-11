@@ -259,6 +259,12 @@ async def test_retries_once_on_invalid_output_and_records_both_calls(
     assert "previous reply was rejected" in provider.calls[1].user
     assert "not json at all" not in provider.calls[1].user
     assert len(await events(db_url, user)) == 2
+    outcomes = await fetch(
+        db_url,
+        "select outcome from engine.usage_event where user_id = $1 order by created_at",
+        user,
+    )
+    assert [r["outcome"] for r in outcomes] == ["rejected", "ok"]
 
 
 async def test_fails_visibly_after_a_second_invalid_output_and_caches_nothing(
@@ -278,13 +284,17 @@ async def test_fails_visibly_after_a_second_invalid_output_and_caches_nothing(
         )
     assert caught.value.code == "ai_output_invalid"
     assert len(await events(db_url, user)) == 2
+    both = await fetch(
+        db_url, "select outcome from engine.usage_event where user_id = $1", user
+    )
+    assert [r["outcome"] for r in both] == ["rejected", "rejected"]
     assert await cache_rows(db_url) == []
 
 
-async def test_throws_ai_unavailable_and_writes_no_usage_row_when_the_provider_fails(
+async def test_throws_ai_unavailable_and_records_one_failed_row_when_the_provider_fails(
     database: Database, db_url: str
 ) -> None:
-    # 'throws ai_unavailable and writes no usage row when the provider fails'
+    # 'throws ai_unavailable and records one failed row when the provider fails'
     user = uuid.uuid4()
     with pytest.raises(AiUnavailableError):
         await run_task(
@@ -295,7 +305,15 @@ async def test_throws_ai_unavailable_and_writes_no_usage_row_when_the_provider_f
             env=ENV,
             provider=Fake(AiUnavailableError()),
         )
-    assert await events(db_url, user) == []
+    rows = await fetch(
+        db_url,
+        "select outcome, tokens_in, tokens_out from engine.usage_event"
+        " where user_id = $1",
+        user,
+    )
+    assert [(r["outcome"], r["tokens_in"], r["tokens_out"]) for r in rows] == [
+        ("failed", 0, 0)
+    ]
 
 
 async def test_rejects_invalid_input_before_any_provider_call(

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BTN, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { useMe } from '#/lib/useMe'
 import { useSignOut } from '#/lib/use-sign-out'
@@ -106,6 +106,20 @@ function Settings() {
           Sign out
         </button>
       </section>
+
+      {result.me.staff?.permissions.includes('overview.read') ? (
+        <section aria-labelledby="staff" className={CARD}>
+          <h2 id="staff" className="font-display text-lg font-bold text-ink">
+            Staff
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            What the AI calls cost and how well they went.
+          </p>
+          <Link to="/admin/ai" className={`${BTN} mt-3`}>
+            AI cost and quality
+          </Link>
+        </section>
+      ) : null}
 
       <section aria-labelledby="later" className={CARD}>
         <h2 id="later" className="font-display text-lg font-bold text-ink">
