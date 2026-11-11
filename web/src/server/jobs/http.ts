@@ -109,6 +109,40 @@ export const handleJobEvaluations = (
     () => checkId(id),
   )
 
+/** Write the kit (CV, letter or proposal, answers) for this job and the track in the body. */
+export const handleJobKit = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    { method: 'POST', path: `/internal/jobs/${id}/kit`, withBody: true },
+    () => checkId(id),
+  )
+
+/** The kept kit versions: the latest of each document, or every version of one track. */
+export const handleJobKits = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) => {
+  const track = new URL(request.url).searchParams.get('trackId')
+  return forward(
+    request,
+    deps,
+    {
+      method: 'GET',
+      path: `/internal/jobs/${id}/kits${track === null ? '' : `?trackId=${encodeURIComponent(track)}`}`,
+    },
+    () => {
+      checkId(id)
+      if (track !== null) checkId(track)
+    },
+  )
+}
+
 export const handleJobFetch = (request: Request, deps: JobsHttpDeps = {}) =>
   forward(request, deps, {
     method: 'POST',

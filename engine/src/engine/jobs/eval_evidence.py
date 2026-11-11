@@ -55,6 +55,8 @@ class Fact:
     kind: str
     id: uuid.UUID
     text: str
+    # The experience an achievement belongs to; None for every other kind of fact.
+    parent: uuid.UUID | None = None
 
 
 def _short(text: str) -> str:
@@ -78,13 +80,19 @@ async def load_facts(
     facts: list[Fact] = []
     total = 0
 
-    def add(prefix: str, kind: str, fact_id: uuid.UUID, text: str) -> None:
+    def add(
+        prefix: str,
+        kind: str,
+        fact_id: uuid.UUID,
+        text: str,
+        parent: uuid.UUID | None = None,
+    ) -> None:
         nonlocal total
         text = _short(text)
         if len(facts) >= MAX_FACTS or total + len(text) > MAX_FACT_CHARS:
             return
         count = sum(1 for f in facts if f.kind == kind)
-        facts.append(Fact(f"{prefix}{count + 1}", kind, fact_id, text))
+        facts.append(Fact(f"{prefix}{count + 1}", kind, fact_id, text, parent))
         total += len(text)
 
     async def rows[T](model: type[T]) -> list[T]:
@@ -104,7 +112,7 @@ async def load_facts(
         span = _span(e.start, e.end, e.is_current)
         add("E", "experience", e.id, f"{e.role} at {e.company}{span}: {bullets}")
     for a in await rows(Achievement):
-        add("A", "achievement", a.id, a.text)
+        add("A", "achievement", a.id, a.text, a.experience_id)
     for s in await rows(Skill):
         add("S", "skill", s.id, s.name)
     for p in await rows(Project):

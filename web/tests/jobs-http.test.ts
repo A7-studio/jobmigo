@@ -5,6 +5,8 @@ import {
   handleJobEvaluate,
   handleJobEvaluations,
   handleJobFetch,
+  handleJobKit,
+  handleJobKits,
   handleJobScreen,
   handleJobScreens,
   handleJobCreate,
@@ -51,9 +53,11 @@ describe('jobs handlers', () => {
       handleJobScreens(request('GET'), ID, deps),
       handleJobEvaluate(request('POST', { trackId: ID }), ID, deps),
       handleJobEvaluations(request('GET'), ID, deps),
+      handleJobKit(request('POST', { trackId: ID }), ID, deps),
+      handleJobKits(request('GET'), ID, deps),
     ])
     expect(results.map((r) => r.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ])
     expect(fetchFn).not.toHaveBeenCalled()
   })
@@ -291,5 +295,62 @@ describe('fetch handler', () => {
     )
     expect(r.status).toBe(422)
     expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  it('forward the kit routes with the track and the user', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      void init
+      return reply([])
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    const body = { trackId: ID, questions: ['Why us?'] }
+    expect((await handleJobKit(request('POST', body), ID, deps)).status).toBe(
+      200,
+    )
+    expect((await handleJobKits(request('GET'), ID, deps)).status).toBe(200)
+    expect(
+      (
+        await handleJobKits(
+          request('GET', undefined, `http://app.test/x?trackId=${ID}`),
+          ID,
+          deps,
+        )
+      ).status,
+    ).toBe(200)
+    expect(fetchFn.mock.calls.map(([url, init]) => [init.method, url])).toEqual(
+      [
+        ['POST', `http://engine.test:8000/internal/jobs/${ID}/kit`],
+        ['GET', `http://engine.test:8000/internal/jobs/${ID}/kits`],
+        [
+          'GET',
+          `http://engine.test:8000/internal/jobs/${ID}/kits?trackId=${ID}`,
+        ],
+      ],
+    )
+    expect(fetchFn.mock.calls[0][1].body).toBe(JSON.stringify(body))
+    for (const [, init] of fetchFn.mock.calls) {
+      expect(new Headers(init.headers).get('x-user-id')).toBe(USER)
+    }
+  })
+
+  it('refuse a bad job or track id before the engine', async () => {
+    const never = vi.fn()
+    const deps = { requireUser: signedIn, fetchFn: never, env }
+    expect(
+      (await handleJobKit(request('POST', { trackId: ID }), 'nope', deps))
+        .status,
+    ).toBe(404)
+    expect((await handleJobKits(request('GET'), 'nope', deps)).status).toBe(404)
+    expect(
+      (
+        await handleJobKits(
+          request('GET', undefined, 'http://app.test/x?trackId=nope'),
+          ID,
+          deps,
+        )
+      ).status,
+    ).toBe(404)
+    expect(never).not.toHaveBeenCalled()
   })
 })

@@ -790,3 +790,27 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** The sentence is built as "This is a ${label in lower case}", so the AI training role gives "a ai training role" and "Add a ai training role track". It is wrong English and shows an acronym in lower case.
 **Suggested fix:** Word it without an article, for example "This job is marked as AI training role, and a track only checks its own kind of work. Add a track of that kind in your profile." Keep the label's own case.
 **Resolution:**
+
+### F-185 [P2] open - The number check still passes a figure whose percent, magnitude or currency is written in a form it does not read: "35 %", "35 pc", "10 lakhs", "10 millions", "10 mln", "10万", "KES 130,000"
+
+**File:** engine/src/engine/jobs/kit_check.py:19
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security, correctness)
+**Why it matters:** The docstring says a percent sign after the digits, attached letters, and "a currency sign" are part of the number, so `35%`, `10bn` and `$10` differ from a plain figure. Reproduced with `numbers_in` and `check_block`: `35 %` (space before the sign), `35 pc`, `35‰`, `10×` all read as plain `35` / `10`; `10 lakhs`, `10 crores`, `10 lacs`, `10 millions`, `10 mln`, `10 bln`, `10 Millionen` (plurals and neighbours of listed words, so the list is finite as documented but the gap is the plural of words it does list) read as `10`; attached non-ASCII letters are dropped although the comment says attached letters are always kept (`10万`, `10млн` read as `10`); a currency written as a code or a name (`KES 130,000`, `Ksh 10`, `USD 10`, `R10`) reads as the bare digits, because only `$ € £ ¥ ₹` are signs. A cited fact "Led 35 engineers; served 10 users" passes the blocks "Grew revenue 35 % in a year", "Managed 10 lakhs of users" and "Paid KES 35 for 10 users" with no flag. The finite list is a stated limit; these are cases the docstring's own wording (percent sign, attached letters, currency) promises, or plurals of a word the list names. Weight is P2 because the person sees `sources` and reads the text, the model writes English from English facts, and the digits still must appear in a cited fact.
+**Suggested fix:** Read `\s?%`, `\s?pc` and `‰` as a percent; match unit words with an optional plural `s` (and `mln`, `bln`, `lakhs`, `crores`); keep any attached `\w` letters, not only `[a-z]`; read an ISO or common currency code or `KSh` before or after the digits as part of the number (or say in the docstring that only the listed signs are read); add the cases as tests.
+**Resolution:**
+
+### F-186 [P3] open - Digits split by an invisible mark, a fraction or a date-like hyphen are read as separate numbers, so a block can show a figure no fact states
+
+**File:** engine/src/engine/jobs/kit_check.py:68
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security)
+**Why it matters:** `_clean` removes control and format characters (so a zero-width space is gone) but not combining or variation marks. Reproduced: with a cited fact "Cut costs by 2 teams, 5% faster", the block "Cut cost 2͏5% faster" (a combining grapheme joiner, or U+FE0F, between the digits, which display as `25%`) passes with no flag, while the plain "25%" is flagged. A hostile posting can ask the model for such text. Also `numbers_in("1000-12")` is `["1000"]`: any four digits followed by `-01` to `-12` is taken as a date and the second figure is dropped, so "Handled 1000-12 sites" passes against a fact that says only "1000". Fractions: NFKC turns `½` into `1⁄2`, read as `1` and `2`, so it passes against facts that state a 1 and a 2. None of these is in the docstring's list of limits.
+**Suggested fix:** Drop combining and variation marks (categories Mn, Me, and U+FE0F) in `numbers_in` and in the block text, or flag any block whose digits are separated by a non-space, non-punctuation character; read a `YYYY-MM` as a date only when it is a plausible year; name fractions in the docstring.
+**Resolution:**
+
+### F-187 [P3] open - The kit never uses the track, and the spec's "track rules" are not in the cache key, so every track of a job gets an identical, separately paid kit
+
+**File:** engine/src/engine/jobs/kitting.py:104
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality, performance)
+**Why it matters:** The spec says a kit is for one job and one track and that a change of track rules makes a new version. `_cache_key` holds the posting, profile id and version, facts hash, questions and prompt version only, and no prompt (`kit_write.py`) carries the track's name or rules; the track only filters stored rows and the type check. Two tracks of one type therefore each trigger their own strong-tier calls with identical input (the gateway cache only helps within its own window), and a change to a track's rules neither re-runs nor changes the kit. Not a security issue; either the track is meant to shape the writing (then it is missing) or the spec wording is wrong. Also `parent` (the achievement's experience) is not in `_facts_hash`, so moving an achievement to another job reuses a kit whose bullets were checked against the old anchors.
+**Suggested fix:** Decide whether the track's rules reach the prompt. If so, send them and put them in the key; if not, reword the spec and note that tracks share a kit. Add `parent` to `_facts_hash`.
+**Resolution:**

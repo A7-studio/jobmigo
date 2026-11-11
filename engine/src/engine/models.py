@@ -461,3 +461,51 @@ class Evaluation(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class KitVersion(Base):
+    """One saved version of one application kit document for a job and a track."""
+
+    __tablename__ = "kit_version"
+    __table_args__ = (
+        CheckConstraint(
+            "doc_type in ('cv', 'letter', 'proposal', 'answers')",
+            name="ck_kit_version_doc_type",
+        ),
+        CheckConstraint("version >= 1", name="ck_kit_version_version"),
+        Index(
+            "kit_version_doc_uniq",
+            "job_id",
+            "track_id",
+            "doc_type",
+            "version",
+            unique=True,
+        ),
+        Index("kit_version_user_idx", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.job.id", ondelete="CASCADE")
+    )
+    track_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.track.id", ondelete="CASCADE")
+    )
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.profile.id", ondelete="CASCADE")
+    )
+    profile_version: Mapped[int] = mapped_column(Integer)
+    doc_type: Mapped[str] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer)
+    cache_key: Mapped[str] = mapped_column(Text)
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    fact_check: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    usage_event_ids: Mapped[list[str]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

@@ -7,10 +7,12 @@ import {
   evaluateJob,
   getJobEvaluations,
   getJobScreens,
+  getKits,
   listJobs,
   screenJob,
   setJobKind,
   setJobStatus,
+  writeKit,
 } from '#/lib/jobs-api'
 
 const ID = '9a1c2d3e-4b5f-4a6b-8c7d-0e1f2a3b4c5d'
@@ -32,6 +34,10 @@ describe('jobs-api', () => {
     await getJobScreens(ID, { fetchFn })
     await evaluateJob(ID, ID, { fetchFn })
     await getJobEvaluations(ID, { fetchFn })
+    await writeKit(ID, ID, [], { fetchFn })
+    await writeKit(ID, ID, ['Why us?'], { fetchFn })
+    await getKits(ID, undefined, { fetchFn })
+    await getKits(ID, ID, { fetchFn })
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
     expect(await deleteJob(ID, { fetchFn: del })).toEqual({
       ok: true,
@@ -63,6 +69,14 @@ describe('jobs-api', () => {
       ['GET', `/api/jobs/${ID}/screens`, undefined],
       ['POST', `/api/jobs/${ID}/evaluate`, JSON.stringify({ trackId: ID })],
       ['GET', `/api/jobs/${ID}/evaluations`, undefined],
+      ['POST', `/api/jobs/${ID}/kit`, JSON.stringify({ trackId: ID })],
+      [
+        'POST',
+        `/api/jobs/${ID}/kit`,
+        JSON.stringify({ trackId: ID, questions: ['Why us?'] }),
+      ],
+      ['GET', `/api/jobs/${ID}/kits`, undefined],
+      ['GET', `/api/jobs/${ID}/kits?trackId=${ID}`, undefined],
     ])
   })
 

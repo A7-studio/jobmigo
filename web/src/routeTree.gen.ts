@@ -41,6 +41,8 @@ import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
 import { Route as ApiJobsIdIndexRouteImport } from './routes/api/jobs/$id/index'
 import { Route as ApiJobsIdEvaluateRouteImport } from './routes/api/jobs/$id/evaluate'
 import { Route as ApiJobsIdEvaluationsRouteImport } from './routes/api/jobs/$id/evaluations'
+import { Route as ApiJobsIdKitRouteImport } from './routes/api/jobs/$id/kit'
+import { Route as ApiJobsIdKitsRouteImport } from './routes/api/jobs/$id/kits'
 import { Route as ApiJobsIdScreenRouteImport } from './routes/api/jobs/$id/screen'
 import { Route as ApiJobsIdScreensRouteImport } from './routes/api/jobs/$id/screens'
 import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/index'
@@ -209,6 +211,16 @@ const ApiJobsIdEvaluationsRoute = ApiJobsIdEvaluationsRouteImport.update({
   path: '/api/jobs/$id/evaluations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiJobsIdKitRoute = ApiJobsIdKitRouteImport.update({
+  id: '/api/jobs/$id/kit',
+  path: '/api/jobs/$id/kit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJobsIdKitsRoute = ApiJobsIdKitsRouteImport.update({
+  id: '/api/jobs/$id/kits',
+  path: '/api/jobs/$id/kits',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiJobsIdScreenRoute = ApiJobsIdScreenRouteImport.update({
   id: '/api/jobs/$id/screen',
   path: '/api/jobs/$id/screen',
@@ -284,6 +296,8 @@ export interface FileRoutesByFullPath {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/jobs/$id/evaluate': typeof ApiJobsIdEvaluateRoute
   '/api/jobs/$id/evaluations': typeof ApiJobsIdEvaluationsRoute
+  '/api/jobs/$id/kit': typeof ApiJobsIdKitRoute
+  '/api/jobs/$id/kits': typeof ApiJobsIdKitsRoute
   '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
   '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
@@ -325,6 +339,8 @@ export interface FileRoutesByTo {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/jobs/$id/evaluate': typeof ApiJobsIdEvaluateRoute
   '/api/jobs/$id/evaluations': typeof ApiJobsIdEvaluationsRoute
+  '/api/jobs/$id/kit': typeof ApiJobsIdKitRoute
+  '/api/jobs/$id/kits': typeof ApiJobsIdKitsRoute
   '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
   '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
@@ -368,6 +384,8 @@ export interface FileRoutesById {
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
   '/api/jobs/$id/evaluate': typeof ApiJobsIdEvaluateRoute
   '/api/jobs/$id/evaluations': typeof ApiJobsIdEvaluationsRoute
+  '/api/jobs/$id/kit': typeof ApiJobsIdKitRoute
+  '/api/jobs/$id/kits': typeof ApiJobsIdKitsRoute
   '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
   '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
@@ -411,6 +429,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/jobs/$id/evaluate'
     | '/api/jobs/$id/evaluations'
+    | '/api/jobs/$id/kit'
+    | '/api/jobs/$id/kits'
     | '/api/jobs/$id/screen'
     | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
@@ -452,6 +472,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/jobs/$id/evaluate'
     | '/api/jobs/$id/evaluations'
+    | '/api/jobs/$id/kit'
+    | '/api/jobs/$id/kits'
     | '/api/jobs/$id/screen'
     | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
@@ -494,6 +516,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/profile'
     | '/api/jobs/$id/evaluate'
     | '/api/jobs/$id/evaluations'
+    | '/api/jobs/$id/kit'
+    | '/api/jobs/$id/kits'
     | '/api/jobs/$id/screen'
     | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
@@ -529,6 +553,8 @@ export interface RootRouteChildren {
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
   ApiJobsIdEvaluateRoute: typeof ApiJobsIdEvaluateRoute
   ApiJobsIdEvaluationsRoute: typeof ApiJobsIdEvaluationsRoute
+  ApiJobsIdKitRoute: typeof ApiJobsIdKitRoute
+  ApiJobsIdKitsRoute: typeof ApiJobsIdKitsRoute
   ApiJobsIdScreenRoute: typeof ApiJobsIdScreenRoute
   ApiJobsIdScreensRoute: typeof ApiJobsIdScreensRoute
   ApiTracksIdPreferencesRoute: typeof ApiTracksIdPreferencesRoute
@@ -767,6 +793,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiJobsIdEvaluationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jobs/$id/kit': {
+      id: '/api/jobs/$id/kit'
+      path: '/api/jobs/$id/kit'
+      fullPath: '/api/jobs/$id/kit'
+      preLoaderRoute: typeof ApiJobsIdKitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jobs/$id/kits': {
+      id: '/api/jobs/$id/kits'
+      path: '/api/jobs/$id/kits'
+      fullPath: '/api/jobs/$id/kits'
+      preLoaderRoute: typeof ApiJobsIdKitsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/jobs/$id/screen': {
       id: '/api/jobs/$id/screen'
       path: '/api/jobs/$id/screen'
@@ -873,6 +913,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
   ApiJobsIdEvaluateRoute: ApiJobsIdEvaluateRoute,
   ApiJobsIdEvaluationsRoute: ApiJobsIdEvaluationsRoute,
+  ApiJobsIdKitRoute: ApiJobsIdKitRoute,
+  ApiJobsIdKitsRoute: ApiJobsIdKitsRoute,
   ApiJobsIdScreenRoute: ApiJobsIdScreenRoute,
   ApiJobsIdScreensRoute: ApiJobsIdScreensRoute,
   ApiTracksIdPreferencesRoute: ApiTracksIdPreferencesRoute,

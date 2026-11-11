@@ -1,9 +1,11 @@
 """The job routes. Auth is applied by the parent router."""
 
-from fastapi import APIRouter, Request, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Request, Response
 
 from engine.auth import CurrentUser
-from engine.jobs import evaluating, screening, service
+from engine.jobs import evaluating, kitting, screening, service
 from engine.jobs.models import MAX_BODY_BYTES, FetchOut, JobFull, JobOut
 from engine.profile.routes import _body, _database
 
@@ -97,3 +99,30 @@ async def delete_job(request: Request, job_id: str, user_id: CurrentUser) -> Res
         user_id=user_id, job_id=job_id, database=_database(request)
     )
     return Response(status_code=204)
+
+
+@router.post("/{job_id}/kit")
+async def write_kit(
+    request: Request, job_id: str, user_id: CurrentUser
+) -> list[kitting.KitVersionOut]:
+    return await kitting.generate_kit(
+        user_id=user_id,
+        job_id=job_id,
+        body=await _body(request),
+        database=_database(request),
+    )
+
+
+@router.get("/{job_id}/kits")
+async def list_kits(
+    request: Request,
+    job_id: str,
+    user_id: CurrentUser,
+    track_id: Annotated[str | None, Query(alias="trackId")] = None,
+) -> list[kitting.KitVersionOut]:
+    return await kitting.list_kits(
+        user_id=user_id,
+        job_id=job_id,
+        track_id=track_id,
+        database=_database(request),
+    )

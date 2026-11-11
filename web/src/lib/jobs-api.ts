@@ -204,3 +204,79 @@ export type FetchedPage = {
 /** Read a public job link; the cleaned text comes back and nothing is saved. */
 export const fetchJobPage = (url: string, deps: Deps = {}) =>
   call<FetchedPage>('/api/jobs/fetch', json('POST', { url }), deps)
+
+export type KitDocType = 'cv' | 'letter' | 'proposal' | 'answers'
+/** The labels the check uses; flags say what could not be traced. */
+export type KitFlag =
+  'no_source' | 'unsupported_number' | 'empty' | 'too_long' | 'off_entry'
+export type KitSource = { label: string; kind: string; id: string }
+/** A piece of wording and the confirmed facts behind it. Show `text` as text only. */
+export type KitBlock = {
+  text: string
+  sources: KitSource[]
+  flags: KitFlag[]
+  /** The numbers in `text` that none of its sources state. */
+  numbers: string[]
+}
+export type KitContent =
+  | {
+      docType: 'cv'
+      summary: KitBlock
+      entries: {
+        heading: string
+        kind: string
+        source: KitSource
+        bullets: KitBlock[]
+      }[]
+      skills: (KitSource & { name: string })[]
+    }
+  | { docType: 'letter' | 'proposal'; paragraphs: KitBlock[] }
+  | {
+      docType: 'answers'
+      answers: (KitBlock & { index: number; question: string })[]
+    }
+
+/** One saved version of one kit document. Only code decides `factCheck`; read the text yourself. */
+export type KitVersion = {
+  id: string
+  jobId: string
+  trackId: string
+  trackName: string
+  docType: KitDocType
+  version: number
+  profileVersion: number
+  /** Your profile changed after this was written. */
+  stale: boolean
+  content: KitContent
+  factCheck: {
+    blocks: number
+    flagged: number
+    /** Entries or skills the model named that your facts do not back, left out. */
+    omitted: number
+    flags: { path: string; flags: KitFlag[]; numbers: string[] }[]
+  }
+  createdAt: string
+}
+
+/** Write the kit for a job and a track; a model is called unless nothing changed. */
+export const writeKit = (
+  id: string,
+  trackId: string,
+  questions: string[] = [],
+  deps: Deps = {},
+) =>
+  call<KitVersion[]>(
+    `/api/jobs/${id}/kit`,
+    json('POST', questions.length > 0 ? { trackId, questions } : { trackId }),
+    deps,
+  )
+
+/** Kept kit versions without running anything. With a track: every version of it. */
+export const getKits = (id: string, trackId?: string, deps: Deps = {}) =>
+  call<KitVersion[]>(
+    trackId
+      ? `/api/jobs/${id}/kits?trackId=${encodeURIComponent(trackId)}`
+      : `/api/jobs/${id}/kits`,
+    { method: 'GET' },
+    deps,
+  )
