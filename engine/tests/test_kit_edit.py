@@ -234,3 +234,43 @@ def test_stored_content_with_missing_parts_is_refused_or_checked_not_a_crash(
     checked, summary = recheck(content, FACTS)
     assert checked == content
     assert summary["blocks"] == 0
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "entries.1.bullets.1\n",
+        "summary\n",
+        "entries." + chr(0x661) + ".bullets.1",  # an Arabic-Indic digit
+        "paragraphs." + chr(0xFF11),  # a full-width digit
+        " summary",
+    ],
+)
+def test_a_path_must_be_exactly_a_path_in_ascii(path: str) -> None:
+    content, _ = cv_content()
+    with pytest.raises(ApiError) as caught:
+        apply_edit(content, path, "edit", "x")
+    assert caught.value.code == "invalid_edit"
+
+
+def test_a_skill_whose_fact_is_gone_is_dropped_and_counted_by_the_recheck() -> None:
+    content, _ = cv_content()
+    assert [s["label"] for s in content["skills"]] == ["S1"]
+    without_skill = [f for f in FACTS if f is not S1]
+    again, summary = recheck(content, without_skill, 1)
+    assert again["skills"] == []
+    assert summary["omitted"] == 2  # the earlier one and this skill
+
+
+def test_a_skill_can_be_removed_but_not_edited() -> None:
+    content, _ = cv_content()
+    gone = apply_edit(content, "skills.1", "remove", None)
+    assert gone["skills"] == []
+    with pytest.raises(ApiError):
+        apply_edit(content, "skills.1", "edit", "Dart")
+    with pytest.raises(ApiError):
+        apply_edit(content, "skills.2", "remove", None)
+    with pytest.raises(ApiError):
+        apply_edit(gone, "skills.1", "remove", None)
+    again, _ = recheck(gone, FACTS)
+    assert again["skills"] == []

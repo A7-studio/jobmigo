@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  blockLimit,
   blocksOf,
   checkQuestions,
   checkSummary,
@@ -10,6 +11,7 @@ import {
   flagWords,
   kitCopy,
   needsYou,
+  preview,
   versionLabel,
 } from '#/lib/kit-view'
 import type { KitBlock, KitContent, KitVersion } from '#/lib/jobs-api'
@@ -266,5 +268,20 @@ describe('factLine', () => {
       ['s1', 'Flutter'],
       ['p1', 'Kakitoo'],
     ])
+  })
+})
+
+describe('blockLimit and preview', () => {
+  it('uses the engine limits by place', () => {
+    expect(blockLimit('summary')).toBe(600)
+    expect(blockLimit('entries.2.bullets.1')).toBe(300)
+    expect(blockLimit('paragraphs.3')).toBe(1200)
+    expect(blockLimit('answers.1')).toBe(1500)
+  })
+
+  it('shortens a statement so a button can name it', () => {
+    expect(preview('  Cut   bugs\nby 60%. ')).toBe('Cut bugs by 60%.')
+    expect(preview('x'.repeat(60))).toBe(`${'x'.repeat(40)}…`)
+    expect(preview('')).toBe('')
   })
 })

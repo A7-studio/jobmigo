@@ -775,15 +775,6 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Suggested fix:** Add an engine test that inserts an evaluation (see `save_evaluation` in test_evaluation_routes.py), changes the job type, expects `[]`, changes back and expects the same row; move the track filter and the empty-state choice into a pure function in `fit-view.ts` and test it.
 **Resolution:**
 
-### F-175 [P3] closed - After adding a track in Profile, the Fit step can still show "Add a ... track" for up to 30 seconds
-
-**File:** web/src/components/jobs/fit-step.tsx:60
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
-**Why it matters:** The Fit step reads tracks under the key `['fit-tracks']` while the Profile page creates and invalidates `['tracks']` (profile.tsx:165, :173). The query client has `staleTime: 30_000` (router.tsx:7), so returning to the job within 30 seconds of adding the matching-type track serves the cached list and repeats the empty state that sent the person to Profile. The new empty state makes this the main path for gig and AI training jobs. Evidenced by reading the keys and config; not run in a browser.
-**Suggested fix:** Use the same `['tracks']` key in the Fit step, or invalidate `['fit-tracks']` where tracks change.
-**Resolution:** Not reproduced in a browser on 2026-11-11: after adding a matching track in Profile and returning to the job through the app's links, the Fit step listed the new track. The cache window may have passed; the code reading still stands.
-Closed 2026-11-11 by feature 11b: the Fit step and the CV and letter step now read tracks under `['tracks']`, the key Profile invalidates; the independent review of 11b (9e21309) confirmed both use the same query and data.
-
 ### F-176 [P3] open - The Fit step's empty state reads "This is a ai training role"
 
 **File:** web/src/components/jobs/fit-step.tsx
@@ -816,50 +807,23 @@ Closed 2026-11-11 by feature 11b: the Fit step and the CV and letter step now re
 **Suggested fix:** Decide whether the track's rules reach the prompt. If so, send them and put them in the key; if not, reword the spec and note that tracks share a kit. Add `parent` to `_facts_hash`.
 **Resolution:**
 
-### F-188 [P2] open - An open edit box survives a Remove of another statement; the paths shift and Save overwrites a different statement
+### F-194 [P3] open - The edit box's `maxLength` counts UTF-16 units and raw whitespace, but the engine counts code points after cleaning, so a legal edit is cut or blocked
 
-**File:** web/src/components/jobs/kit-step.tsx:333
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
-**Why it matters:** `Document` keeps `editing = {path, text}` in its own state and never clears it when the version changes (`change.onSuccess` only resets `picked`; `Document` has no `key`). While one statement is open for editing, the Edit and Remove buttons of every other statement stay visible. Edit `entries.1.bullets.3`, then Remove `entries.1.bullets.1` on the same page: the engine saves a new version in which the old bullet 4 is now `entries.1.bullets.3`, the open textarea still holds the old bullet 3's text, and Save sends `edit` for `entries.1.bullets.3`, so the person's text silently replaces a different statement (the former bullet 4). The same stale path applies after any version change (a write again, a reload after 409). Evidenced by reading the component state flow; not run in a browser.
-**Suggested fix:** Clear `editing` whenever `version.id` changes (give `Document` `key={shown.id}`), or hide Edit and Remove on all other statements while one is being edited; send the version's own statement text check (or the old text) with the path if a stronger guard is wanted.
-**Resolution:**
+**File:** web/src/components/jobs/kit-step.tsx:700 (`maxLength={limit}`, `editing.length`), web/src/lib/kit-view.ts:251
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The engine limit is on `len(_clean(text))`: Python code points after control characters are dropped and whitespace is collapsed and trimmed. The browser `maxLength` and `.length` count UTF-16 units of the raw text. Reproduced with `apply_edit`: a bullet of 150 emoji plus 150 letters (300 code points, 450 UTF-16 units) is accepted by the engine, and a 420-character raw text with doubled spaces and newlines cleans to 239 and is accepted. The box stops the person at 300 units, and a paste is silently truncated at 300 with no message, so the tail words of a legal text are lost. The counter reads "300 of 300 characters" while the engine would allow more. The other direction (an illegal edit allowed) cannot happen; the engine refuses.
+**Suggested fix:** Drop the hard `maxLength`; count `[...cleaned].length` after collapsing whitespace the way the engine does, show "over by N" and disable Save when over, or at minimum count code points. Keep the engine as the authority.
 
-### F-189 [P2] open - The typed edit is thrown away before the save succeeds, so a refused or failed save loses the person's text
+### F-195 [P3] open - The "Saved as a new version." notice does not move focus or announce again on the second save, and old notices and errors linger
 
-**File:** web/src/components/jobs/kit-step.tsx:324
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
-**Why it matters:** `onSave` calls `onChange(...)` (which starts the mutation) and immediately `setEditing(null)`. If the engine answers `invalid_edit` (for example text over the block's cap: the textarea has no `maxLength` or counter, and the summary, bullet, paragraph and answer caps differ), `not_latest`, or the network fails, the page shows "Check the text and try again" while the text the person wrote is gone and the statement shows the old wording. Long cover letter paragraphs make an over-cap save plausible.
-**Suggested fix:** Close the editor in the mutation's `onSuccess` and keep the text on error; show the cap in the textarea (`maxLength` or a counter) using the engine limits.
-**Resolution:**
+**File:** web/src/components/jobs/kit-step.tsx:112-127 (`setNotice`, the focus `useEffect` on `[notice]`), :362-368 (version picker)
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The message is one of two fixed strings and is never cleared between saves. The second consecutive save sets the same string, so React bails out, the `[notice]` effect does not run, focus stays lost on the body (the pressed Save button was disabled and its document replaced), and a `role="status"` region whose text did not change is usually not announced again. This is the F-191 focus fix failing for every save after the first in a session on that document. The version picker also calls `setNotice(null)` but not `change.reset()`, so a failed save's top-level error stays on screen after the person picks another version, and a "Saved" notice from an earlier save stays beside a later failure. Found by reading the code; no DOM test is available.
+**Suggested fix:** Hold the notice as an object or a counter (`{text, n}`) so each save re-runs the effect, clear it when a new edit starts, and call `change.reset()` in the version picker's `onChange`.
 
-### F-190 [P3] open - Once an answers document exists, the question box cannot be emptied, so "write again" always re-sends the old questions
+### F-196 [P3] open - An open editor's typed text is dropped silently when a refetch or a switch replaces the version, and a failed save shows its message twice
 
-**File:** web/src/components/jobs/kit-step.tsx:158
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
-**Why it matters:** `questionsValue` falls back to the saved answers' questions whenever the local `questions` state is `''`. A person who deletes all text to write the kit again without questions sees the old questions reappear, and `startWriting` sends them, so an answers document is written (and paid for) again. Evidenced by reading; not run in a browser.
-**Suggested fix:** Track "touched" separately from the value (null until the person types), so an empty string is a real choice.
-**Resolution:**
-
-### F-191 [P3] open - Edit and Remove buttons share one name for every statement, and focus is lost after Save, Cancel and Remove
-
-**File:** web/src/components/jobs/kit-step.tsx:392
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness, accessibility)
-**Why it matters:** A screen reader lists many buttons named only "Edit" and "Remove" with no statement named; Remove has no confirmation and no live announcement of the result. Pressing Edit does not move focus into the textarea, and when Save, Cancel or Remove unmounts the focused button, focus drops to the page body. Saving also has no `role="status"` message.
-**Suggested fix:** Give each button an `aria-label` that names the statement (for example "Edit statement in Summary"), focus the textarea on Edit and the statement or its Edit button after Save or Cancel, and announce a save or removal in a status region.
-**Resolution:**
-
-### F-192 [P3] open - The recheck never looks at a CV's skills (or entry headings), so a skill whose fact is gone or edited stays listed unflagged
-
-**File:** engine/src/engine/jobs/kit_edit.py:123
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
-**Why it matters:** The spec says the whole document is checked again from the facts of the version's own profile that are still confirmed or edited. `recheck` copies `skills` through untouched: with the skill fact removed from the facts, the saved version still lists `{"name": "Flutter"}` and reports `flagged: 0` (reproduced with `recheck` on the test CV). The skills line shows the old fact wording, and `omitted` is not raised. The skills are not editable or removable either, so a person cannot fix the line. Entries whose own fact is gone keep their heading but their bullets are flagged `off_entry`, which hides the cause.
-**Suggested fix:** Drop skills (and count them in `omitted`) whose fact id is no longer among the facts, or flag them; refresh the name from the fact's current text.
-**Resolution:**
-
-### F-193 [P3] open - The path pattern ends in `$`, which accepts a trailing newline: `entries.1.bullets.1\n` is applied
-
-**File:** engine/src/engine/jobs/kit_edit.py:28
-**Found:** 2026-11-11 by /audit independent (scope: current; lens: security)
-**Why it matters:** `re.match` with `$` matches before a final newline, and `int("1\n")` succeeds, so a path with a trailing newline is accepted as the statement `entries.1.bullets.1` (reproduced with `apply_edit`; `paragraphs.1\n` and `summary\n` fail later only by luck of the checks). The raw path also goes into the cache-key material, so equal edits with different paths get different keys. No data exposure; it is a validation looseness in a function whose job is a strict path grammar.
-**Suggested fix:** Use `re.fullmatch` with `[0-9]` instead of `\d` (which also reads other Unicode digits), and add a test for a trailing newline.
-**Resolution:**
+**File:** web/src/components/jobs/kit-step.tsx:394 (`key={shown.id}`), :240 (`copy` Problem), :700 (editor alert)
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `key={shown.id}` correctly prevents a stale path from reaching another statement (checked: every `mutate` uses the `shown.id` and path from one render, and the engine answers 409 `not_latest` for any other). The cost is that a focus refetch (query `staleTime` is 30 s) that finds a newer version, or "Write again" while an editor is open, remounts the Document and discards the typed text with no message, while the person is told only that text is kept after a failed save. Separately, a failed save renders both the top `Problem` (`copy`, from `change.error`) and the in-editor `role="alert"` with the same body text, so it is announced twice and the top one has a "Reload" that discards the text. If the refetch after a successful save fails, the old version stays with the editor open and the next Save gets a 409.
+**Suggested fix:** Lock "Write again" and the tabs while an editor is open (or keep the draft in `KitStep` keyed by kit id and show "A newer version exists; your draft is kept"), and show the failed-save message only beside the editor.

@@ -8,7 +8,8 @@ block is flagged `no_source`. An edited block is the person's own words but is h
 the same check: an edit that adds a number its sources do not state is flagged.
 
 Paths are 1-based and are the ones the fact check already names: `summary`,
-`paragraphs.N`, `answers.N`, `entries.N` and `entries.N.bullets.M`.
+`paragraphs.N`, `answers.N`, `entries.N` and `entries.N.bullets.M`, plus `skills.N`,
+which can only be removed.
 """
 
 import copy
@@ -31,9 +32,11 @@ Action = Literal["edit", "remove"]
 MAX_PATH_CHARS = 40
 MAX_EDIT_CHARS = 2_000
 
+# ASCII digits only and the whole string: no trailing newline, no other scripts' digits.
 _PATH = re.compile(
-    r"^(?:summary|paragraphs\.[1-9]\d{0,2}|answers\.[1-9]\d{0,2}"
-    r"|entries\.[1-9]\d{0,2}(?:\.bullets\.[1-9]\d{0,2})?)$"
+    r"summary|paragraphs\.[1-9][0-9]{0,2}|answers\.[1-9][0-9]{0,2}"
+    r"|skills\.[1-9][0-9]{0,2}"
+    r"|entries\.[1-9][0-9]{0,2}(?:\.bullets\.[1-9][0-9]{0,2})?"
 )
 _LIMITS = {
     "summary": SUMMARY_CHARS,
@@ -48,7 +51,7 @@ def _refuse(message: str = "That change is not allowed.") -> ApiError:
 
 
 def _parts(path: str) -> list[str]:
-    if len(path) > MAX_PATH_CHARS or not _PATH.match(path):
+    if len(path) > MAX_PATH_CHARS or not _PATH.fullmatch(path):
         raise _refuse()
     return path.split(".")
 
@@ -73,6 +76,9 @@ def _holder(content: dict[str, Any], path: str) -> tuple[Any, Any, str]:
     if head == "answers" and doc == "answers":
         at = _index(content.get("answers", []), parts[1])
         return content["answers"], at, "answer"
+    if head == "skills" and doc == "cv":
+        at = _index(content.get("skills", []), parts[1])
+        return content["skills"], at, "skill"
     if head == "entries" and doc == "cv":
         entry_at = _index(content.get("entries", []), parts[1])
         entry = content["entries"][entry_at]
@@ -101,6 +107,8 @@ def apply_edit(
         raise _refuse("Write the statement to save.")
     if kind == "entry":
         raise _refuse("Edit the statements under an entry, not the entry itself.")
+    if kind == "skill":
+        raise _refuse("A skill can be removed but not edited.")
     if len(cleaned) > _LIMITS[kind]:
         raise _refuse(f"Keep it to {_LIMITS[kind]} characters or fewer.")
     holder[key]["text"] = cleaned
@@ -155,6 +163,11 @@ def recheck(
                 note(path, fresh)
                 bullets.append(fresh)
             entry["bullets"] = bullets
+        # A skill whose fact is gone is dropped and counted, like an unbacked entry.
+        kept = [k for k in out.get("skills", []) if k.get("id") in by_id]
+        check.omitted += len(out.get("skills", [])) - len(kept)
+        if "skills" in out:
+            out["skills"] = kept
     elif doc in ("letter", "proposal"):
         for n, block in enumerate(out.get("paragraphs", []), start=1):
             out["paragraphs"][n - 1] = _block(

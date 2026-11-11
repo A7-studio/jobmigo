@@ -246,3 +246,17 @@ export function factLine(fact: Fact): string {
 export function factLines(profile: Profile): Map<string, string> {
   return new Map(allFacts(profile).map(({ fact }) => [fact.id, factLine(fact)]))
 }
+
+/** How long a statement may be, by where it sits. These are the engine's own limits. */
+export function blockLimit(path: string): number {
+  if (path === 'summary') return 600
+  if (path.startsWith('paragraphs.')) return 1200
+  if (path.startsWith('answers.')) return 1500
+  return 300
+}
+
+/** The start of a statement, for a button's name, so each one is told apart. */
+export function preview(text: string, length = 40): string {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  return flat.length > length ? `${flat.slice(0, length).trimEnd()}…` : flat
+}
