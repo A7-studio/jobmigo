@@ -6,6 +6,7 @@ import logging
 import re
 import uuid
 from collections.abc import AsyncIterator
+from typing import Any
 
 import asyncpg
 import pytest
@@ -70,7 +71,7 @@ class Kit:
             count = len(re.findall(r"^\d+\. ", request.user, flags=re.MULTILINE))
             body = {
                 "answers": [
-                    {"index": i, "text": f"Answer {i}.", "sources": [first]}
+                    {"index": i, "text": "A plain answer.", "sources": [first]}
                     for i in range(1, count + 1)
                 ]
             }
@@ -672,3 +673,248 @@ async def test_concurrent_edits_make_one_version_each_in_order(
     refused = [r for r in results if isinstance(r, ApiError)]
     assert len(made) == 1 and len(refused) == 2
     assert all(r.code == "not_latest" for r in refused)
+
+
+async def export(
+    database: Database,
+    job: str,
+    kit_id: str,
+    *,
+    user: uuid.UUID = USER,
+    **body: object,
+) -> dict[str, str]:
+    from engine.jobs.kitting import export_kit
+
+    out = await export_kit(
+        user_id=user, job_id=job, kit_id=kit_id, body=dict(body), database=database
+    )
+    return out.model_dump(by_alias=True, mode="json")
+
+
+async def test_every_document_exports_as_pdf_and_docx_with_a_safe_name(
+    db_url: str, database: Database
+) -> None:
+    import base64
+    import io
+
+    from docx import Document
+    from pypdf import PdfReader
+
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    docs = await kit(database, job, track, Kit(), questions=["Why us?"])
+    assert [d["docType"] for d in docs] == ["cv", "letter", "answers"]
+    labels = {"cv": "CV", "letter": "Cover letter", "answers": "Answers"}
+    for doc in docs:
+        pdf = await export(
+            database,
+            job,
+            str(doc["id"]),
+            format="pdf",
+            name="Sam Gichu",
+            contact="x@y.z",
+        )
+        assert pdf["contentType"] == "application/pdf"
+        assert (
+            pdf["filename"] == f"Sam Gichu - {labels[str(doc['docType'])]} - Acme.pdf"
+        )
+        raw = base64.b64decode(pdf["data"])
+        assert raw.startswith(b"%PDF")
+        text = PdfReader(io.BytesIO(raw)).pages[0].extract_text()
+        assert "Sam Gichu" in text and "x@y.z" in text
+        word = await export(
+            database, job, str(doc["id"]), format="docx", name="Sam Gichu"
+        )
+        assert word["contentType"].endswith("wordprocessingml.document")
+        assert word["filename"].endswith(".docx")
+        document = Document(io.BytesIO(base64.b64decode(word["data"])))
+        assert document.paragraphs[0].text == "Sam Gichu"
+    cv_pdf = await export(database, job, str(docs[0]["id"]), format="pdf", name="S")
+    body = (
+        PdfReader(io.BytesIO(base64.b64decode(cv_pdf["data"]))).pages[0].extract_text()
+    )
+    assert "Built apps." in body  # the bullet the model wrote
+
+
+async def test_exporting_changes_nothing_in_the_database(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    before = await fetch(db_url, "select id, version from engine.kit_version")
+    await export(database, job, str(cv["id"]), format="pdf", name="Sam")
+    assert await fetch(db_url, "select id, version from engine.kit_version") == before
+
+
+async def test_a_statement_that_still_needs_the_person_refuses_the_export(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    flagged = await kit_edit_bullet(
+        database,
+        job,
+        str(cv["id"]),
+        path="entries.1.bullets.1",
+        action="edit",
+        text="Built 99 apps.",
+    )
+    with pytest.raises(ApiError) as caught:
+        await export(database, job, str(flagged["id"]), format="pdf", name="Sam")
+    assert (caught.value.status, caught.value.code) == (409, "needs_fixing")
+    assert caught.value.message.startswith("1 statement still needs you")
+    assert "Built 99 apps" not in caught.value.message
+    # removing the statement unblocks it
+    fixed = await kit_edit_bullet(
+        database, job, str(flagged["id"]), path="entries.1.bullets.1", action="remove"
+    )
+    out = await export(database, job, str(fixed["id"]), format="pdf", name="Sam")
+    assert out["filename"].endswith(".pdf")
+
+
+async def test_fixing_the_fact_unblocks_the_export_without_a_new_version(
+    db_url: str, database: Database
+) -> None:
+    seeded = await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    flagged = await kit_edit_bullet(
+        database,
+        job,
+        str(cv["id"]),
+        path="entries.1.bullets.1",
+        action="edit",
+        text="Built 99 apps.",
+    )
+    with pytest.raises(ApiError):
+        await export(database, job, str(flagged["id"]), format="docx", name="Sam")
+    await run(
+        db_url,
+        "update engine.experience set bullets = $2::jsonb where id = any($1)",
+        seeded.experience_ids,
+        json.dumps(["Built 99 apps"]),
+    )
+    before = await fetch(db_url, "select count(*) as n from engine.kit_version")
+    out = await export(database, job, str(flagged["id"]), format="docx", name="Sam")
+    assert out["filename"].endswith(".docx")
+    assert await fetch(db_url, "select count(*) as n from engine.kit_version") == before
+
+
+async def test_a_fact_the_person_unconfirmed_since_refuses_the_export(
+    db_url: str, database: Database
+) -> None:
+    seeded = await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    await run(
+        db_url,
+        "update engine.experience set status = 'extracted' where id = any($1)",
+        seeded.experience_ids,
+    )
+    with pytest.raises(ApiError) as caught:
+        await export(database, job, str(cv["id"]), format="pdf", name="Sam")
+    assert caught.value.code == "needs_fixing"
+
+
+async def test_an_older_version_can_be_exported(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    await kit_edit_bullet(
+        database, job, str(cv["id"]), path="summary", action="edit", text="New."
+    )
+    out = await export(database, job, str(cv["id"]), format="pdf", name="Sam")
+    assert out["filename"].endswith(".pdf")
+
+
+async def test_another_users_or_a_hidden_or_made_up_kit_cannot_be_exported(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    await confirmed_profile(db_url, OTHER)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    for user, job_id, kit_id in (
+        (OTHER, job, str(cv["id"])),
+        (USER, job, str(uuid.uuid4())),
+        (USER, job, "nope"),
+        (USER, "nope", str(cv["id"])),
+    ):
+        with pytest.raises(ApiError) as caught:
+            await export(database, job_id, kit_id, user=user, format="pdf", name="S")
+        assert caught.value.status == 404, (user, job_id, kit_id)
+    await run(
+        db_url, "update engine.job set kind = 'gig' where id = $1", uuid.UUID(job)
+    )
+    with pytest.raises(ApiError) as caught:
+        await export(database, job, str(cv["id"]), format="pdf", name="S")
+    assert caught.value.status == 404
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"format": "pdf"},
+        {"name": "Sam"},
+        {"format": "txt", "name": "Sam"},
+        {"format": "pdf", "name": ""},
+        {"format": "pdf", "name": "   "},
+        {"format": "pdf", "name": "x" * 81},
+        {"format": "pdf", "name": "Sam", "contact": "x" * 201},
+        {"format": "pdf", "name": "Sam", "contact": 5},
+        {"format": "pdf", "name": 7},
+        {"format": "pdf", "name": "Sam", "extra": 1},
+    ],
+)
+async def test_a_bad_export_request_is_refused(
+    db_url: str, database: Database, body: dict[str, Any]
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    with pytest.raises(ApiError) as caught:
+        await export(database, job, str(cv["id"]), **body)
+    assert caught.value.status == 422
+
+
+async def test_a_hostile_name_cannot_escape_the_file_name_or_the_file(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    out = await export(
+        database,
+        job,
+        str(cv["id"]),
+        format="pdf",
+        name="../../etc/<b>passwd</b>\\\\x",
+        contact="<script>alert(1)</script> & more",
+    )
+    assert "/" not in out["filename"] and "\\\\" not in out["filename"]
+    assert out["filename"].endswith(".pdf") and len(out["filename"]) <= 150
+
+
+async def test_nothing_the_person_wrote_is_logged_by_an_export(
+    db_url: str, database: Database, caplog: pytest.LogCaptureFixture
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    caplog.set_level(logging.DEBUG)
+    await export(
+        database,
+        job,
+        str(cv["id"]),
+        format="pdf",
+        name="Zebediah Quux",
+        contact="private-contact@example.test",
+    )
+    text = " ".join(r.getMessage() + str(r.__dict__) for r in caplog.records)
+    for secret in ("Zebediah", "private-contact", "Built apps"):
+        assert secret not in text

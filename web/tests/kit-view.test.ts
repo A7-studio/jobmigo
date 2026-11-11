@@ -184,6 +184,7 @@ describe('kitCopy', () => {
       'wrong_type',
       'validation_failed',
       'invalid_edit',
+      'needs_fixing',
       'not_latest',
       'not_found',
       'network',

@@ -139,3 +139,16 @@ async def edit_kit(
         body=await _body(request),
         database=_database(request),
     )
+
+
+@router.post("/{job_id}/kits/{kit_id}/export")
+async def export_kit(
+    request: Request, job_id: str, kit_id: str, user_id: CurrentUser
+) -> kitting.ExportOut:
+    return await kitting.export_kit(
+        user_id=user_id,
+        job_id=job_id,
+        kit_id=kit_id,
+        body=await _body(request),
+        database=_database(request),
+    )

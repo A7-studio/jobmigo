@@ -229,3 +229,111 @@ async def test_an_edit_is_saved_as_the_next_version_through_the_route(
     assert body["content"]["summary"]["text"] == "My own words."
     assert body["content"]["summary"]["edited"] is True
     assert set(body) == set(first)
+
+
+async def save_sourced_cv(
+    url: str, user: uuid.UUID, job: str, track: str, seeded: Any
+) -> str:
+    """A saved CV whose one statement cites a skill fact the person has confirmed."""
+    skill = seeded.skill_ids[0]
+    await run(
+        url,
+        "update engine.skill set status = 'confirmed' where id = $1",
+        skill,
+    )
+    content = {
+        "docType": "cv",
+        "summary": {
+            "text": "Flutter.",
+            "sources": [{"label": "S1", "kind": "skill", "id": str(skill)}],
+            "flags": [],
+            "numbers": [],
+        },
+        "entries": [],
+        "skills": [],
+    }
+    row = uuid.uuid4()
+    await run(
+        url,
+        "insert into engine.kit_version (id, user_id, job_id, track_id, profile_id,"
+        " profile_version, doc_type, version, cache_key, content, fact_check)"
+        " values ($1, $2, $3, $4, $5, 1, 'cv', 1, 'k', $6::jsonb, $7::jsonb)",
+        row,
+        user,
+        uuid.UUID(job),
+        uuid.UUID(track),
+        seeded.profile_id,
+        json.dumps(content),
+        json.dumps({"blocks": 1, "flagged": 0, "flags": [], "omitted": 0}),
+    )
+    return str(row)
+
+
+async def test_a_checked_kit_exports_as_json_with_the_file_in_base64(
+    app: FastAPI, db_url: str
+) -> None:
+    import base64
+
+    seeded = await seed_profile(db_url, USER_A)
+    async with http(app) as client:
+        job = await add(client)
+        track = await add_track(db_url, USER_A)
+        kit = await save_sourced_cv(db_url, USER_A, job["id"], track, seeded)
+        r = await client.post(
+            f"/internal/jobs/{job['id']}/kits/{kit}/export",
+            headers=auth(USER_A),
+            json={"format": "pdf", "name": "Sam Gichu", "contact": "sam@example.com"},
+        )
+    assert r.status_code == 200, r.text
+    body: dict[str, Any] = r.json()
+    assert set(body) == {"filename", "contentType", "data"}
+    assert body["contentType"] == "application/pdf"
+    assert body["filename"] == "Sam Gichu - CV - Acme.pdf"
+    assert base64.b64decode(body["data"]).startswith(b"%PDF")
+
+
+async def test_a_flagged_kit_is_refused_with_409_through_the_route(
+    app: FastAPI, db_url: str
+) -> None:
+    seeded = await seed_profile(db_url, USER_A)  # nothing confirmed: sources are gone
+    async with http(app) as client:
+        job = await add(client)
+        track = await add_track(db_url, USER_A)
+        await save_version(db_url, USER_A, job["id"], track, seeded.profile_id, 1)
+        first = (
+            await client.get(f"/internal/jobs/{job['id']}/kits", headers=auth(USER_A))
+        ).json()[0]
+        r = await client.post(
+            f"/internal/jobs/{job['id']}/kits/{first['id']}/export",
+            headers=auth(USER_A),
+            json={"format": "docx", "name": "Sam"},
+        )
+    assert r.status_code == 409, r.text
+    assert r.json()["code"] == "needs_fixing"
+    assert set(r.json()) == {"code", "message"}
+
+
+async def test_export_needs_the_token_and_refuses_foreign_and_bad_requests(
+    app: FastAPI, db_url: str
+) -> None:
+    seeded = await seed_profile(db_url, USER_B)
+    async with http(app) as client:
+        theirs = await add(client, USER_B)
+        their_track = await add_track(db_url, USER_B)
+        kit = await save_sourced_cv(db_url, USER_B, theirs["id"], their_track, seeded)
+        path = f"/internal/jobs/{theirs['id']}/kits/{kit}/export"
+        body = {"format": "pdf", "name": "Sam"}
+        assert (await client.post(path, json=body)).status_code == 401
+        assert (
+            await client.post(path, headers=auth(USER_A), json=body)
+        ).status_code == 404
+        for bad in (
+            {},
+            {"format": "exe", "name": "Sam"},
+            {"format": "pdf", "name": ""},
+        ):
+            r = await client.post(path, headers=auth(USER_B), json=bad)
+            assert r.status_code == 422, bad
+            assert set(r.json()) == {"code", "message"}
+        ok = await client.post(path, headers=auth(USER_B), json=body)
+        assert ok.status_code == 200, ok.text

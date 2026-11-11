@@ -297,3 +297,69 @@ export const editKit = (
   deps: Deps = {},
 ) =>
   call<KitVersion>(`/api/jobs/${id}/kits/${kitId}`, json('PATCH', change), deps)
+
+export type ExportRequest = {
+  format: 'pdf' | 'docx'
+  /** The name on the document, in your own words. Not checked. */
+  name: string
+  /** One contact line, optional. Not checked. */
+  contact?: string
+}
+
+/** The file name a download is saved under, from its `content-disposition` header. */
+export function fileNameFrom(disposition: string | null): string | null {
+  if (!disposition) return null
+  const starred = /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+  if (starred?.[1]) {
+    try {
+      return decodeURIComponent(starred[1])
+    } catch {
+      return null
+    }
+  }
+  const plain = /filename="([^"]+)"/i.exec(disposition)
+  return plain?.[1] ?? null
+}
+
+/**
+ * Make a PDF or DOCX of one kit version. The engine checks it again first and refuses with
+ * `needs_fixing` while a statement still needs you. Nothing is stored.
+ */
+export async function exportKit(
+  id: string,
+  kitId: string,
+  request: ExportRequest,
+  deps: Deps = {},
+): Promise<Result<{ blob: Blob; filename: string }>> {
+  const fetchFn = deps.fetchFn ?? fetch
+  let response: Response
+  try {
+    response = await fetchFn(`/api/jobs/${id}/kits/${kitId}/export`, {
+      credentials: 'same-origin',
+      ...json('POST', request),
+    })
+  } catch {
+    return { ok: false, code: 'network', message: 'Network error.' }
+  }
+  if (response.ok) {
+    try {
+      const blob = await response.blob()
+      const filename =
+        fileNameFrom(response.headers.get('content-disposition')) ??
+        `document.${request.format}`
+      return { ok: true, data: { blob, filename } }
+    } catch {
+      return { ok: false, code: 'unexpected', message: 'Unexpected response.' }
+    }
+  }
+  let body: unknown
+  try {
+    body = await response.json()
+  } catch {
+    return { ok: false, code: 'unexpected', message: 'Unexpected response.' }
+  }
+  const raw = (body as { code?: unknown } | null)?.code
+  const code =
+    typeof raw === 'string' && SAFE_CODE.test(raw) ? raw : 'unexpected'
+  return { ok: false, code, message: 'Request failed.' }
+}

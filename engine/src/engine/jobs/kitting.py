@@ -10,6 +10,7 @@ documents are never logged.
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import uuid
@@ -27,12 +28,13 @@ from engine.cv.parse import _clean
 from engine.cv.service import not_found
 from engine.db import Database
 from engine.errors import ApiError
-from engine.jobs import kit_edit, kit_write
+from engine.jobs import kit_edit, kit_export, kit_write
 from engine.jobs.eval_evidence import Fact, load_facts
 from engine.jobs.kit_write import MAX_QUESTION_CHARS, MAX_QUESTIONS, PostingIn, Written
 from engine.jobs.service import _id
 from engine.models import Job, KitVersion, Track
 from engine.profile.service import _validated, latest_profile
+from engine.storage import clean_filename
 
 MAX_VERSIONS = 10
 DOC_ORDER = ("cv", "letter", "proposal", "answers")
@@ -500,3 +502,93 @@ async def edit_kit(
         profile = await latest_profile(session, user_id)
         current = (profile.id, profile.version) if profile else None
         return _out(row, track, current)
+
+
+def _name(value: object) -> object:
+    return _clean(value) if isinstance(value, str) else value
+
+
+class ExportIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    format: Literal["pdf", "docx"]
+    name: Annotated[str, BeforeValidator(_name), Field(min_length=1, max_length=80)]
+    contact: Annotated[str, BeforeValidator(_name), Field(max_length=200)] = ""
+
+
+class ExportOut(BaseModel):
+    """A file, in base64: the web server's engine client reads JSON only."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    filename: str
+    content_type: str = Field(serialization_alias="contentType")
+    data: str
+
+
+_CONTENT_TYPES = {
+    "pdf": "application/pdf",
+    "docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+}
+
+
+async def export_kit(
+    *,
+    user_id: uuid.UUID,
+    job_id: str,
+    kit_id: str,
+    body: dict[str, object],
+    database: Database,
+) -> ExportOut:
+    """Make a PDF or DOCX of one saved version, on demand. Nothing is saved.
+
+    The version is checked again against the facts the person has confirmed or edited
+    now, so an export is never built from a stale check: a statement still flagged
+    refuses the export (`needs_fixing`) until it is removed or edited, or its fact is.
+    """
+    jid = _id(job_id)
+    kid = _id(kit_id)
+    wanted: ExportIn = _validated(ExportIn, body)
+    async with AsyncSession(database.engine) as session:
+        job = await _owned_job(session, user_id, jid)
+        row = await session.scalar(
+            select(KitVersion).where(
+                KitVersion.id == kid,
+                KitVersion.user_id == user_id,
+                KitVersion.job_id == jid,
+            )
+        )
+        track = (
+            await session.scalar(
+                select(Track).where(Track.id == row.track_id, Track.user_id == user_id)
+            )
+            if row is not None
+            else None
+        )
+        if row is None or track is None or track.kind != job.kind:
+            raise not_found()
+        facts = await load_facts(session, user_id, row.profile_id)
+        content, check = kit_edit.recheck(
+            row.content, facts, int(row.fact_check.get("omitted", 0))
+        )
+        company, doc_type = job.company, row.doc_type
+    flagged = int(check["flagged"])
+    if flagged:
+        need = "statement still needs" if flagged == 1 else "statements still need"
+        raise ApiError(
+            409,
+            "needs_fixing",
+            f"{flagged} {need} you. Edit or remove them, or fix the fact they cite.",
+        )
+    label = kit_export.DOC_LABELS[doc_type]
+    doc = kit_export.build_doc(content, wanted.name, wanted.contact, label)
+    render = kit_export.render_pdf if wanted.format == "pdf" else kit_export.render_docx
+    data = await asyncio.to_thread(render, doc)
+    filename = clean_filename(
+        f"{wanted.name} - {label} - {company}.{wanted.format}", limit=150
+    )
+    return ExportOut(
+        filename=filename,
+        content_type=_CONTENT_TYPES[wanted.format],
+        data=base64.b64encode(data).decode("ascii"),
+    )

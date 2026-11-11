@@ -7,6 +7,7 @@ import {
   handleJobFetch,
   handleJobKit,
   handleJobKitEdit,
+  handleJobKitExport,
   handleJobKits,
   handleJobScreen,
   handleJobScreens,
@@ -57,9 +58,15 @@ describe('jobs handlers', () => {
       handleJobKit(request('POST', { trackId: ID }), ID, deps),
       handleJobKits(request('GET'), ID, deps),
       handleJobKitEdit(request('PATCH', { path: 'summary' }), ID, ID, deps),
+      handleJobKitExport(
+        request('POST', { format: 'pdf', name: 'S' }),
+        ID,
+        ID,
+        deps,
+      ),
     ])
     expect(results.map((r) => r.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ])
     expect(fetchFn).not.toHaveBeenCalled()
   })
@@ -383,5 +390,107 @@ describe('fetch handler', () => {
       ).toBe(404)
     }
     expect(never).not.toHaveBeenCalled()
+  })
+
+  describe('the export download', () => {
+    const PDF = 'application/pdf'
+    const bytes = new Uint8Array([37, 80, 68, 70, 45, 49])
+    const b64 = Buffer.from(bytes).toString('base64')
+    const ask = (reply_: Response, name = 'S') => {
+      const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+        void url
+        void init
+        return reply_
+      })
+      const deps = { requireUser: signedIn, fetchFn, env }
+      return {
+        fetchFn,
+        run: () =>
+          handleJobKitExport(
+            request('POST', { format: 'pdf', name }),
+            ID,
+            ID,
+            deps,
+          ),
+      }
+    }
+
+    it('turns the engine answer into a real, safe file response', async () => {
+      const { run, fetchFn } = ask(
+        reply({
+          filename: 'José "Q" Müller/../x - CV.pdf',
+          contentType: PDF,
+          data: b64,
+        }),
+      )
+      const r = await run()
+      expect(r.status).toBe(200)
+      expect(r.headers.get('content-type')).toBe(PDF)
+      expect(r.headers.get('cache-control')).toBe('no-store')
+      expect(r.headers.get('x-content-type-options')).toBe('nosniff')
+      expect(r.headers.get('content-length')).toBe(String(bytes.byteLength))
+      const disposition = r.headers.get('content-disposition') ?? ''
+      expect(disposition.startsWith('attachment; filename="')).toBe(true)
+      expect(disposition).not.toMatch(/["]{2}|\.\.\//)
+      expect(decodeURIComponent(disposition.split("UTF-8''")[1])).toBe(
+        'José Q Müller..x - CV.pdf',
+      )
+      expect(new Uint8Array(await r.arrayBuffer())).toEqual(bytes)
+      expect(fetchFn.mock.calls[0][0]).toBe(
+        `http://engine.test:8000/internal/jobs/${ID}/kits/${ID}/export`,
+      )
+      expect(fetchFn.mock.calls[0][1].method).toBe('POST')
+    })
+
+    it('passes an engine refusal through unchanged', async () => {
+      const { run } = ask(
+        reply(
+          { code: 'needs_fixing', message: '1 statement still needs you.' },
+          409,
+        ),
+      )
+      const r = await run()
+      expect(r.status).toBe(409)
+      expect(await r.json()).toMatchObject({ code: 'needs_fixing' })
+    })
+
+    it('refuses an answer that is not a file it expects', async () => {
+      for (const odd of [
+        { filename: 'a.pdf', contentType: 'text/html', data: b64 },
+        { filename: 'a.pdf', contentType: PDF, data: 'not base64!!' },
+        { filename: 5, contentType: PDF, data: b64 },
+        { filename: 'a.pdf', contentType: PDF },
+        {
+          filename: 'a.pdf',
+          contentType: PDF,
+          data: 'A'.repeat(8 * 1024 * 1024),
+        },
+      ]) {
+        const r = await ask(reply(odd)).run()
+        expect(r.status).toBe(502)
+        expect(await r.json()).toEqual({
+          code: 'unexpected',
+          message: 'Something went wrong.',
+        })
+      }
+    })
+
+    it('refuses bad ids before the engine', async () => {
+      const never = vi.fn()
+      const deps = { requireUser: signedIn, fetchFn: never, env }
+      for (const [job, kit] of [
+        ['nope', ID],
+        [ID, 'nope'],
+      ]) {
+        const r = await handleJobKitExport(
+          request('POST', { format: 'pdf', name: 'S' }),
+          job,
+          kit,
+          deps,
+        )
+        expect(r.status).toBe(404)
+      }
+      expect(never).not.toHaveBeenCalled()
+    })
   })
 })

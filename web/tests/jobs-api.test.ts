@@ -8,6 +8,8 @@ import {
   getJobEvaluations,
   getJobScreens,
   editKit,
+  exportKit,
+  fileNameFrom,
   getKits,
   listJobs,
   screenJob,
@@ -124,5 +126,61 @@ describe('jobs-api', () => {
     expect(await getJob(ID, { fetchFn: down })).toMatchObject({
       code: 'network',
     })
+  })
+
+  it('exports a file and reads its name, or turns a refusal into a safe code', async () => {
+    const file = vi.fn<Fetch>(
+      async () =>
+        new Response(new Uint8Array([37, 80, 68, 70]), {
+          status: 200,
+          headers: {
+            'content-disposition': `attachment; filename="Jose_Mueller - CV - Acme.pdf"; filename*=UTF-8''Jos%C3%A9%20M%C3%BCller%20-%20CV.pdf`,
+          },
+        }),
+    )
+    const ok = await exportKit(
+      ID,
+      ID,
+      { format: 'pdf', name: 'José' },
+      { fetchFn: file },
+    )
+    expect(ok.ok && ok.data.filename).toBe('José Müller - CV.pdf')
+    expect(ok.ok && ok.data.blob.size).toBe(4)
+    expect(file.mock.calls[0][0]).toBe(`/api/jobs/${ID}/kits/${ID}/export`)
+    expect(file.mock.calls[0][1]?.method).toBe('POST')
+    expect(file.mock.calls[0][1]?.body).toBe(
+      JSON.stringify({ format: 'pdf', name: 'José' }),
+    )
+    const refused = vi.fn<Fetch>(async () =>
+      reply({ code: 'needs_fixing' }, 409),
+    )
+    expect(
+      await exportKit(
+        ID,
+        ID,
+        { format: 'docx', name: 'S' },
+        { fetchFn: refused },
+      ),
+    ).toMatchObject({ ok: false, code: 'needs_fixing' })
+    const odd = vi.fn<Fetch>(async () => reply({ code: 'Not Safe' }, 500))
+    expect(
+      await exportKit(ID, ID, { format: 'pdf', name: 'S' }, { fetchFn: odd }),
+    ).toMatchObject({ code: 'unexpected' })
+    const down = vi.fn<Fetch>(async () => {
+      throw new Error('x')
+    })
+    expect(
+      await exportKit(ID, ID, { format: 'pdf', name: 'S' }, { fetchFn: down }),
+    ).toMatchObject({ code: 'network' })
+  })
+
+  it('reads a download name from either form of the header', () => {
+    expect(fileNameFrom(null)).toBeNull()
+    expect(fileNameFrom('attachment; filename="a b.pdf"')).toBe('a b.pdf')
+    expect(fileNameFrom("attachment; filename*=UTF-8''a%20b.pdf")).toBe(
+      'a b.pdf',
+    )
+    expect(fileNameFrom("attachment; filename*=UTF-8''%E0%A4%A")).toBeNull()
+    expect(fileNameFrom('inline')).toBeNull()
   })
 })

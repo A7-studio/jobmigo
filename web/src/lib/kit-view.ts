@@ -198,6 +198,12 @@ export function kitCopy(code: string): Copy {
         body: 'Check the text and try again. Nothing was changed.',
         action: 'none',
       }
+    case 'needs_fixing':
+      return {
+        title: 'Some statements still need you',
+        body: 'Edit or remove what is flagged above, then try again. If nothing is flagged there, a fact it cites has changed in your profile, so write the kit again.',
+        action: 'none',
+      }
     case 'not_latest':
       return {
         title: 'There is a newer version',

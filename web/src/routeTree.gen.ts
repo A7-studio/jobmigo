@@ -49,6 +49,7 @@ import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/in
 import { Route as ApiTracksIdPreferencesRouteImport } from './routes/api/tracks/$id/preferences'
 import { Route as ApiJobsIdKitsKitIdRouteImport } from './routes/api/jobs/$id/kits_.$kitId'
 import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
+import { Route as ApiJobsIdKitsKitIdExportRouteImport } from './routes/api/jobs/$id/kits_.$kitId_.export'
 import { Route as ApiProfileItemsKindIdIndexRouteImport } from './routes/api/profile/items/$kind/$id/index'
 import { Route as ApiProfileItemsKindIdConfirmRouteImport } from './routes/api/profile/items/$kind/$id/confirm'
 import { Route as ApiTracksIdItemsKindItemIdRouteImport } from './routes/api/tracks/$id/items/$kind/$itemId'
@@ -253,6 +254,12 @@ const ApiProfileItemsKindIndexRoute =
     path: '/api/profile/items/$kind/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiJobsIdKitsKitIdExportRoute =
+  ApiJobsIdKitsKitIdExportRouteImport.update({
+    id: '/api/jobs/$id/kits_/$kitId_/export',
+    path: '/api/jobs/$id/kits/$kitId/export',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiProfileItemsKindIdIndexRoute =
   ApiProfileItemsKindIdIndexRouteImport.update({
     id: '/api/profile/items/$kind/$id/',
@@ -312,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/jobs/$id/kits/$kitId': typeof ApiJobsIdKitsKitIdRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
+  '/api/jobs/$id/kits/$kitId/export': typeof ApiJobsIdKitsKitIdExportRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
   '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
@@ -356,6 +364,7 @@ export interface FileRoutesByTo {
   '/api/tracks/$id': typeof ApiTracksIdIndexRoute
   '/api/jobs/$id/kits/$kitId': typeof ApiJobsIdKitsKitIdRoute
   '/api/profile/items/$kind': typeof ApiProfileItemsKindIndexRoute
+  '/api/jobs/$id/kits/$kitId/export': typeof ApiJobsIdKitsKitIdExportRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
   '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id': typeof ApiProfileItemsKindIdIndexRoute
@@ -402,6 +411,7 @@ export interface FileRoutesById {
   '/api/tracks/$id/': typeof ApiTracksIdIndexRoute
   '/api/jobs/$id/kits_/$kitId': typeof ApiJobsIdKitsKitIdRoute
   '/api/profile/items/$kind/': typeof ApiProfileItemsKindIndexRoute
+  '/api/jobs/$id/kits_/$kitId_/export': typeof ApiJobsIdKitsKitIdExportRoute
   '/api/profile/items/$kind/$id/confirm': typeof ApiProfileItemsKindIdConfirmRoute
   '/api/tracks/$id/items/$kind/$itemId': typeof ApiTracksIdItemsKindItemIdRoute
   '/api/profile/items/$kind/$id/': typeof ApiProfileItemsKindIdIndexRoute
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/api/tracks/$id/'
     | '/api/jobs/$id/kits/$kitId'
     | '/api/profile/items/$kind/'
+    | '/api/jobs/$id/kits/$kitId/export'
     | '/api/profile/items/$kind/$id/confirm'
     | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id/'
@@ -492,6 +503,7 @@ export interface FileRouteTypes {
     | '/api/tracks/$id'
     | '/api/jobs/$id/kits/$kitId'
     | '/api/profile/items/$kind'
+    | '/api/jobs/$id/kits/$kitId/export'
     | '/api/profile/items/$kind/$id/confirm'
     | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id'
@@ -537,6 +549,7 @@ export interface FileRouteTypes {
     | '/api/tracks/$id/'
     | '/api/jobs/$id/kits_/$kitId'
     | '/api/profile/items/$kind/'
+    | '/api/jobs/$id/kits_/$kitId_/export'
     | '/api/profile/items/$kind/$id/confirm'
     | '/api/tracks/$id/items/$kind/$itemId'
     | '/api/profile/items/$kind/$id/'
@@ -575,6 +588,7 @@ export interface RootRouteChildren {
   ApiTracksIdIndexRoute: typeof ApiTracksIdIndexRoute
   ApiJobsIdKitsKitIdRoute: typeof ApiJobsIdKitsKitIdRoute
   ApiProfileItemsKindIndexRoute: typeof ApiProfileItemsKindIndexRoute
+  ApiJobsIdKitsKitIdExportRoute: typeof ApiJobsIdKitsKitIdExportRoute
   ApiProfileItemsKindIdConfirmRoute: typeof ApiProfileItemsKindIdConfirmRoute
   ApiTracksIdItemsKindItemIdRoute: typeof ApiTracksIdItemsKindItemIdRoute
   ApiProfileItemsKindIdIndexRoute: typeof ApiProfileItemsKindIdIndexRoute
@@ -862,6 +876,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProfileItemsKindIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jobs/$id/kits_/$kitId_/export': {
+      id: '/api/jobs/$id/kits_/$kitId_/export'
+      path: '/api/jobs/$id/kits/$kitId/export'
+      fullPath: '/api/jobs/$id/kits/$kitId/export'
+      preLoaderRoute: typeof ApiJobsIdKitsKitIdExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/profile/items/$kind/$id/': {
       id: '/api/profile/items/$kind/$id/'
       path: '/api/profile/items/$kind/$id'
@@ -943,6 +964,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTracksIdIndexRoute: ApiTracksIdIndexRoute,
   ApiJobsIdKitsKitIdRoute: ApiJobsIdKitsKitIdRoute,
   ApiProfileItemsKindIndexRoute: ApiProfileItemsKindIndexRoute,
+  ApiJobsIdKitsKitIdExportRoute: ApiJobsIdKitsKitIdExportRoute,
   ApiProfileItemsKindIdConfirmRoute: ApiProfileItemsKindIdConfirmRoute,
   ApiTracksIdItemsKindItemIdRoute: ApiTracksIdItemsKindItemIdRoute,
   ApiProfileItemsKindIdIndexRoute: ApiProfileItemsKindIdIndexRoute,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BTN, BTN_PRIMARY, Problem } from '#/components/cv/parts'
-import { editKit, getKits, writeKit } from '#/lib/jobs-api'
+import { editKit, exportKit, getKits, writeKit } from '#/lib/jobs-api'
 import type { KitEdit, KitVersion } from '#/lib/jobs-api'
 import {
   blockLimit,
@@ -23,6 +23,7 @@ import { kindDocument, kindLabel } from '#/lib/opportunity'
 import type { OpportunityKind } from '#/lib/opportunity'
 import { getProfile } from '#/lib/profile-api'
 import { listTracks } from '#/lib/tracks-api'
+import { useMe } from '#/lib/useMe'
 
 class StepError extends Error {
   readonly code: string
@@ -412,6 +413,12 @@ export function KitStep({
             onChange={(c) => change.mutate({ kitId: shown.id, change: c })}
           />
 
+          <ExportSection
+            key={`export-${shown.id}`}
+            jobId={jobId}
+            version={shown}
+          />
+
           <div className="flex flex-col gap-3 border-t border-border pt-4">
             <details>
               <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-ink">
@@ -433,9 +440,6 @@ export function KitStep({
                 </button>
               </div>
             </details>
-            <p className="text-xs text-muted">
-              Export to PDF and DOCX is not built yet.
-            </p>
           </div>
         </div>
       ) : null}
@@ -800,5 +804,156 @@ function Statement({
         </>
       )}
     </div>
+  )
+}
+
+/** Save a file the browser holds in memory. */
+function saveFile(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+const NAME_MAX = 80
+const CONTACT_MAX = 200
+
+/** Download the shown version as a PDF or a DOCX. The file is made now and not stored. */
+function ExportSection({
+  jobId,
+  version,
+}: {
+  jobId: string
+  version: KitVersion
+}) {
+  const me = useMe()
+  const account = me.data?.ok ? me.data.me : null
+  // null means untouched: the field then shows what the account already says.
+  const [name, setName] = useState<string | null>(null)
+  const [contact, setContact] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const nameValue = name ?? account?.displayName ?? ''
+  const contactValue = contact ?? account?.email ?? ''
+
+  const download = useMutation({
+    mutationFn: async (format: 'pdf' | 'docx') => {
+      const result = await exportKit(jobId, version.id, {
+        format,
+        name: nameValue.trim(),
+        ...(contactValue.trim() ? { contact: contactValue.trim() } : {}),
+      })
+      if (!result.ok) throw new StepError(result.code)
+      return result.data
+    },
+    onSuccess: (file) => saveFile(file.blob, file.filename),
+  })
+
+  function start(format: 'pdf' | 'docx') {
+    const trimmed = nameValue.trim()
+    if (trimmed === '') {
+      setFieldError('Add the name for the document.')
+      return
+    }
+    if (trimmed.length > NAME_MAX || contactValue.trim().length > CONTACT_MAX) {
+      setFieldError(
+        `Keep the name to ${NAME_MAX} characters and the contact line to ${CONTACT_MAX}.`,
+      )
+      return
+    }
+    setFieldError(null)
+    download.mutate(format)
+  }
+
+  const refusal = download.error
+    ? kitCopy(
+        download.error instanceof StepError
+          ? download.error.code
+          : 'unexpected',
+      )
+    : null
+
+  return (
+    <section
+      aria-labelledby="kit-download"
+      className={`${CARD} flex flex-col gap-3`}
+    >
+      <div>
+        <h3
+          id="kit-download"
+          className="font-display text-base font-bold text-ink"
+        >
+          Download
+        </h3>
+        <p className="mt-1 text-xs text-muted">
+          The file is made when you ask and is not stored. The name and contact
+          line are yours: they are not checked. It is checked against your
+          confirmed facts again first.
+        </p>
+      </div>
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
+        Name on the document
+        <input
+          type="text"
+          className={`${FIELD} font-normal`}
+          value={nameValue}
+          maxLength={NAME_MAX}
+          autoComplete="name"
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
+        Contact line (optional)
+        <input
+          type="text"
+          className={`${FIELD} font-normal`}
+          value={contactValue}
+          maxLength={CONTACT_MAX}
+          placeholder="email · phone · city"
+          onChange={(event) => setContact(event.target.value)}
+        />
+      </label>
+      {fieldError ? (
+        <p role="alert" className="text-xs font-bold text-bad-ink">
+          {fieldError}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className={BTN_PRIMARY}
+          disabled={download.isPending}
+          onClick={() => start('pdf')}
+        >
+          {download.isPending && download.variables === 'pdf'
+            ? 'Making the PDF…'
+            : 'Download PDF'}
+        </button>
+        <button
+          type="button"
+          className={BTN}
+          disabled={download.isPending}
+          onClick={() => start('docx')}
+        >
+          {download.isPending && download.variables === 'docx'
+            ? 'Making the DOCX…'
+            : 'Download DOCX'}
+        </button>
+      </div>
+      {download.isSuccess ? (
+        <p role="status" className="text-sm font-bold text-ink">
+          Downloaded {download.data.filename}.
+        </p>
+      ) : null}
+      {refusal ? (
+        <div role="alert" className="text-sm text-ink">
+          <p className="font-bold">{refusal.title}</p>
+          <p className="text-muted">{refusal.body}</p>
+        </div>
+      ) : null}
+    </section>
   )
 }
