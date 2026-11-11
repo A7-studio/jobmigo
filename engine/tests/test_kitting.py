@@ -495,3 +495,180 @@ async def test_identical_requests_at_once_make_one_kit_not_three(
         ("letter", 1),
     ]
     assert len({tuple(d["id"] for d in docs) for docs in results}) == 1
+
+
+async def kit_edit_bullet(
+    database: Database, job: str, doc_id: str, **body: object
+) -> dict[str, object]:
+    from engine.jobs.kitting import edit_kit
+
+    out = await edit_kit(
+        user_id=USER, job_id=job, kit_id=doc_id, body=dict(body), database=database
+    )
+    return out.model_dump(by_alias=True, mode="json")
+
+
+async def test_editing_a_statement_makes_the_next_version_and_keeps_the_old(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    new = await kit_edit_bullet(
+        database,
+        job,
+        str(cv["id"]),
+        path="entries.1.bullets.1",
+        action="edit",
+        text="Built 99 apps.",
+    )
+    assert (new["docType"], new["version"], new["trackName"]) == ("cv", 2, "Mobile")
+    bullet = new["content"]["entries"][0]["bullets"][0]  # type: ignore[index]
+    assert (bullet["text"], bullet["edited"]) == ("Built 99 apps.", True)
+    assert bullet["flags"] == ["unsupported_number"]
+    assert new["factCheck"]["edited"] == ["entries.1.bullets.1"]  # type: ignore[index]
+    rows = await fetch(
+        db_url,
+        "select version, content->'entries'->0->'bullets'->0->>'text' as text,"
+        " cache_key from engine.kit_version where doc_type = 'cv' order by version",
+    )
+    assert [(r["version"], r["text"]) for r in rows] == [
+        (1, "Built apps."),
+        (2, "Built 99 apps."),
+    ]
+    assert str(rows[1]["cache_key"]).startswith("edit:")
+
+
+async def test_only_the_latest_version_can_be_changed(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    await kit_edit_bullet(
+        database, job, str(cv["id"]), path="summary", action="edit", text="New."
+    )
+    with pytest.raises(ApiError) as caught:
+        await kit_edit_bullet(
+            database, job, str(cv["id"]), path="summary", action="edit", text="Again."
+        )
+    assert (caught.value.status, caught.value.code) == (409, "not_latest")
+
+
+async def test_writing_again_after_an_edit_makes_a_fresh_version_and_keeps_the_edit(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    provider = Kit()
+    cv, _ = await kit(database, job, track, provider)
+    await kit_edit_bullet(
+        database, job, str(cv["id"]), path="summary", action="edit", text="Mine."
+    )
+    docs = await kit(database, job, track, provider)
+    assert [(d["docType"], d["version"]) for d in docs] == [("cv", 3), ("letter", 1)]
+    # the same model input is served by the gateway cache, so no new model call is paid
+    assert len(provider.requests) == 2
+
+
+async def test_a_source_the_person_unconfirmed_is_flagged_after_an_edit(
+    db_url: str, database: Database
+) -> None:
+    seeded = await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    await run(
+        db_url,
+        "update engine.experience set status = 'extracted' where id = any($1)",
+        seeded.experience_ids,
+    )
+    new = await kit_edit_bullet(
+        database, job, str(cv["id"]), path="summary", action="edit", text="Fine."
+    )
+    bullet = new["content"]["entries"][0]["bullets"][0]  # type: ignore[index]
+    assert bullet["flags"] == ["no_source"]
+    assert new["factCheck"]["flagged"] >= 1  # type: ignore[index]
+
+
+async def test_another_users_or_a_hidden_or_made_up_kit_cannot_be_changed(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    await confirmed_profile(db_url, OTHER)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    from engine.jobs.kitting import edit_kit
+
+    for user, job_id, kit_id in (
+        (OTHER, job, str(cv["id"])),
+        (USER, job, str(uuid.uuid4())),
+        (USER, job, "nope"),
+        (USER, "nope", str(cv["id"])),
+    ):
+        with pytest.raises(ApiError) as caught:
+            await edit_kit(
+                user_id=user,
+                job_id=job_id,
+                kit_id=kit_id,
+                body={"path": "summary", "action": "edit", "text": "x"},
+                database=database,
+            )
+        assert caught.value.status == 404, (user, job_id, kit_id)
+    await run(
+        db_url, "update engine.job set kind = 'gig' where id = $1", uuid.UUID(job)
+    )
+    with pytest.raises(ApiError) as caught:
+        await kit_edit_bullet(
+            database, job, str(cv["id"]), path="summary", action="edit", text="x"
+        )
+    assert caught.value.status == 404
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"path": "summary"},
+        {"path": "summary", "action": "burn"},
+        {"path": "summary", "action": "edit", "text": "x", "extra": 1},
+        {"path": "x" * 41, "action": "edit", "text": "x"},
+        {"path": "summary", "action": "edit", "text": "x" * 2001},
+        {"path": "summary", "action": "edit", "text": 5},
+        {"path": "summary", "action": "remove"},
+        {"path": "entries.1", "action": "edit", "text": "x"},
+    ],
+)
+async def test_a_bad_edit_request_is_refused_and_changes_nothing(
+    db_url: str, database: Database, body: dict[str, object]
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    with pytest.raises(ApiError) as caught:
+        await kit_edit_bullet(database, job, str(cv["id"]), **body)
+    assert caught.value.status == 422
+    rows = await fetch(
+        db_url, "select version from engine.kit_version where doc_type = 'cv'"
+    )
+    assert [r["version"] for r in rows] == [1]
+
+
+async def test_concurrent_edits_make_one_version_each_in_order(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    results = await asyncio.gather(
+        *(
+            kit_edit_bullet(
+                database, job, str(cv["id"]), path="summary", action="edit", text="A."
+            )
+            for _ in range(3)
+        ),
+        return_exceptions=True,
+    )
+    made = [r for r in results if isinstance(r, dict)]
+    refused = [r for r in results if isinstance(r, ApiError)]
+    assert len(made) == 1 and len(refused) == 2
+    assert all(r.code == "not_latest" for r in refused)

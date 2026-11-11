@@ -7,6 +7,7 @@ import {
   evaluateJob,
   getJobEvaluations,
   getJobScreens,
+  editKit,
   getKits,
   listJobs,
   screenJob,
@@ -38,6 +39,18 @@ describe('jobs-api', () => {
     await writeKit(ID, ID, ['Why us?'], { fetchFn })
     await getKits(ID, undefined, { fetchFn })
     await getKits(ID, ID, { fetchFn })
+    await editKit(
+      ID,
+      ID,
+      { path: 'summary', action: 'edit', text: 'x' },
+      { fetchFn },
+    )
+    await editKit(
+      ID,
+      ID,
+      { path: 'paragraphs.2', action: 'remove' },
+      { fetchFn },
+    )
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
     expect(await deleteJob(ID, { fetchFn: del })).toEqual({
       ok: true,
@@ -77,6 +90,16 @@ describe('jobs-api', () => {
       ],
       ['GET', `/api/jobs/${ID}/kits`, undefined],
       ['GET', `/api/jobs/${ID}/kits?trackId=${ID}`, undefined],
+      [
+        'PATCH',
+        `/api/jobs/${ID}/kits/${ID}`,
+        JSON.stringify({ path: 'summary', action: 'edit', text: 'x' }),
+      ],
+      [
+        'PATCH',
+        `/api/jobs/${ID}/kits/${ID}`,
+        JSON.stringify({ path: 'paragraphs.2', action: 'remove' }),
+      ],
     ])
   })
 

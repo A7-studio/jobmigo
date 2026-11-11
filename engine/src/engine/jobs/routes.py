@@ -126,3 +126,16 @@ async def list_kits(
         track_id=track_id,
         database=_database(request),
     )
+
+
+@router.patch("/{job_id}/kits/{kit_id}")
+async def edit_kit(
+    request: Request, job_id: str, kit_id: str, user_id: CurrentUser
+) -> kitting.KitVersionOut:
+    return await kitting.edit_kit(
+        user_id=user_id,
+        job_id=job_id,
+        kit_id=kit_id,
+        body=await _body(request),
+        database=_database(request),
+    )

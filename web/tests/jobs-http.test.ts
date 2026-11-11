@@ -6,6 +6,7 @@ import {
   handleJobEvaluations,
   handleJobFetch,
   handleJobKit,
+  handleJobKitEdit,
   handleJobKits,
   handleJobScreen,
   handleJobScreens,
@@ -55,9 +56,10 @@ describe('jobs handlers', () => {
       handleJobEvaluations(request('GET'), ID, deps),
       handleJobKit(request('POST', { trackId: ID }), ID, deps),
       handleJobKits(request('GET'), ID, deps),
+      handleJobKitEdit(request('PATCH', { path: 'summary' }), ID, ID, deps),
     ])
     expect(results.map((r) => r.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ])
     expect(fetchFn).not.toHaveBeenCalled()
   })
@@ -351,6 +353,35 @@ describe('fetch handler', () => {
         )
       ).status,
     ).toBe(404)
+    expect(never).not.toHaveBeenCalled()
+  })
+
+  it('forward a kit edit with the body and refuse bad ids before the engine', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      void init
+      return reply({ id: ID })
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    const change = { path: 'summary', action: 'edit', text: 'My words.' }
+    expect(
+      (await handleJobKitEdit(request('PATCH', change), ID, ID, deps)).status,
+    ).toBe(200)
+    expect(fetchFn.mock.calls.map(([url, init]) => [init.method, url])).toEqual(
+      [['PATCH', `http://engine.test:8000/internal/jobs/${ID}/kits/${ID}`]],
+    )
+    expect(fetchFn.mock.calls[0][1].body).toBe(JSON.stringify(change))
+    const never = vi.fn()
+    const guarded = { requireUser: signedIn, fetchFn: never, env }
+    for (const [job, kit] of [
+      ['nope', ID],
+      [ID, 'nope'],
+    ]) {
+      expect(
+        (await handleJobKitEdit(request('PATCH', change), job, kit, guarded))
+          .status,
+      ).toBe(404)
+    }
     expect(never).not.toHaveBeenCalled()
   })
 })

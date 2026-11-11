@@ -15,7 +15,7 @@ import json
 import uuid
 import weakref
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 from sqlalchemy import delete, func, select
@@ -27,7 +27,7 @@ from engine.cv.parse import _clean
 from engine.cv.service import not_found
 from engine.db import Database
 from engine.errors import ApiError
-from engine.jobs import kit_write
+from engine.jobs import kit_edit, kit_write
 from engine.jobs.eval_evidence import Fact, load_facts
 from engine.jobs.kit_write import MAX_QUESTION_CHARS, MAX_QUESTIONS, PostingIn, Written
 from engine.jobs.service import _id
@@ -407,3 +407,96 @@ async def list_kits(
         ),
     )
     return [_out(row, track, current) for row, track in ordered]
+
+
+class EditIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1, max_length=kit_edit.MAX_PATH_CHARS)
+    action: Literal["edit", "remove"]
+    text: str | None = Field(default=None, max_length=kit_edit.MAX_EDIT_CHARS)
+
+
+async def edit_kit(
+    *,
+    user_id: uuid.UUID,
+    job_id: str,
+    kit_id: str,
+    body: dict[str, object],
+    database: Database,
+) -> KitVersionOut:
+    """Edit or remove one statement of the latest version, saved as a new version."""
+    jid = _id(job_id)
+    kid = _id(kit_id)
+    wanted: EditIn = _validated(EditIn, body)
+    async with AsyncSession(database.engine) as session:
+        job = await _owned_job(session, user_id, jid)
+        shown = await session.scalar(
+            select(KitVersion).where(
+                KitVersion.id == kid,
+                KitVersion.user_id == user_id,
+                KitVersion.job_id == jid,
+            )
+        )
+        track = (
+            await session.scalar(
+                select(Track).where(
+                    Track.id == shown.track_id, Track.user_id == user_id
+                )
+            )
+            if shown is not None
+            else None
+        )
+        if shown is None or track is None or track.kind != job.kind:
+            raise not_found()
+        track_id, doc = shown.track_id, shown.doc_type
+    async with (
+        _lock_for(user_id, jid, track_id),
+        AsyncSession(database.engine) as session,
+    ):
+        await session.execute(
+            select(func.pg_advisory_xact_lock(func.hashtext(f"kit:{jid}:{track_id}")))
+        )
+        latest = await _latest(session, user_id, jid, track_id, doc)
+        if latest is None:
+            raise not_found()
+        if latest.id != kid:
+            raise ApiError(
+                409, "not_latest", "A newer version exists. Reload this page."
+            )
+        facts = await load_facts(session, user_id, latest.profile_id)
+        changed = kit_edit.apply_edit(
+            latest.content, wanted.path, wanted.action, wanted.text
+        )
+        content, check = kit_edit.recheck(
+            changed, facts, int(latest.fact_check.get("omitted", 0))
+        )
+        material = f"{latest.cache_key}|{wanted.path}|{wanted.action}|{wanted.text}"
+        row = KitVersion(
+            user_id=user_id,
+            job_id=jid,
+            track_id=track_id,
+            profile_id=latest.profile_id,
+            profile_version=latest.profile_version,
+            doc_type=doc,
+            version=latest.version + 1,
+            cache_key="edit:" + hashlib.sha256(material.encode()).hexdigest()[:24],
+            content=content,
+            fact_check=check,
+            usage_event_ids=[],
+        )
+        session.add(row)
+        await session.execute(
+            delete(KitVersion).where(
+                KitVersion.user_id == user_id,
+                KitVersion.job_id == jid,
+                KitVersion.track_id == track_id,
+                KitVersion.doc_type == doc,
+                KitVersion.version <= row.version - MAX_VERSIONS,
+            )
+        )
+        await session.commit()
+        await session.refresh(row)
+        profile = await latest_profile(session, user_id)
+        current = (profile.id, profile.version) if profile else None
+        return _out(row, track, current)

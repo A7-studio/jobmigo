@@ -143,6 +143,27 @@ export const handleJobKits = (
   )
 }
 
+/** Edit or remove one statement of this kit version; the engine saves a new version. */
+export const handleJobKitEdit = (
+  request: Request,
+  id: string,
+  kitId: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    {
+      method: 'PATCH',
+      path: `/internal/jobs/${id}/kits/${kitId}`,
+      withBody: true,
+    },
+    () => {
+      checkId(id)
+      checkId(kitId)
+    },
+  )
+
 export const handleJobFetch = (request: Request, deps: JobsHttpDeps = {}) =>
   forward(request, deps, {
     method: 'POST',

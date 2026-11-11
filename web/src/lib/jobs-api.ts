@@ -217,6 +217,8 @@ export type KitBlock = {
   flags: KitFlag[]
   /** The numbers in `text` that none of its sources state. */
   numbers: string[]
+  /** You wrote or changed this text; it is checked the same way. */
+  edited?: boolean
 }
 export type KitContent =
   | {
@@ -253,6 +255,8 @@ export type KitVersion = {
     flagged: number
     /** Entries or skills the model named that your facts do not back, left out. */
     omitted: number
+    /** Paths of the statements you edited. */
+    edited: string[]
     flags: { path: string; flags: KitFlag[]; numbers: string[] }[]
   }
   createdAt: string
@@ -280,3 +284,16 @@ export const getKits = (id: string, trackId?: string, deps: Deps = {}) =>
     { method: 'GET' },
     deps,
   )
+
+export type KitEdit =
+  | { path: string; action: 'remove' }
+  | { path: string; action: 'edit'; text: string }
+
+/** Edit or remove one statement of the latest version. It is saved as the next version. */
+export const editKit = (
+  id: string,
+  kitId: string,
+  change: KitEdit,
+  deps: Deps = {},
+) =>
+  call<KitVersion>(`/api/jobs/${id}/kits/${kitId}`, json('PATCH', change), deps)

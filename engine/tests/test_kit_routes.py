@@ -172,3 +172,60 @@ async def test_the_routes_need_the_engine_token(app: FastAPI) -> None:
         ):
             r = await client.request(method, path)
             assert r.status_code == 401
+
+
+async def test_editing_needs_the_token_and_refuses_a_made_up_or_foreign_kit(
+    app: FastAPI, db_url: str
+) -> None:
+    seeded = await seed_profile(db_url, USER_B)
+    async with http(app) as client:
+        theirs = await add(client, USER_B)
+        their_track = await add_track(db_url, USER_B)
+        await save_version(
+            db_url, USER_B, theirs["id"], their_track, seeded.profile_id, 1
+        )
+        listed = await client.get(
+            f"/internal/jobs/{theirs['id']}/kits", headers=auth(USER_B)
+        )
+        kit_id = listed.json()[0]["id"]
+        body = {"path": "summary", "action": "edit", "text": "x"}
+        refused = await client.patch(
+            f"/internal/jobs/{theirs['id']}/kits/{kit_id}", json=body
+        )
+        assert refused.status_code == 401
+        for job, kit in ((theirs["id"], kit_id), (theirs["id"], str(uuid.uuid4()))):
+            r = await client.patch(
+                f"/internal/jobs/{job}/kits/{kit}", headers=auth(USER_A), json=body
+            )
+            assert r.status_code == 404, (job, kit)
+        r = await client.patch(
+            f"/internal/jobs/{theirs['id']}/kits/{kit_id}",
+            headers=auth(USER_B),
+            json={"path": "summary", "action": "burn"},
+        )
+        assert r.status_code == 422
+        assert set(r.json()) == {"code", "message"}
+
+
+async def test_an_edit_is_saved_as_the_next_version_through_the_route(
+    app: FastAPI, db_url: str
+) -> None:
+    seeded = await seed_profile(db_url, USER_A)
+    async with http(app) as client:
+        job = await add(client)
+        track = await add_track(db_url, USER_A)
+        await save_version(db_url, USER_A, job["id"], track, seeded.profile_id, 1)
+        first = (
+            await client.get(f"/internal/jobs/{job['id']}/kits", headers=auth(USER_A))
+        ).json()[0]
+        r = await client.patch(
+            f"/internal/jobs/{job['id']}/kits/{first['id']}",
+            headers=auth(USER_A),
+            json={"path": "summary", "action": "edit", "text": "My own words."},
+        )
+    assert r.status_code == 200, r.text
+    body: dict[str, Any] = r.json()
+    assert body["version"] == 2
+    assert body["content"]["summary"]["text"] == "My own words."
+    assert body["content"]["summary"]["edited"] is True
+    assert set(body) == set(first)

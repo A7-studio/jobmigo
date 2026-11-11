@@ -57,7 +57,7 @@ export function FitStep({
   const [chosen, setChosen] = useState<string | null>(null)
 
   const tracks = useQuery({
-    queryKey: ['fit-tracks'],
+    queryKey: ['tracks'],
     queryFn: async () => {
       const result = await listTracks()
       if (!result.ok) throw new StepError(result.code)

@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BTN, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { FitStep } from '#/components/jobs/fit-step'
+import { KitStep } from '#/components/jobs/kit-step'
 import { STEPS, nextStep } from '#/lib/app-nav'
 import type { Step } from '#/lib/app-nav'
 import { getJob, setJobKind } from '#/lib/jobs-api'
@@ -204,6 +205,10 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           {step === 'Fit' ? (
             <div className="mt-2">
               <FitStep jobId={jobId} kind={job.kind} />
+            </div>
+          ) : step === 'CV and letter' ? (
+            <div className="mt-2">
+              <KitStep jobId={jobId} kind={job.kind} />
             </div>
           ) : (
             <p className="mt-1 text-sm text-muted">
