@@ -718,3 +718,52 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** The scanner reads `<y then pay more.</p>` as a tag, as a browser does, so text such as "if x<y then pay more." loses "y then pay more." from the saved posting when the paste is treated as HTML. With no later `>`, everything after it is dropped. Reproduced with `clean_posting("<p>Salary if x<y then pay more.</p><p>Second line stays</p>")`, which returns "Salary if x" then "Second line stays". Rare in real postings; the browser-faithful rule is what keeps hidden text from being revealed.
 **Suggested fix:** Accept as a documented trade-off, or keep the dropped span in the counts so a user can see that text was removed. Decide with feature 8 when postings are read next to the profile.
 **Resolution:**
+
+### F-130 [P3] open - Any IntegrityError while saving is reported as `not_found`, and one deleted track fails the whole batch
+
+**File:** engine/src/engine/jobs/screening.py:258
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** The comment assumes a foreign key failure, but a check-constraint violation (a future bug writing an invalid outcome or `removed_by`) is also an `IntegrityError` and would be shown to the user as "not found", hiding the defect. A track deleted mid-run also discards the results of every other track and returns 404 for a job that still exists. Also, the gather of model calls has no `return_exceptions`, so an unexpected error in one track leaves the other calls running (and billed) with their results dropped.
+**Suggested fix:** Check `error.orig` for a foreign key violation, skip rows whose track is gone, and let other errors propagate as 500.
+**Resolution:** Repaired 2026-11-11: each row is saved in a savepoint; an integrity error is `not_found` only when the job is gone, a deleted track just has no row, and the model calls are gathered with `return_exceptions` so every call finishes, the successful results are saved, and then the first failure is raised. Tests cover a track deleted mid-run and an unexpected failure that still saves the other result.
+Reopened 2026-11-11 by independent review: the repair introduced a new problem. `except IntegrityError` at `screening.py:283` now swallows every integrity error while the job still exists, not only a missing track, so a check-constraint violation (a future bug writing an invalid outcome or `removed_by`) silently drops that track's row and the call still returns 200. The original suggestion was to inspect `error.orig` for a foreign key violation and let other errors propagate. No test covers it.
+
+### F-132 [P3] open - Log-leak test covers only the success path
+
+**File:** engine/tests/test_job_screen.py:180, engine/tests/test_job_screening.py:276
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: tests)
+**Why it matters:** Both "no posting text is logged" tests use a reply that parses. The gateway logs a `reason` when a reply is rejected, and the failure branches in `screening.py` (unavailable, invalid) are never run under `caplog`, so a leak on those paths would pass. The module also imports the private `_clean` from `engine.cv.parse`.
+**Suggested fix:** Run the invalid-reply and unavailable paths under `caplog` and assert no posting or dealbreaker text; expose `_clean` under a public name.
+**Resolution:** Partly (2026-11-11): failure-path log tests added for the screen task and the service. The private `_clean` import from `engine.cv.parse` stays: `tracks/preferences.py` does the same, so moving it is a separate cleanup. Left open.
+
+### F-133 [P2] open - The relatedness check passes on any single shared common word, so posting text can still remove a job
+
+**File:** engine/src/engine/jobs/screen.py:141
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security)
+**Why it matters:** `_related` accepts a quote that shares one meaningful word (or a 4+ letter prefix) with the dealbreaker. Probed with `verdict`: dealbreaker "No weekend work" with quote "We work with Python and Go" returns a Verdict; dealbreaker "no crypto or gambling companies" with quote "Join one of the best companies" returns a Verdict; "we never ask for an unpaid trial period" removes for "unpaid trial", because a negated mention counts too. A posting that tells the model to report a hit, or a model that misreads, therefore still removes a job on text that does not state the dealbreaker, which is the outcome F-127 and the spec sentence "text inside a posting cannot remove a job unless it contains one of the user's dealbreakers" rule out. The removal is visible and reversible, and the reason shows the quote.
+**Suggested fix:** Require the quote to contain all meaningful words (or the whole dealbreaker phrase, folded) and skip a quote preceded by a negation, as the gates do; add tests with a generic-word dealbreaker and a negated quote. Accept a few more extra looks instead of lost jobs.
+**Resolution:**
+
+### F-134 [P2] open - Gates still remove on a location field that says "not remote" and on "outside the US only"
+
+**File:** engine/src/engine/jobs/gates.py:96, engine/src/engine/jobs/gates.py:139
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** Throwaway probes: location "Nairobi (not remote)" on an on-site-only track returns `work_mode` (the location field is matched with a bare `\bremote\b` and no negation check); "Fully remote is not an option here" and "Remote only during onboarding, then on-site role" also remove; "Candidates outside the US only" with eligibility "Kenya" returns `region_only` although it welcomes exactly the people the track describes. A wrongly removed job is the outcome the spec says is worse than an extra model call.
+**Suggested fix:** Apply the negation check to the location field, treat "outside"/"excluding"/"non" before a region as unclear, and skip a phrase followed by "is not"/"not available"; add a test for each.
+**Resolution:**
+
+### F-135 [P3] open - The screen's quote check ignores the title, company and location, though the gates and the model read them
+
+**File:** engine/src/engine/jobs/screening.py:213
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `verdict` checks quotes against `job.description` only, but the prompt also gives the model the title, company and location (outside the `<posting>` delimiters, so they are not marked as data) and the gates read the title and location. A dealbreaker that is stated only in the title or location (for example "Crypto Exchange Engineer") can never remove a job through the screen, because the model's quote is not found in the description, and the job passes silently. Those three fields are untrusted posting text that sits in the prompt as plain lines.
+**Suggested fix:** Check quotes against title, location and description together, and put the three fields inside the delimited data block; add a test for a title-only dealbreaker.
+**Resolution:**
+
+### F-136 [P3] open - Tests do not cover the invalid-reply classification, the 12,000-character cut, or the rules_key inputs beyond three edits
+
+**File:** engine/tests/test_job_screening.py:155
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `ai_invalid` (an `AiOutputInvalidError` through `screen_job`) is never run, so the mapping in `UNSCREENED` for that code is unproven; no test saves a job with a description over `MAX_POSTING_CHARS` (the clip in `_screen_input` is what keeps `ScreenInput` valid); the stale test edits only dealbreakers, work modes and do-not-apply, not target roles, locations, eligibility or criteria labels that `rules_key` also hashes; a job deleted mid-run (the `not_found` branch) is untested.
+**Suggested fix:** Add one test per item above against the test database.
+**Resolution:**

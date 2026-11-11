@@ -37,6 +37,8 @@ import { Route as ApiCvIdDownloadRouteImport } from './routes/api/cv/$id/downloa
 import { Route as ApiCvIdParseRouteImport } from './routes/api/cv/$id/parse'
 import { Route as ApiCvIdProfileRouteImport } from './routes/api/cv/$id/profile'
 import { Route as ApiJobsIdIndexRouteImport } from './routes/api/jobs/$id/index'
+import { Route as ApiJobsIdScreenRouteImport } from './routes/api/jobs/$id/screen'
+import { Route as ApiJobsIdScreensRouteImport } from './routes/api/jobs/$id/screens'
 import { Route as ApiTracksIdIndexRouteImport } from './routes/api/tracks/$id/index'
 import { Route as ApiTracksIdPreferencesRouteImport } from './routes/api/tracks/$id/preferences'
 import { Route as ApiProfileItemsKindIndexRouteImport } from './routes/api/profile/items/$kind/index'
@@ -183,6 +185,16 @@ const ApiJobsIdIndexRoute = ApiJobsIdIndexRouteImport.update({
   path: '/api/jobs/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiJobsIdScreenRoute = ApiJobsIdScreenRouteImport.update({
+  id: '/api/jobs/$id/screen',
+  path: '/api/jobs/$id/screen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJobsIdScreensRoute = ApiJobsIdScreensRouteImport.update({
+  id: '/api/jobs/$id/screens',
+  path: '/api/jobs/$id/screens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTracksIdIndexRoute = ApiTracksIdIndexRouteImport.update({
   id: '/api/tracks/$id/',
   path: '/api/tracks/$id/',
@@ -244,6 +256,8 @@ export interface FileRoutesByFullPath {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
+  '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
   '/api/jobs/$id/': typeof ApiJobsIdIndexRoute
@@ -279,6 +293,8 @@ export interface FileRoutesByTo {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
+  '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id': typeof ApiCvIdIndexRoute
   '/api/jobs/$id': typeof ApiJobsIdIndexRoute
@@ -316,6 +332,8 @@ export interface FileRoutesById {
   '/api/cv/$id/download': typeof ApiCvIdDownloadRoute
   '/api/cv/$id/parse': typeof ApiCvIdParseRoute
   '/api/cv/$id/profile': typeof ApiCvIdProfileRoute
+  '/api/jobs/$id/screen': typeof ApiJobsIdScreenRoute
+  '/api/jobs/$id/screens': typeof ApiJobsIdScreensRoute
   '/api/tracks/$id/preferences': typeof ApiTracksIdPreferencesRoute
   '/api/cv/$id/': typeof ApiCvIdIndexRoute
   '/api/jobs/$id/': typeof ApiJobsIdIndexRoute
@@ -353,6 +371,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/jobs/$id/screen'
+    | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
     | '/api/jobs/$id/'
@@ -388,6 +408,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/jobs/$id/screen'
+    | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id'
     | '/api/jobs/$id'
@@ -424,6 +446,8 @@ export interface FileRouteTypes {
     | '/api/cv/$id/download'
     | '/api/cv/$id/parse'
     | '/api/cv/$id/profile'
+    | '/api/jobs/$id/screen'
+    | '/api/jobs/$id/screens'
     | '/api/tracks/$id/preferences'
     | '/api/cv/$id/'
     | '/api/jobs/$id/'
@@ -454,6 +478,8 @@ export interface RootRouteChildren {
   ApiCvIdDownloadRoute: typeof ApiCvIdDownloadRoute
   ApiCvIdParseRoute: typeof ApiCvIdParseRoute
   ApiCvIdProfileRoute: typeof ApiCvIdProfileRoute
+  ApiJobsIdScreenRoute: typeof ApiJobsIdScreenRoute
+  ApiJobsIdScreensRoute: typeof ApiJobsIdScreensRoute
   ApiTracksIdPreferencesRoute: typeof ApiTracksIdPreferencesRoute
   ApiCvIdIndexRoute: typeof ApiCvIdIndexRoute
   ApiJobsIdIndexRoute: typeof ApiJobsIdIndexRoute
@@ -662,6 +688,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiJobsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/jobs/$id/screen': {
+      id: '/api/jobs/$id/screen'
+      path: '/api/jobs/$id/screen'
+      fullPath: '/api/jobs/$id/screen'
+      preLoaderRoute: typeof ApiJobsIdScreenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jobs/$id/screens': {
+      id: '/api/jobs/$id/screens'
+      path: '/api/jobs/$id/screens'
+      fullPath: '/api/jobs/$id/screens'
+      preLoaderRoute: typeof ApiJobsIdScreensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tracks/$id/': {
       id: '/api/tracks/$id/'
       path: '/api/tracks/$id'
@@ -749,6 +789,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCvIdDownloadRoute: ApiCvIdDownloadRoute,
   ApiCvIdParseRoute: ApiCvIdParseRoute,
   ApiCvIdProfileRoute: ApiCvIdProfileRoute,
+  ApiJobsIdScreenRoute: ApiJobsIdScreenRoute,
+  ApiJobsIdScreensRoute: ApiJobsIdScreensRoute,
   ApiTracksIdPreferencesRoute: ApiTracksIdPreferencesRoute,
   ApiCvIdIndexRoute: ApiCvIdIndexRoute,
   ApiJobsIdIndexRoute: ApiJobsIdIndexRoute,

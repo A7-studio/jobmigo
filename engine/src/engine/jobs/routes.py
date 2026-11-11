@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, Response
 
 from engine.auth import CurrentUser
-from engine.jobs import service
+from engine.jobs import screening, service
 from engine.jobs.models import MAX_BODY_BYTES, FetchOut, JobFull, JobOut
 from engine.profile.routes import _body, _database
 
@@ -38,6 +38,24 @@ async def list_jobs(
 @router.get("/{job_id}")
 async def get_job(request: Request, job_id: str, user_id: CurrentUser) -> JobFull:
     return await service.get_job(
+        user_id=user_id, job_id=job_id, database=_database(request)
+    )
+
+
+@router.post("/{job_id}/screen")
+async def screen_job(
+    request: Request, job_id: str, user_id: CurrentUser
+) -> list[screening.JobScreenOut]:
+    return await screening.screen_job(
+        user_id=user_id, job_id=job_id, database=_database(request)
+    )
+
+
+@router.get("/{job_id}/screens")
+async def list_screens(
+    request: Request, job_id: str, user_id: CurrentUser
+) -> list[screening.JobScreenOut]:
+    return await screening.list_screens(
         user_id=user_id, job_id=job_id, database=_database(request)
     )
 

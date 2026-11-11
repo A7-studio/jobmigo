@@ -24,7 +24,7 @@ score, is the wedge. Everything else (CRM, outreach) supports the daily habit.
 Principles that shape every feature:
 - Never fabricate experience. Generated documents may only reuse facts from the
   user's confirmed profile; anything new is flagged for confirmation.
-- No fake precision. Fit is shown as bands (Strong, Good, Stretch) with
+- No fake precision. Fit is shown as bands (Strong, Good, Stretch, Weak fit) with
   per-requirement evidence, not a percentage.
 - Only legitimate sources. No scraping behind logins, no ToS-violating
   automation, no auto-submitting applications.

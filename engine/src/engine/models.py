@@ -363,3 +363,49 @@ class Job(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class JobScreen(Base):
+    """What the gates and the cheap screen decided about one job for one track."""
+
+    __tablename__ = "job_screen"
+    __table_args__ = (
+        CheckConstraint(
+            "outcome in ('passed', 'removed', 'unscreened')",
+            name="ck_job_screen_outcome",
+        ),
+        CheckConstraint(
+            "removed_by in ('gate', 'screen')", name="ck_job_screen_removed_by"
+        ),
+        CheckConstraint(
+            "(outcome = 'removed') = (removed_by is not null)",
+            name="ck_job_screen_removed",
+        ),
+        Index("job_screen_job_track_uniq", "job_id", "track_id", unique=True),
+        Index("job_screen_user_idx", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.job.id", ondelete="CASCADE")
+    )
+    track_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.track.id", ondelete="CASCADE")
+    )
+    variant_version: Mapped[int] = mapped_column(Integer)
+    rules_key: Mapped[str] = mapped_column(Text)
+    outcome: Mapped[str] = mapped_column(Text)
+    removed_by: Mapped[str | None] = mapped_column(Text)
+    reason_code: Mapped[str | None] = mapped_column(Text)
+    reason: Mapped[str | None] = mapped_column(Text)
+    screen: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    usage_event_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

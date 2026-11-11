@@ -3,6 +3,8 @@ import {
   MAX_JOB_BODY_BYTES,
   handleJob,
   handleJobFetch,
+  handleJobScreen,
+  handleJobScreens,
   handleJobCreate,
   handleJobDelete,
   handleJobStatus,
@@ -43,8 +45,12 @@ describe('jobs handlers', () => {
       handleJobStatus(request('PATCH', {}), ID, deps),
       handleJobDelete(request('DELETE'), ID, deps),
       handleJobFetch(request('POST', { url: 'https://x.example/' }), deps),
+      handleJobScreen(request('POST'), ID, deps),
+      handleJobScreens(request('GET'), ID, deps),
     ])
-    expect(results.map((r) => r.status)).toEqual([401, 401, 401, 401, 401, 401])
+    expect(results.map((r) => r.status)).toEqual([
+      401, 401, 401, 401, 401, 401, 401, 401,
+    ])
     expect(fetchFn).not.toHaveBeenCalled()
   })
 
@@ -114,6 +120,56 @@ describe('jobs handlers', () => {
     )
     expect(r.status).toBe(422)
     expect(fetchFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('screen handlers', () => {
+  it('forward only to the screen paths of that job, with the session user', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      void init
+      return reply([])
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    expect((await handleJobScreen(request('POST'), ID, deps)).status).toBe(200)
+    expect((await handleJobScreens(request('GET'), ID, deps)).status).toBe(200)
+    expect(fetchFn.mock.calls.map(([url, init]) => [init.method, url])).toEqual(
+      [
+        ['POST', `http://engine.test:8000/internal/jobs/${ID}/screen`],
+        ['GET', `http://engine.test:8000/internal/jobs/${ID}/screens`],
+      ],
+    )
+    for (const [, init] of fetchFn.mock.calls) {
+      expect(new Headers(init.headers).get('x-user-id')).toBe(USER)
+    }
+  })
+
+  it('refuse a bad id before the engine', async () => {
+    const never = vi.fn()
+    const deps = { requireUser: signedIn, fetchFn: never, env }
+    expect((await handleJobScreen(request('POST'), 'nope', deps)).status).toBe(
+      404,
+    )
+    expect((await handleJobScreens(request('GET'), 'nope', deps)).status).toBe(
+      404,
+    )
+    expect(never).not.toHaveBeenCalled()
+  })
+
+  it('pass an engine refusal through unchanged', async () => {
+    const fetchFn = vi.fn(async () =>
+      reply({ code: 'no_tracks', message: 'Create a track first.' }, 409),
+    )
+    const r = await handleJobScreen(request('POST'), ID, {
+      requireUser: signedIn,
+      fetchFn,
+      env,
+    })
+    expect(r.status).toBe(409)
+    expect(await r.json()).toEqual({
+      code: 'no_tracks',
+      message: 'Create a track first.',
+    })
   })
 })
 

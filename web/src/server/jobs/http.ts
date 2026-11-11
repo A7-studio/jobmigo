@@ -57,6 +57,32 @@ export const handleJobDelete = (
     () => checkId(id),
   )
 
+/** Run the gates and the cheap screen for this job against every track. */
+export const handleJobScreen = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    { method: 'POST', path: `/internal/jobs/${id}/screen` },
+    () => checkId(id),
+  )
+
+/** The saved screen results for this job. */
+export const handleJobScreens = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    { method: 'GET', path: `/internal/jobs/${id}/screens` },
+    () => checkId(id),
+  )
+
 export const handleJobFetch = (request: Request, deps: JobsHttpDeps = {}) =>
   forward(request, deps, {
     method: 'POST',

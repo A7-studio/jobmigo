@@ -4,7 +4,9 @@ import {
   deleteJob,
   fetchJobPage,
   getJob,
+  getJobScreens,
   listJobs,
+  screenJob,
   setJobStatus,
 } from '#/lib/jobs-api'
 
@@ -22,6 +24,8 @@ describe('jobs-api', () => {
     await getJob(ID, { fetchFn })
     await setJobStatus(ID, 'dismissed', { fetchFn })
     await fetchJobPage('https://x.example/j', { fetchFn })
+    await screenJob(ID, { fetchFn })
+    await getJobScreens(ID, { fetchFn })
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
     expect(await deleteJob(ID, { fetchFn: del })).toEqual({
       ok: true,
@@ -48,6 +52,8 @@ describe('jobs-api', () => {
         '/api/jobs/fetch',
         JSON.stringify({ url: 'https://x.example/j' }),
       ],
+      ['POST', `/api/jobs/${ID}/screen`, undefined],
+      ['GET', `/api/jobs/${ID}/screens`, undefined],
     ])
   })
 

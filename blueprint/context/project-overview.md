@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 5c3904903afd720e006132f3c5dac8302bc075b4b2306d71f77503e11d0d6d30 -->
+<!-- blueprint:source-hash 7d1828e7857329dc19baf31a98b99342ecca407005cc197e2d300375f1c251ec -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -10,7 +10,7 @@ The main bottleneck is the application itself: filtered out by hiring software, 
 
 Principles for every feature:
 - Never fabricate experience; documents reuse only confirmed profile facts, new claims are flagged.
-- No fake precision: fit is a band (Strong, Good, Stretch) with per-requirement evidence, never a percentage.
+- No fake precision: fit is a band (Strong, Good, Stretch, Weak) with per-requirement evidence, never a percentage.
 - Legitimate sources only; no scraping behind logins, no ToS-violating automation, no auto-submitting.
 
 ## Users

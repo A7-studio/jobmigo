@@ -87,6 +87,34 @@ export const setJobStatus = (id: string, status: JobStatus, deps: Deps = {}) =>
 export const deleteJob = (id: string, deps: Deps = {}) =>
   call<undefined>(`/api/jobs/${id}`, { method: 'DELETE' }, deps)
 
+export type ScreenOutcome = 'passed' | 'removed' | 'unscreened'
+
+/** What the rules and the cheap screen decided about one job for one track. */
+export type JobScreen = {
+  id: string
+  jobId: string
+  trackId: string
+  trackName: string
+  variantVersion: number
+  /** The track changed after this result was made. */
+  stale: boolean
+  outcome: ScreenOutcome
+  removedBy: 'gate' | 'screen' | null
+  reasonCode: string | null
+  /** One plain sentence. It may hold your dealbreaker and a quote from the posting: show it as text. */
+  reason: string | null
+  screen: { roleMatch: 'yes' | 'partial' | 'no'; note: string } | null
+  updatedAt: string
+}
+
+/** Screen a saved job against every track; the results come back and are kept. */
+export const screenJob = (id: string, deps: Deps = {}) =>
+  call<JobScreen[]>(`/api/jobs/${id}/screen`, { method: 'POST' }, deps)
+
+/** The kept results for a job, without running anything. */
+export const getJobScreens = (id: string, deps: Deps = {}) =>
+  call<JobScreen[]>(`/api/jobs/${id}/screens`, { method: 'GET' }, deps)
+
 export type FetchedPage = {
   text: string
   title: string | null
