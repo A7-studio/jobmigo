@@ -61,13 +61,11 @@ class Smart:
                     "need": "Flutter experience",
                     "importance": "must",
                     "quote": "Flutter experience",
-                    "marker": "Requirements",
                 },
                 {
                     "need": "Rust experience",
                     "importance": "must",
                     "quote": "Rust experience",
-                    "marker": "Requirements",
                 },
             ],
             "pay": {
@@ -160,17 +158,14 @@ async def test_a_full_evaluation_is_checked_decided_and_saved(
         provider=provider,
     )
     assert (provider.extract_calls, provider.evidence_calls) == (1, 1)
-    assert result.band == "stretch"  # one must-have is a gap
-    assert result.summary == "Evidence for 1 of 2 must-haves"
+    assert result.band == "stretch"  # one deciding requirement is a gap
+    assert result.summary == "Evidence for 1 of 2 important requirements"
     assert result.main_gap is not None
     assert result.main_gap.need == "Rust experience"
     assert result.stale is False
     flutter, rust = result.requirements
-    assert (flutter.status, flutter.importance, flutter.importance_source) == (
-        "met",
-        "must",
-        "posting",
-    )
+    # The model said `must`; no posting wording is ever read, so it is `important`.
+    assert (flutter.status, flutter.importance) == ("met", "important")
     assert flutter.evidence[0].text == "Flutter"
     assert flutter.evidence[0].kind == "skill"
     assert (rust.status, rust.evidence) == ("gap", [])

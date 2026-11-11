@@ -122,7 +122,8 @@ export const getJobScreens = (id: string, deps: Deps = {}) =>
 /** `poor` is shown as "Weak fit". There is no score and no percentage. */
 export type FitBand = 'strong' | 'good' | 'stretch' | 'poor'
 export type RequirementStatus = 'met' | 'partial' | 'gap' | 'unknown'
-export type Importance = 'must' | 'important' | 'nice'
+/** Our guess from the posting, never above `important`: the posting is not read for "must". */
+export type Importance = 'important' | 'nice'
 
 /** A confirmed or edited fact of your profile that a requirement points to. */
 export type EvidenceRef = { kind: string; id: string; text: string }
@@ -130,8 +131,6 @@ export type EvidenceRef = { kind: string; id: string; text: string }
 export type EvaluatedRequirement = {
   need: string
   importance: Importance
-  /** `posting`: the posting says how important it is. `inferred`: we guessed, capped at `important`. */
-  importanceSource: 'posting' | 'inferred'
   /** The posting's own words. Show as text. */
   quote: string
   status: RequirementStatus

@@ -74,21 +74,6 @@ _LIMITED = re.compile(
 )
 
 
-_BOUNDARY = re.compile(r"[\n.;:!?]")
-
-
-def is_negated(text: str, at: int) -> bool:
-    """Whether a negation ("not", "no", "never", ...) sits just before position `at`.
-
-    Only the same line or sentence counts: a denial on an earlier line says nothing
-    about what comes after the break.
-    """
-    before = text[max(0, at - 24) : at]
-    ends = list(_BOUNDARY.finditer(before))
-    clause = before[ends[-1].end() :] if ends else before
-    return _NEGATION.search(clause) is not None
-
-
 def _stated(pattern: re.Pattern[str], text: str, *, region: bool = False) -> bool:
     """Whether the pattern matches somewhere that clearly says it.
 

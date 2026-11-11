@@ -48,7 +48,6 @@ class RequirementOut(BaseModel):
 
     need: str
     importance: str
-    importance_source: str = Field(serialization_alias="importanceSource")
     quote: str
     status: str
     evidence: list[EvidenceOut]
@@ -217,7 +216,6 @@ async def evaluate_job(
         {
             "need": r.need,
             "importance": r.importance,
-            "importance_source": r.importance_source,
             "quote": r.quote,
             "status": v.status,
             "evidence": [

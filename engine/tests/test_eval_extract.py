@@ -41,9 +41,8 @@ def raw(
     need: str,
     quote: str,
     importance: str = "must",
-    marker: str | None = None,
 ) -> dict[str, object]:
-    return {"need": need, "importance": importance, "quote": quote, "marker": marker}
+    return {"need": need, "importance": importance, "quote": quote}
 
 
 def output(*requirements: dict[str, object], pay: object = None) -> ExtractOutput:
@@ -62,72 +61,6 @@ async def database(db_url: str) -> AsyncIterator[Database]:
     db = Database(db_url)
     yield db
     await db.dispose()
-
-
-def test_a_real_quote_and_marker_give_a_stated_importance() -> None:
-    result = verify(
-        output(
-            raw(
-                "Five years of Flutter",
-                "Five years of Flutter experience",
-                "must",
-                "Requirements",
-            ),
-            raw("Firebase", "Experience with Firebase", "nice", "Nice to have"),
-        ),
-        task_input(),
-    )
-    assert [(r.importance, r.importance_source) for r in result.requirements] == [
-        ("must", "posting"),
-        ("nice", "posting"),
-    ]
-
-
-def test_a_marker_that_is_not_in_the_posting_gives_a_capped_inferred_importance() -> (
-    None
-):
-    result = verify(
-        output(raw("Dart", "Strong Dart skills", "must", "Absolutely essential")),
-        task_input(),
-    )
-    only = result.requirements[0]
-    assert (only.importance, only.importance_source) == ("important", "inferred")
-
-
-def test_no_marker_gives_an_inferred_importance_and_never_a_must() -> None:
-    result = verify(
-        output(
-            raw("Dart", "Strong Dart skills", "must"),
-            raw("Firebase", "Experience with Firebase", "nice"),
-            raw("Flutter", "Five years of Flutter experience", "important"),
-        ),
-        task_input(),
-    )
-    assert [(r.importance, r.importance_source) for r in result.requirements] == [
-        ("important", "inferred"),
-        ("nice", "inferred"),
-        ("important", "inferred"),
-    ]
-
-
-def test_a_marker_after_the_quote_does_not_count() -> None:
-    result = verify(
-        output(
-            raw("Flutter", "Five years of Flutter experience", "must", "Nice to have")
-        ),
-        task_input(),
-    )
-    assert result.requirements[0].importance_source == "inferred"
-    assert result.requirements[0].importance == "important"
-
-
-def test_a_marker_is_compared_ignoring_case_and_spacing() -> None:
-    result = verify(
-        output(raw("Dart", "strong   dart skills", "must", "REQUIREMENTS")),
-        task_input(),
-    )
-    assert result.requirements[0].importance == "must"
-    assert result.requirements[0].importance_source == "posting"
 
 
 def test_a_requirement_without_a_real_quote_is_dropped() -> None:
@@ -238,7 +171,7 @@ def test_a_bad_currency_code_is_dropped_but_the_pay_stays() -> None:
 
 
 async def test_the_task_returns_verified_requirements(database: Database) -> None:
-    fake = Fake(reply(body(raw("Dart", "Strong Dart skills", "must", "Requirements"))))
+    fake = Fake(reply(body(raw("Dart", "Strong Dart skills", "must"))))
     result = await extract_requirements(
         task_input(), user_id=USER, database=database, env=ENV, provider=fake
     )
@@ -277,7 +210,6 @@ async def test_the_posting_is_sent_as_delimited_data(database: Database) -> None
     assert sent.user.count("</posting>") == 1
     assert sent.user.rstrip().endswith("</posting>")
     assert "Title: Senior Flutter Engineer" in sent.user
-    assert PROMPT_VERSION == "eval-extract-1"
 
 
 async def test_no_posting_text_is_logged(
@@ -299,96 +231,6 @@ async def test_no_posting_text_is_logged(
         )
     assert "Dart" not in caplog.text
     assert "Rust" not in caplog.text
-
-
-def kube(marker: str | None, importance: str = "must") -> tuple[str, str]:
-    """(importance, source) of one requirement in a nice-to-have posting."""
-    posting = ExtractInput(
-        title="Engineer",
-        company="Acme",
-        location=None,
-        description="Nice to have: Kubernetes",
-    )
-    only = verify(output(raw("Kubernetes", "Kubernetes", importance, marker)), posting)
-    return only.requirements[0].importance, only.requirements[0].importance_source
-
-
-def test_a_piece_of_the_quote_or_a_word_fragment_is_not_a_marker() -> None:
-    assert kube("Kub") == ("important", "inferred")
-    assert kube("Kubernetes") == ("important", "inferred")
-    assert kube("Nice to") == ("important", "inferred")  # no importance word
-    assert kube("hav") == ("important", "inferred")
-
-
-def test_importance_comes_from_the_markers_words_not_from_the_models_claim() -> None:
-    assert kube("Nice to have", "must") == ("nice", "posting")
-    assert kube("nice to have", "important") == ("nice", "posting")
-    posting = ExtractInput(
-        title="Engineer",
-        company="Acme",
-        location=None,
-        description="Requirements: Dart skills",
-    )
-    claimed_nice = verify(
-        output(raw("Dart", "Dart skills", "nice", "Requirements")), posting
-    )
-    assert claimed_nice.requirements[0].importance == "must"
-    assert claimed_nice.requirements[0].importance_source == "posting"
-
-
-def test_a_marker_without_an_importance_word_states_nothing() -> None:
-    result = verify(
-        output(raw("Dart", "Strong Dart skills", "must", "Strong")), task_input()
-    )
-    assert result.requirements[0].importance_source == "inferred"
-    assert result.requirements[0].importance == "important"
-
-
-def test_a_marker_that_disagrees_with_the_nearest_heading_states_nothing() -> None:
-    # "Requirements" is real and above the quote, but "Nice to have" is nearer.
-    result = verify(
-        output(raw("Firebase", "Experience with Firebase", "must", "Requirements")),
-        task_input(),
-    )
-    assert result.requirements[0].importance_source == "inferred"
-    assert result.requirements[0].importance == "important"
-
-
-def test_a_marker_with_both_must_and_nice_words_states_nothing() -> None:
-    posting = ExtractInput(
-        title="t",
-        company="c",
-        location=None,
-        description="Required or nice to have: Dart skills",
-    )
-    result = verify(
-        output(raw("Dart", "Dart skills", "must", "Required or nice to have")), posting
-    )
-    assert result.requirements[0].importance_source == "inferred"
-
-
-def test_the_nice_and_must_wordings_the_posting_commonly_uses() -> None:
-    for marker, text, expected in (
-        ("Must have", "Must have: Go", "must"),
-        ("Minimum qualifications", "Minimum qualifications: Go", "must"),
-        ("Preferred qualifications", "Preferred qualifications: Go", "nice"),
-        ("Bonus", "Bonus: Go", "nice"),
-    ):
-        posting = ExtractInput(title="t", company="c", location=None, description=text)
-        got = verify(output(raw("Go", "Go", "important", marker)), posting)
-        # "Go" is under the minimum quote length, so use a longer quote for the check.
-        assert got.requirements == []
-        posting = ExtractInput(
-            title="t", company="c", location=None, description=text + " language"
-        )
-        got = verify(output(raw("Go", "Go language", "important", marker)), posting)
-        assert (
-            got.requirements[0].importance,
-            got.requirements[0].importance_source,
-        ) == (
-            expected,
-            "posting",
-        ), marker
 
 
 @pytest.mark.parametrize(
@@ -436,105 +278,11 @@ def test_pay_figures_written_with_k_or_decimals_are_read() -> None:
     assert result.pay is not None
 
 
-def one_importance(
-    description: str, quote: str, marker: str | None, claimed: str = "nice"
-) -> tuple[str, str]:
-    posting = ExtractInput(
-        title="t", company="c", location=None, description=description
-    )
-    result = verify(output(raw("Need", quote, claimed, marker)), posting)
-    only = result.requirements[0]
-    return only.importance, only.importance_source
-
-
-@pytest.mark.parametrize(
-    ("description", "marker"),
-    [
-        ("Not required: Kubernetes experience", "Not required"),
-        ("Not required: Kubernetes experience", "required"),
-        ("No requirements for: Kubernetes experience", "No requirements"),
-        ("You must not need: Kubernetes experience", "must not"),
-        ("Not a plus: Kubernetes experience", "a plus"),
-        ("Never optional: Kubernetes experience", "optional"),
-    ],
-)
-def test_a_negated_importance_wording_states_nothing(
-    description: str, marker: str
-) -> None:
-    for claimed in ("must", "nice", "important"):
-        _, source = one_importance(
-            description, "Kubernetes experience", marker, claimed
-        )
-        assert source == "inferred", (description, marker, claimed)
-
-
-def test_a_new_section_replaces_the_importance_above_it() -> None:
-    posting = (
-        "Requirements\n- Flutter experience\nGood to have\n- Kubernetes experience"
-    )
-    assert one_importance(posting, "Kubernetes experience", "Requirements", "must") == (
-        "important",
-        "inferred",
-    )
-    assert one_importance(posting, "Kubernetes experience", "Good to have", "must") == (
-        "nice",
-        "posting",
-    )
-    assert one_importance(posting, "Flutter experience", "Requirements", "nice") == (
-        "must",
-        "posting",
-    )
-
-
-@pytest.mark.parametrize("heading", ["Optional extras", "Extra credit", "Optional"])
-def test_optional_headings_state_nice(heading: str) -> None:
-    posting = f"Requirements\n- Flutter experience\n{heading}\n- Kubernetes experience"
-    assert one_importance(posting, "Kubernetes experience", "Requirements", "must")[
-        1
-    ] == ("inferred")
-    assert one_importance(posting, "Kubernetes experience", heading, "must") == (
-        "nice",
-        "posting",
-    )
-
-
-@pytest.mark.parametrize(
-    "section",
-    ["Responsibilities", "Benefits", "About us", "What we offer", "How to apply"],
-)
-def test_an_unrelated_section_below_the_heading_states_nothing(section: str) -> None:
-    posting = f"Requirements\n- Flutter experience\n{section}\n- Kubernetes experience"
-    assert one_importance(posting, "Kubernetes experience", "Requirements", "must") == (
-        "important",
-        "inferred",
-    )
-
-
-def test_a_quote_that_occurs_twice_states_nothing() -> None:
-    posting = "Requirements: Dart skills. Nice to have: Dart skills."
-    assert (
-        one_importance(posting, "Dart skills", "Requirements", "must")[1] == "inferred"
-    )
-
-
-def test_a_marker_inside_a_longer_word_is_not_a_marker() -> None:
-    assert one_importance("mustard skills", "mustard skills", "must", "must") == (
-        "important",
-        "inferred",
-    )
-    assert one_importance("requirements: go skills", "go skills", "irements", "must")[
-        1
-    ] == ("inferred")
-
-
 def test_a_quote_that_starts_mid_word_is_dropped() -> None:
     posting = ExtractInput(
         title="t", company="c", location=None, description="mustard skills"
     )
-    assert (
-        verify(output(raw("Need", "ard skills", "must", "must")), posting).requirements
-        == []
-    )
+    assert verify(output(raw("Need", "ard skills", "must")), posting).requirements == []
 
 
 def test_a_quote_cannot_span_two_fields() -> None:
@@ -548,35 +296,6 @@ def test_a_quote_cannot_span_two_fields() -> None:
     assert spanning.requirements == []
     inside = verify(output(raw("Need", "Acme Labs")), posting)
     assert len(inside.requirements) == 1
-
-
-def test_a_requirement_in_the_title_states_nothing() -> None:
-    posting = ExtractInput(
-        title="Senior Flutter Engineer",
-        company="Acme",
-        location=None,
-        description="Requirements",
-    )
-    result = verify(
-        output(raw("Senior", "Senior Flutter Engineer", "must", "Requirements")),
-        posting,
-    )
-    assert result.requirements[0].importance_source == "inferred"
-
-
-def test_the_headings_postings_commonly_use_still_state_their_importance() -> None:
-    for heading, expected in (
-        ("What you need", "must"),
-        ("Must have", "must"),
-        ("Requirements", "must"),
-        ("Good to have", "nice"),
-        ("Nice to have", "nice"),
-        ("Preferred qualifications", "nice"),
-        ("Bonus points", "nice"),
-    ):
-        posting = f"{heading}\n- Strong Dart skills"
-        got = one_importance(posting, "Strong Dart skills", heading, "important")
-        assert got == (expected, "posting"), heading
 
 
 @pytest.mark.parametrize(
@@ -646,53 +365,6 @@ def test_more_than_sixty_requirements_are_cut_not_refused() -> None:
 
 
 @pytest.mark.parametrize(
-    "denial",
-    ["No degree needed", "no thanks.", "Never mind", "Not relevant here", "No"],
-)
-def test_a_denial_on_an_earlier_line_does_not_hide_the_next_heading(
-    denial: str,
-) -> None:
-    posting = f"Requirements\n- Python\n{denial}\nNice to have\n- Rust experience"
-    # "Requirements" is real, but "Nice to have" is the nearer heading.
-    assert one_importance(posting, "Rust experience", "Requirements", "must") == (
-        "important",
-        "inferred",
-    )
-    assert one_importance(posting, "Rust experience", "Nice to have", "must") == (
-        "nice",
-        "posting",
-    )
-
-
-def test_a_denial_on_the_same_line_still_states_nothing() -> None:
-    posting = "Requirements\n- Python\nNot a nice to have: Rust experience"
-    assert one_importance(posting, "Rust experience", "nice to have", "nice")[1] == (
-        "inferred"
-    )
-
-
-def test_a_denial_in_an_earlier_sentence_on_the_same_line_does_not_carry_over() -> None:
-    posting = "Not for everyone. Requirements: Rust experience"
-    assert one_importance(posting, "Rust experience", "Requirements", "nice") == (
-        "must",
-        "posting",
-    )
-
-
-def test_a_quote_wrapped_over_two_lines_is_still_found() -> None:
-    posting = ExtractInput(
-        title="t",
-        company="c",
-        location=None,
-        description="Requirements\nStrong Dart\nskills",
-    )
-    result = verify(
-        output(raw("Dart", "Strong Dart skills", "must", "Requirements")), posting
-    )
-    assert result.requirements[0].importance == "must"
-
-
-@pytest.mark.parametrize(
     ("quote", "low", "high"),
     [
         ("USD 75,000.00 a year", None, 75000),
@@ -750,3 +422,113 @@ def test_a_wrong_reading_of_a_format_is_refused(
         posting,
     )
     assert result.pay is None, (quote, low, high)
+
+
+@pytest.mark.parametrize(
+    ("quote", "true_value", "invented"),
+    [
+        ("USD 13.50 an hour", 13, 14),
+        ("USD 12.50 an hour", 12, 13),
+        ("USD 99.99 an hour", 99, 100),
+        ("EUR 1,5 an hour", 1, 2),
+    ],
+)
+def test_a_figure_with_cents_reads_as_its_whole_part(
+    quote: str, true_value: int, invented: int
+) -> None:
+    posting = ExtractInput(title="t", company="c", location=None, description=quote)
+
+    def pay_for(value: int) -> object:
+        pay = {
+            "min": None,
+            "max": value,
+            "currency": "USD",
+            "period": "hour",
+            "quote": quote,
+        }
+        return verify(output(pay=pay), posting).pay
+
+    assert pay_for(true_value) is not None, quote
+    assert pay_for(invented) is None, quote
+
+
+def test_float_noise_does_not_drop_a_true_figure() -> None:
+    posting = ExtractInput(
+        title="t", company="c", location=None, description="USD 1.1k a month"
+    )
+    pay = {
+        "min": None,
+        "max": 1100,
+        "currency": "USD",
+        "period": "month",
+        "quote": "USD 1.1k a month",
+    }
+    assert verify(output(pay=pay), posting).pay is not None
+
+
+def requirements_of(*requirements: dict[str, object]) -> list[tuple[str, str]]:
+    posting = ExtractInput(
+        title="Senior Flutter Engineer",
+        company="Acme Labs",
+        location=None,
+        description=(
+            "Strong Dart skills\nExperience with Firebase\nFive years of Flutter"
+        ),
+    )
+    result = verify(output(*requirements), posting)
+    return [(r.need, r.importance) for r in result.requirements]
+
+
+def test_importance_is_the_models_guess_and_never_a_must() -> None:
+    got = requirements_of(
+        raw("Dart", "Strong Dart skills", "must"),
+        raw("Firebase", "Experience with Firebase", "nice"),
+        raw("Flutter", "Five years of Flutter", "important"),
+    )
+    assert got == [
+        ("Dart", "important"),
+        ("Firebase", "nice"),
+        ("Flutter", "important"),
+    ]
+
+
+def test_a_reply_of_must_reads_as_important() -> None:
+    assert requirements_of(raw("Dart", "Strong Dart skills", "must")) == [
+        ("Dart", "important")
+    ]
+
+
+def test_the_posting_s_own_wording_changes_nothing() -> None:
+    posting = ExtractInput(
+        title="t",
+        company="c",
+        location=None,
+        description="Requirements\n- Dart skills\nNice to have\n- Firebase skills",
+    )
+    result = verify(
+        output(
+            raw("Dart", "Dart skills", "nice"),
+            raw("Firebase", "Firebase skills", "must"),
+        ),
+        posting,
+    )
+    assert [(r.need, r.importance) for r in result.requirements] == [
+        ("Dart", "nice"),
+        ("Firebase", "important"),
+    ]
+
+
+def test_a_quote_wrapped_over_two_lines_is_still_found() -> None:
+    posting = ExtractInput(
+        title="t", company="c", location=None, description="Strong Dart\nskills\nGo"
+    )
+    result = verify(output(raw("Dart", "Strong Dart skills")), posting)
+    assert len(result.requirements) == 1
+
+
+def test_the_prompt_asks_for_no_must_and_no_marker() -> None:
+    from engine.jobs.eval_extract import SYSTEM
+
+    assert "marker" not in SYSTEM.lower()
+    assert '"must"' not in SYSTEM
+    assert PROMPT_VERSION == "eval-extract-3"

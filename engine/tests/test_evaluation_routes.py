@@ -55,8 +55,7 @@ async def save_evaluation(
     requirements = [
         {
             "need": "Flutter",
-            "importance": "must",
-            "importance_source": "posting",
+            "importance": "important",
             "quote": "Flutter experience",
             "status": "met",
             "evidence": [{"kind": "skill", "id": str(uuid.uuid4()), "text": "Flutter"}],
@@ -115,7 +114,6 @@ async def test_a_saved_evaluation_is_listed_with_the_stable_shape(
         assert set(row["requirements"][0]) == {
             "need",
             "importance",
-            "importanceSource",
             "quote",
             "status",
             "evidence",
