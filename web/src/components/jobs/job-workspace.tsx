@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { BTN, BTN_PRIMARY, Problem } from '#/components/cv/parts'
+import { FitStep } from '#/components/jobs/fit-step'
 import { STEPS, nextStep } from '#/lib/app-nav'
 import type { Step } from '#/lib/app-nav'
 import { getJob } from '#/lib/jobs-api'
@@ -72,7 +73,11 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           Back to jobs
         </Link>
         <Problem
-          title={missing ? 'We could not find this job' : 'We could not load this job'}
+          title={
+            missing
+              ? 'We could not find this job'
+              : 'We could not load this job'
+          }
           body={
             missing
               ? 'It may have been deleted, or the address is wrong.'
@@ -158,9 +163,15 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           className="rounded-xl bg-surface-muted p-4"
         >
           <h2 className="font-display text-lg font-bold text-ink">{step}</h2>
-          <p className="mt-1 text-sm text-muted">
-            This step is not built yet. It will hold {WILL_HOLD[step]}
-          </p>
+          {step === 'Fit' ? (
+            <div className="mt-2">
+              <FitStep jobId={jobId} />
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-muted">
+              This step is not built yet. It will hold {WILL_HOLD[step]}
+            </p>
+          )}
         </div>
       </div>
     </div>
