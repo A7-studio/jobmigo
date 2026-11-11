@@ -119,8 +119,8 @@ Takeaway: a single sign-up entry, a free plan and plan pre-selection are worth c
 2. **Feature 5:** add dealbreakers and a do-not-apply list to job preferences.
 3. **Feature 6:** specify the adapter contract, per-host limits, URL-normalised
    dedupe key, skip-status recheck, and a posting-legitimacy flag.
-4. **Feature 8:** read importance from the posting first, cap inferred
-   importance, cap research per evaluation, run dealbreaker gates before any
+4. **Feature 8:** treat importance as the model's guess and cap it at
+   important (reading it from posting prose proved unreliable), cap research per evaluation, run dealbreaker gates before any
    AI call.
 5. **Feature 12:** adopt a canonical status list with terminal flags.
 6. **Later list:** read-only Gmail status detection.

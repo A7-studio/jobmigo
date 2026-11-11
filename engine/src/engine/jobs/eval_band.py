@@ -27,7 +27,8 @@ class Judged:
 def core(reqs: Sequence[Judged]) -> tuple[list[Judged], str]:
     """The requirements that decide the band, and what to call them.
 
-    The must-haves; when the posting states none, the important ones; failing that, all.
+    The important ones (extraction never returns `must`, so the must branch is dormant);
+    failing that, all.
     """
     musts = [r for r in reqs if r.importance == "must"]
     if musts:
@@ -69,7 +70,7 @@ def main_gap(reqs: Sequence[Judged]) -> dict[str, str] | None:
 
 
 def summary(reqs: Sequence[Judged]) -> str:
-    """One plain sentence, for example "Evidence for 6 of 7 must-haves"."""
+    """One plain sentence, for example "Evidence for 6 of 7 important requirements"."""
     deciding, kind = core(reqs)
     have = sum(r.status in ("met", "partial") for r in deciding)
     return f"Evidence for {have} of {len(deciding)} {kind}"

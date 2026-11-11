@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 7d1828e7857329dc19baf31a98b99342ecca407005cc197e2d300375f1c251ec -->
+<!-- blueprint:source-hash 9ea580bd72dac22f69417689395257a209991e22b9310245a98fc13f0531d071 -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -40,7 +40,7 @@ _Done: launch and foundation_
 
 _Slice 1, founder edition (in build order)_
 33. **Simpler app structure and design sync** (33a design boards first, then 33b app shell) - sidebar of Today, Jobs, Profile, Settings; one job workspace with steps Fit, CV and letter, Outreach, Track (replaces the Documents, Outreach and Applications pages); quests, levels, Ask Migo, credits meter and upgrade prompts hidden; canvas boards updated and approved before new screens.
-8. **AI job evaluation** - dealbreaker gates before AI calls (including "hires from my country"), cheap screen, evidence-based fit band (importance read from the posting first, inferred importance capped), gaps, salary/eligibility checks, research budget, cached; the Fit step, verdict first; a golden set of the founder's verdicts (starts at 10, grows to 30 to 50) gates model and prompt changes (`uv run eval`).
+8. **AI job evaluation** - dealbreaker gates before AI calls (including "hires from my country"), cheap screen, evidence-based fit band (importance is the model's guess, capped at important), gaps, salary/eligibility checks, research budget, cached; the Fit step, verdict first; a golden set of the founder's verdicts (starts at 10, grows to 30 to 50) gates model and prompt changes (`uv run eval`).
 35. **AI cost and quality page** - read-only, staff: cost, tokens and calls per workflow, cost per evaluation, cache savings, model and prompt versions, failures, golden-set match rate beside cost, paid-model estimate.
 34. **Opportunity types** - job, freelance gig or AI training role; picks track defaults and cover letter vs proposal.
 11. **Application kit** - tailored CV, cover letter or proposal, answers from confirmed facts, fact check, versions, PDF/DOCX export; the CV and letter step.
