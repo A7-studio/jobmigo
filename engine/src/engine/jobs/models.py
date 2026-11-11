@@ -14,6 +14,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    model_validator,
 )
 
 from engine.cv.parse import _clean, _clean_or_none
@@ -28,6 +29,7 @@ MAX_DESCRIPTION_CHARS = 30_000
 MAX_URL_CHARS = 2000
 
 Status = Literal["saved", "dismissed"]
+Kind = Literal["job", "gig", "ai_training"]
 
 Company = Annotated[
     str, BeforeValidator(_clean), StringConstraints(min_length=1, max_length=120)
@@ -53,12 +55,22 @@ class JobIn(BaseModel):
     text: str = Field(min_length=MIN_RAW_CHARS, max_length=MAX_RAW_CHARS)
     location: Location = None
     url: Url = None
+    kind: Kind = "job"
 
 
-class StatusIn(BaseModel):
+class JobPatch(BaseModel):
+    """A change to a saved job: its status, its type, or both."""
+
     model_config = ConfigDict(extra="forbid")
 
-    status: Status
+    status: Status | None = None
+    kind: Kind | None = None
+
+    @model_validator(mode="after")
+    def _something_to_change(self) -> "JobPatch":
+        if self.status is None and self.kind is None:
+            raise ValueError("nothing to change")
+        return self
 
 
 class JobOut(BaseModel):
@@ -70,6 +82,7 @@ class JobOut(BaseModel):
     location: str | None
     source_url: str | None = Field(serialization_alias="sourceUrl")
     status: str
+    kind: str
     flag: str
     findings: dict[str, int]
     created_at: datetime = Field(serialization_alias="createdAt")
@@ -87,6 +100,7 @@ def summary(job: Job) -> JobOut:
         location=job.location,
         source_url=job.source_url,
         status=job.status,
+        kind=job.kind,
         flag=job.flag,
         findings=dict(job.findings),
         created_at=job.created_at,

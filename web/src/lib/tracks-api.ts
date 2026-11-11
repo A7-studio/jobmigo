@@ -1,3 +1,4 @@
+import type { OpportunityKind } from './opportunity'
 import type { Result } from './profile-api'
 import type { Kind } from './profile-view'
 import type { Track } from './tracks-view'
@@ -42,8 +43,20 @@ const named = (method: string, name: string): RequestInit => ({
 export const listTracks = (deps: Deps = {}) =>
   call<Track[]>('/api/tracks', { method: 'GET' }, deps)
 
-export const createTrack = (name: string, deps: Deps = {}) =>
-  call<Track>('/api/tracks', named('POST', name), deps)
+export const createTrack = (
+  name: string,
+  kind: OpportunityKind = 'job',
+  deps: Deps = {},
+) =>
+  call<Track>(
+    '/api/tracks',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, kind }),
+    },
+    deps,
+  )
 
 export const renameTrack = (id: string, name: string, deps: Deps = {}) =>
   call<Track>(`/api/tracks/${id}`, named('PATCH', name), deps)

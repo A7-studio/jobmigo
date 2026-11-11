@@ -12,6 +12,8 @@ import {
   titleHint,
 } from '#/lib/jobs-view'
 import type { AddField, AddForm } from '#/lib/jobs-view'
+import { OPPORTUNITY_KINDS, kindLabel } from '#/lib/opportunity'
+import type { OpportunityKind } from '#/lib/opportunity'
 
 const FIELD =
   'w-full rounded-xl border border-border-strong bg-surface px-3 text-sm font-normal text-ink'
@@ -40,6 +42,7 @@ export function AddJob({
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [form, setForm] = useState<AddForm>(EMPTY)
+  const [kind, setKind] = useState<OpportunityKind>('job')
   const [errors, setErrors] = useState<Partial<Record<AddField, string>>>({})
   const [pageNote, setPageNote] = useState<string | null>(null)
   const [finalUrl, setFinalUrl] = useState<string | null>(null)
@@ -98,7 +101,7 @@ export function AddJob({
   }
 
   async function save() {
-    const checked = checkAdd(form, finalUrl)
+    const checked = checkAdd(form, finalUrl, kind)
     if (!checked.ok) {
       setErrors(checked.errors)
       setFailure(null)
@@ -237,6 +240,28 @@ export function AddJob({
           {pageNote && (
             <p className="text-[13px] font-bold text-body">{pageNote}</p>
           )}
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="text-[13px] font-bold text-muted">
+              What kind of opportunity is this?
+            </legend>
+            <div className="flex flex-wrap gap-x-5">
+              {OPPORTUNITY_KINDS.map((option) => (
+                <label
+                  key={option}
+                  className="inline-flex min-h-11 items-center gap-2 text-sm text-ink"
+                >
+                  <input
+                    type="radio"
+                    name="opportunity-kind"
+                    value={option}
+                    checked={kind === option}
+                    onChange={() => setKind(option)}
+                  />
+                  {kindLabel(option)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="grid gap-3.5 sm:grid-cols-2">
             <label className={LABEL}>
               Company

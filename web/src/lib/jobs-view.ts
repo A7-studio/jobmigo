@@ -1,6 +1,7 @@
 /** Pure rules for the Jobs screen: form checks, calm copy for every code, and small labels. */
 
 import type { FitBand } from './jobs-api'
+import type { OpportunityKind } from './opportunity'
 
 export const LIMITS = {
   company: 120,
@@ -32,12 +33,17 @@ export type AddResult =
         text: string
         location?: string
         url?: string
+        kind: OpportunityKind
       }
     }
   | { ok: false; errors: Partial<Record<AddField, string>> }
 
 /** Check the add form and turn it into the request body the engine expects. */
-export function checkAdd(form: AddForm, url: string | null): AddResult {
+export function checkAdd(
+  form: AddForm,
+  url: string | null,
+  kind: OpportunityKind = 'job',
+): AddResult {
   const errors: Partial<Record<AddField, string>> = {}
   const company = tidy(form.company)
   const title = tidy(form.title)
@@ -72,6 +78,7 @@ export function checkAdd(form: AddForm, url: string | null): AddResult {
       company,
       title,
       text: form.text,
+      kind,
       ...(location ? { location } : {}),
       ...(link ? { url: link } : {}),
     },

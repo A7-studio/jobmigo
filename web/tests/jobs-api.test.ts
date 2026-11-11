@@ -9,6 +9,7 @@ import {
   getJobScreens,
   listJobs,
   screenJob,
+  setJobKind,
   setJobStatus,
 } from '#/lib/jobs-api'
 
@@ -25,6 +26,7 @@ describe('jobs-api', () => {
     await addJob({ company: 'A', title: 'T', text: 'posting' }, { fetchFn })
     await getJob(ID, { fetchFn })
     await setJobStatus(ID, 'dismissed', { fetchFn })
+    await setJobKind(ID, 'gig', { fetchFn })
     await fetchJobPage('https://x.example/j', { fetchFn })
     await screenJob(ID, { fetchFn })
     await getJobScreens(ID, { fetchFn })
@@ -51,6 +53,7 @@ describe('jobs-api', () => {
       ],
       ['GET', `/api/jobs/${ID}`, undefined],
       ['PATCH', `/api/jobs/${ID}`, JSON.stringify({ status: 'dismissed' })],
+      ['PATCH', `/api/jobs/${ID}`, JSON.stringify({ kind: 'gig' })],
       [
         'POST',
         '/api/jobs/fetch',

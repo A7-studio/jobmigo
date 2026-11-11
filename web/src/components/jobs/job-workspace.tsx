@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BTN, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { FitStep } from '#/components/jobs/fit-step'
 import { STEPS, nextStep } from '#/lib/app-nav'
 import type { Step } from '#/lib/app-nav'
-import { getJob } from '#/lib/jobs-api'
+import { getJob, setJobKind } from '#/lib/jobs-api'
 import { jobsCopy } from '#/lib/jobs-view'
+import { OPPORTUNITY_KINDS, isKind, kindLabel } from '#/lib/opportunity'
 
 class LoadError extends Error {
   readonly code: string
@@ -34,6 +35,7 @@ const BACK =
 /** One job: its header and the four steps. The steps are placeholders until later features. */
 export function JobWorkspace({ jobId }: { jobId: string }) {
   const navigate = useNavigate()
+  const client = useQueryClient()
   const [step, setStep] = useState<Step>('Fit')
   const tabs = useRef<Partial<Record<Step, HTMLButtonElement | null>>>({})
 
@@ -45,6 +47,19 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
       return result.data
     },
     retry: false,
+  })
+  const changeKind = useMutation({
+    mutationFn: async (kind: Parameters<typeof setJobKind>[1]) => {
+      const result = await setJobKind(jobId, kind)
+      if (!result.ok) throw new LoadError(result.code)
+      return result.data
+    },
+    onSuccess: (data) => {
+      client.setQueryData(['job-workspace', jobId], data)
+      // Results for tracks of another kind are hidden, so the Fit step reads again.
+      void client.invalidateQueries({ queryKey: ['fit-evaluations', jobId] })
+      void client.invalidateQueries({ queryKey: ['jobs'] })
+    },
   })
   const code = query.error instanceof LoadError ? query.error.code : null
   const unauthorized = code === 'unauthorized'
@@ -127,6 +142,29 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           {job.company}
           {job.location ? ` · ${job.location}` : ''}
         </p>
+        <label className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold text-ink">
+          Type
+          <select
+            className="min-h-11 rounded-lg border border-border bg-surface px-3 text-sm font-normal"
+            value={job.kind}
+            disabled={changeKind.isPending}
+            onChange={(event) => {
+              const next = event.target.value
+              if (isKind(next)) changeKind.mutate(next)
+            }}
+          >
+            {OPPORTUNITY_KINDS.map((option) => (
+              <option key={option} value={option}>
+                {kindLabel(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {changeKind.isError ? (
+          <p role="alert" className="mt-1 text-xs font-bold text-bad-ink">
+            We could not change the type. Nothing changed.
+          </p>
+        ) : null}
       </header>
 
       <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4">
@@ -165,7 +203,7 @@ export function JobWorkspace({ jobId }: { jobId: string }) {
           <h2 className="font-display text-lg font-bold text-ink">{step}</h2>
           {step === 'Fit' ? (
             <div className="mt-2">
-              <FitStep jobId={jobId} />
+              <FitStep jobId={jobId} kind={job.kind} />
             </div>
           ) : (
             <p className="mt-1 text-sm text-muted">

@@ -14,6 +14,8 @@ import {
 import { evaluateJob, getJobEvaluations } from '#/lib/jobs-api'
 import type { Evaluation, RequirementStatus } from '#/lib/jobs-api'
 import { bandLabel } from '#/lib/jobs-view'
+import { kindLabel } from '#/lib/opportunity'
+import type { OpportunityKind } from '#/lib/opportunity'
 import { listTracks } from '#/lib/tracks-api'
 
 class StepError extends Error {
@@ -44,7 +46,13 @@ const STATUS_MARK: Record<RequirementStatus, string> = {
 }
 
 /** The Fit step: the kept evaluation for one track, and the button that makes or refreshes it. */
-export function FitStep({ jobId }: { jobId: string }) {
+export function FitStep({
+  jobId,
+  kind,
+}: {
+  jobId: string
+  kind: OpportunityKind
+}) {
   const client = useQueryClient()
   const [chosen, setChosen] = useState<string | null>(null)
 
@@ -113,19 +121,24 @@ export function FitStep({ jobId }: { jobId: string }) {
     )
   }
 
-  const trackList = tracks.data
+  const everyTrack = tracks.data
   const keptList = kept.data
-  if (!trackList || !keptList) return null
+  if (!everyTrack || !keptList) return null
+  // A track only checks opportunities of its own type.
+  const trackList = everyTrack.filter((t) => t.kind === kind)
 
   if (trackList.length === 0) {
     return (
       <div className="flex flex-col gap-2">
         <h3 className="font-display text-base font-bold text-ink">
-          Add a track to check fit
+          {everyTrack.length === 0
+            ? 'Add a track to check fit'
+            : `Add a track for this kind of work`}
         </h3>
         <p className="text-sm text-muted">
-          The fit check compares a job with one of your tracks: the roles, pay
-          and work mode you are looking for.
+          {everyTrack.length === 0
+            ? 'The fit check compares a job with one of your tracks: the roles, pay and work mode you are looking for.'
+            : `This is a ${kindLabel(kind).toLowerCase()}, and a track only checks its own kind of work. Add a ${kindLabel(kind).toLowerCase()} track in your profile.`}
         </p>
         <Link to="/profile" className={BTN_PRIMARY + ' self-start'}>
           Go to your profile

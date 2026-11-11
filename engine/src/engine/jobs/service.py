@@ -27,7 +27,7 @@ from engine.jobs.models import (
     JobFull,
     JobIn,
     JobOut,
-    StatusIn,
+    JobPatch,
     dedupe_key,
     full,
     summary,
@@ -80,6 +80,7 @@ async def create_job(
         title=parsed.title,
         location=parsed.location,
         source_url=parsed.url,
+        kind=parsed.kind,
         url_key=key,
         dedupe_key=dedupe_key(parsed.company, parsed.title),
         description=text,
@@ -149,12 +150,19 @@ async def get_job(*, user_id: uuid.UUID, job_id: str, database: Database) -> Job
 async def set_status(
     *, user_id: uuid.UUID, job_id: str, body: dict[str, Any], database: Database
 ) -> JobFull:
+    """Change a saved job's status, its type, or both."""
     wanted = _id(job_id)
-    parsed = _validated(StatusIn, body)
+    parsed = _validated(JobPatch, body)
     async with AsyncSession(database.engine) as session:
         job = await _owned(session, user_id, wanted)
-        if job.status != parsed.status:
+        changed = False
+        if parsed.status is not None and job.status != parsed.status:
             job.status = parsed.status
+            changed = True
+        if parsed.kind is not None and job.kind != parsed.kind:
+            job.kind = parsed.kind
+            changed = True
+        if changed:
             job.updated_at = func.now()
             await session.commit()
             await session.refresh(job)

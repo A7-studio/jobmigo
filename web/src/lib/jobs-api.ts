@@ -1,3 +1,4 @@
+import type { OpportunityKind } from './opportunity'
 import type { Result } from './profile-api'
 
 type Deps = { fetchFn?: typeof fetch }
@@ -19,6 +20,7 @@ export type Job = {
   location: string | null
   sourceUrl: string | null
   status: JobStatus
+  kind: OpportunityKind
   flag: 'ok' | 'review'
   findings: Findings
   createdAt: string
@@ -66,6 +68,7 @@ export type NewJob = {
   text: string
   location?: string
   url?: string
+  kind?: OpportunityKind
 }
 
 export const listJobs = (status?: JobStatus, deps: Deps = {}) =>
@@ -83,6 +86,13 @@ export const getJob = (id: string, deps: Deps = {}) =>
 
 export const setJobStatus = (id: string, status: JobStatus, deps: Deps = {}) =>
   call<JobFull>(`/api/jobs/${id}`, json('PATCH', { status }), deps)
+
+/** Change a saved job's type. Results kept for tracks of another type stay stored, hidden. */
+export const setJobKind = (
+  id: string,
+  kind: OpportunityKind,
+  deps: Deps = {},
+) => call<JobFull>(`/api/jobs/${id}`, json('PATCH', { kind }), deps)
 
 export const deleteJob = (id: string, deps: Deps = {}) =>
   call<undefined>(`/api/jobs/${id}`, { method: 'DELETE' }, deps)

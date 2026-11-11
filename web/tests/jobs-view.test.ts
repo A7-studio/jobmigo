@@ -20,6 +20,11 @@ const good = {
 }
 
 describe('checkAdd', () => {
+  it('carries the chosen opportunity type into the body', () => {
+    const r = checkAdd(good, null, 'gig')
+    expect(r.ok && r.body.kind).toBe('gig')
+  })
+
   it('collapses whitespace and builds the body, leaving out empty optional fields', () => {
     expect(
       checkAdd(
@@ -32,13 +37,19 @@ describe('checkAdd', () => {
         company: 'Acme Ltd',
         title: 'Flutter Engineer',
         text: 'Build apps.',
+        kind: 'job',
         location: 'Nairobi',
         url: 'https://x.example/j',
       },
     })
     expect(checkAdd(good, null)).toEqual({
       ok: true,
-      body: { company: 'Acme', title: 'Flutter Engineer', text: 'Build apps.' },
+      body: {
+        company: 'Acme',
+        title: 'Flutter Engineer',
+        text: 'Build apps.',
+        kind: 'job',
+      },
     })
   })
 

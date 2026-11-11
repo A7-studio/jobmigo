@@ -766,3 +766,19 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Why it matters:** The average counts only `ok` calls with a price, so a row with only rejected (priced) calls has `avg_cost_usd = None`, and the page prints "Unknown" in "Per call" with `unknownCostCalls` 0 and a real cost beside it. Reproduced with two priced rejected `evaluate` calls: cost $0.040000, average `None`. This is the state a broken prompt version produces, the one staff most need to read correctly; "Unknown" contradicts the "cost unknown, never zero" rule's meaning. Cache savings for that row are also 0 for the same reason.
 **Suggested fix:** Show "No usable answers" (or a dash) when `calls > 0`, nothing is unpriced and the average is null, or add a field the page can use to say so.
 **Resolution:**
+
+### F-174 [P3] open - The hiding of evaluations on a type change, and the Fit step's type filter and empty state, have no test
+
+**File:** engine/tests/test_opportunity_kind.py:219
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: tests)
+**Why it matters:** `test_results_for_another_type_are_hidden_not_deleted` covers screens only. The evaluation twin (`Track.kind == job.kind` in `list_evaluations`, evaluating.py:310) is exercised only with an empty list in the wrong-type test, so deleting that filter would pass every test; a saved evaluation hidden after a type change and returned after changing back is the spec's stated rule and has no assertion. On the web, the filter and the two empty-state texts live inline in `FitStep` (fit-step.tsx:127-141) and no test renders the component, so the filter by `job.kind` is untested.
+**Suggested fix:** Add an engine test that inserts an evaluation (see `save_evaluation` in test_evaluation_routes.py), changes the job type, expects `[]`, changes back and expects the same row; move the track filter and the empty-state choice into a pure function in `fit-view.ts` and test it.
+**Resolution:**
+
+### F-175 [P3] open - After adding a track in Profile, the Fit step can still show "Add a ... track" for up to 30 seconds
+
+**File:** web/src/components/jobs/fit-step.tsx:60
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
+**Why it matters:** The Fit step reads tracks under the key `['fit-tracks']` while the Profile page creates and invalidates `['tracks']` (profile.tsx:165, :173). The query client has `staleTime: 30_000` (router.tsx:7), so returning to the job within 30 seconds of adding the matching-type track serves the cached list and repeats the empty state that sent the person to Profile. The new empty state makes this the main path for gig and AI training jobs. Evidenced by reading the keys and config; not run in a browser.
+**Suggested fix:** Use the same `['tracks']` key in the Fit step, or invalidate `['fit-tracks']` where tracks change.
+**Resolution:**

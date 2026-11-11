@@ -1,4 +1,5 @@
 /** Pure rules for the track chips on the profile screen: shapes, name check and copy. */
+import type { OpportunityKind } from './opportunity'
 import type { Kind } from './profile-view'
 
 export const MAX_TRACKS = 10
@@ -27,6 +28,7 @@ export type Preferences = {
 export type Track = {
   id: string
   name: string
+  kind: OpportunityKind
   variantVersion: number
   emphasis: { kind: Kind; itemId: string }[]
   preferences: Preferences

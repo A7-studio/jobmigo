@@ -162,6 +162,10 @@ async def evaluate_job(
         )
         if track is None:
             raise not_found()
+        if track.kind != job.kind:
+            raise ApiError(
+                422, "wrong_type", "That track is for a different type of opportunity."
+            )
         profile = await latest_profile(session, user_id)
         facts = (
             await eval_evidence.load_facts(session, user_id, profile.id)
@@ -291,7 +295,7 @@ async def list_evaluations(
     """The kept evaluations of a job the user owns, in track order."""
     jid = _id(job_id)
     async with AsyncSession(database.engine) as session:
-        await _owned_job(session, user_id, jid)
+        job = await _owned_job(session, user_id, jid)
         profile = await latest_profile(session, user_id)
         current = (profile.id, profile.version) if profile else None
         found = (
@@ -302,6 +306,8 @@ async def list_evaluations(
                     Evaluation.job_id == jid,
                     Evaluation.user_id == user_id,
                     Track.user_id == user_id,
+                    # results kept from before a type change stay hidden, not deleted
+                    Track.kind == job.kind,
                 )
                 .order_by(Track.created_at, Track.id)
             )

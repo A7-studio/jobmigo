@@ -3,12 +3,11 @@ import {
   checkName,
   fromPrefsForm,
   toPrefsForm,
-  
   emphasisCount,
   isEmphasised,
-  trackCopy
+  trackCopy,
 } from '#/lib/tracks-view'
-import type {Preferences, Track } from '#/lib/tracks-view';
+import type { Preferences, Track } from '#/lib/tracks-view'
 
 const EMPTY: Preferences = {
   targetRoles: [],
@@ -26,6 +25,7 @@ const track: Track = {
   preferences: EMPTY,
   id: 't1',
   name: 'Mobile',
+  kind: 'job',
   variantVersion: 2,
   emphasis: [
     { kind: 'skill', itemId: 's1' },

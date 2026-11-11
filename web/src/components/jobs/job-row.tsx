@@ -11,6 +11,7 @@ import {
   safeHref,
   sourceHost,
 } from '#/lib/jobs-view'
+import { kindLabel } from '#/lib/opportunity'
 
 const TINTS = [
   'bg-accent-soft text-accent-soft-ink',
@@ -85,6 +86,7 @@ export function JobRow({ job, actions }: { job: Job; actions: RowActions }) {
           <p className="mt-0.5 break-words text-[13px] text-muted">
             {job.company}
             {job.location ? ` · ${job.location}` : ''}
+            {job.kind !== 'job' ? ` · ${kindLabel(job.kind)}` : ''}
           </p>
           <p className="mt-1 break-words text-xs text-faint">{meta}</p>
         </div>

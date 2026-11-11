@@ -342,9 +342,9 @@ function ProfilePage() {
               retrying={tracksQuery.isFetching}
               onRetry={() => void tracksQuery.refetch()}
               onSelect={setTrackId}
-              onCreate={async (name) => {
+              onCreate={async (name, kind) => {
                 const done = await track(
-                  () => createTrack(name),
+                  () => createTrack(name, kind),
                   'Track added.',
                 )
                 if (!done.failure && done.data) {

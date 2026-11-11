@@ -18,7 +18,8 @@ describe('tracks-api', () => {
   it('calls each route with the right method, path and body', async () => {
     const fetchFn = vi.fn<Fetch>(async () => reply({ ok: 1 }))
     await listTracks({ fetchFn })
-    await createTrack('Mobile', { fetchFn })
+    await createTrack('Mobile', 'job', { fetchFn })
+    await createTrack('Gigs', 'gig', { fetchFn })
     await renameTrack(ID, 'New', { fetchFn })
     await patchPreferences(ID, { locations: ['x'] }, { fetchFn })
     await setEmphasis(ID, 'skill', ITEM, true, { fetchFn })
@@ -36,7 +37,8 @@ describe('tracks-api', () => {
       fetchFn.mock.calls.map(([url, init]) => [init?.method, url, init?.body]),
     ).toEqual([
       ['GET', '/api/tracks', undefined],
-      ['POST', '/api/tracks', JSON.stringify({ name: 'Mobile' })],
+      ['POST', '/api/tracks', JSON.stringify({ name: 'Mobile', kind: 'job' })],
+      ['POST', '/api/tracks', JSON.stringify({ name: 'Gigs', kind: 'gig' })],
       ['PATCH', `/api/tracks/${ID}`, JSON.stringify({ name: 'New' })],
       [
         'PATCH',
@@ -50,7 +52,7 @@ describe('tracks-api', () => {
 
   it('turns errors into a result and keeps only a safe code', async () => {
     const bad = vi.fn<Fetch>(async () => reply({ code: 'already_exists' }, 409))
-    expect(await createTrack('x', { fetchFn: bad })).toMatchObject({
+    expect(await createTrack('x', 'job', { fetchFn: bad })).toMatchObject({
       ok: false,
       code: 'already_exists',
     })

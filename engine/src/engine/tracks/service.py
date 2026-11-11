@@ -17,7 +17,13 @@ from engine.models import Track, TrackProfileItem
 from engine.profile.models import KINDS, ROW
 from engine.profile.service import _validated, latest_profile
 from engine.tracks import preferences
-from engine.tracks.models import MAX_TRACKS, TrackIn, TrackOut, track_out
+from engine.tracks.models import MAX_TRACKS, TrackCreate, TrackIn, TrackOut, track_out
+
+# What a new track starts with, by type. The person can edit all of it.
+STARTING_WORK_MODES: dict[str, tuple[str, ...]] = {
+    "gig": ("remote",),
+    "ai_training": ("remote",),
+}
 
 
 def _exists() -> ApiError:
@@ -81,7 +87,7 @@ async def list_tracks(*, user_id: uuid.UUID, database: Database) -> list[TrackOu
 async def create_track(
     *, user_id: uuid.UUID, body: dict[str, object], database: Database
 ) -> TrackOut:
-    parsed = _validated(TrackIn, body)
+    parsed = _validated(TrackCreate, body)
     async with AsyncSession(database.engine) as session:
         # One lock per user keeps two creates from both passing the cap.
         await session.execute(
@@ -92,7 +98,12 @@ async def create_track(
         )
         if (count or 0) >= MAX_TRACKS:
             raise ApiError(422, "limit_reached", "You have reached the track limit.")
-        track = Track(user_id=user_id, name=parsed.name)
+        track = Track(
+            user_id=user_id,
+            name=parsed.name,
+            kind=parsed.kind,
+            work_modes=list(STARTING_WORK_MODES.get(parsed.kind, ())),
+        )
         session.add(track)
         try:
             await session.commit()

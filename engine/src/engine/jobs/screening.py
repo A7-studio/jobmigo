@@ -142,12 +142,13 @@ async def _owned_job(
     return job
 
 
-async def _tracks(session: AsyncSession, user_id: uuid.UUID) -> list[Track]:
+async def _tracks(session: AsyncSession, user_id: uuid.UUID, kind: str) -> list[Track]:
+    """The user's tracks of one opportunity type: a track only checks its own type."""
     return list(
         (
             await session.execute(
                 select(Track)
-                .where(Track.user_id == user_id)
+                .where(Track.user_id == user_id, Track.kind == kind)
                 .order_by(Track.created_at, Track.id)
             )
         ).scalars()
@@ -248,7 +249,7 @@ async def screen_job(
     jid = _id(job_id)
     async with AsyncSession(database.engine) as session:
         job = await _owned_job(session, user_id, jid)
-        tracks = await _tracks(session, user_id)
+        tracks = await _tracks(session, user_id, job.kind)
         session.expunge_all()
     if not tracks:
         raise ApiError(409, "no_tracks", "Create a track first.")
@@ -314,7 +315,7 @@ async def list_screens(
     """The saved results for a job the user owns, in track order."""
     jid = _id(job_id)
     async with AsyncSession(database.engine) as session:
-        await _owned_job(session, user_id, jid)
+        job = await _owned_job(session, user_id, jid)
         found = (
             await session.execute(
                 select(JobScreen, Track)
@@ -323,6 +324,8 @@ async def list_screens(
                     JobScreen.job_id == jid,
                     JobScreen.user_id == user_id,
                     Track.user_id == user_id,
+                    # results kept from before a type change stay hidden, not deleted
+                    Track.kind == job.kind,
                 )
                 .order_by(Track.created_at, Track.id)
             )

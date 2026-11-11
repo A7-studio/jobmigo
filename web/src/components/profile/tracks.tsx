@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { BTN, BTN_GHOST, BTN_PRIMARY, Problem } from '#/components/cv/parts'
 import { MAX_TRACKS, checkName, emphasisCount } from '#/lib/tracks-view'
 import type { Track } from '#/lib/tracks-view'
+import { OPPORTUNITY_KINDS, kindLabel } from '#/lib/opportunity'
+import type { OpportunityKind } from '#/lib/opportunity'
 import { PreferencesPanel, summary } from './preferences'
 
 /** What the track chips need from the page. Each action returns an error sentence, or null. */
@@ -15,7 +17,7 @@ export type TracksProps = {
   retrying: boolean
   onRetry: () => void
   onSelect: (id: string | null) => void
-  onCreate: (name: string) => Promise<string | null>
+  onCreate: (name: string, kind: OpportunityKind) => Promise<string | null>
   onRename: (id: string, name: string) => Promise<string | null>
   onDelete: (id: string) => Promise<string | null>
   onSavePreferences: (
@@ -37,6 +39,7 @@ export function TracksSection(props: TracksProps) {
   const selected = tracks.find((t) => t.id === selectedId) ?? null
   const [mode, setMode] = useState<Mode>('idle')
   const [name, setName] = useState('')
+  const [kind, setKind] = useState<OpportunityKind>('job')
   const [error, setError] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const back = useRef<string | null>(null)
@@ -64,6 +67,7 @@ export function TracksSection(props: TracksProps) {
   const open = (next: Mode, from: string, value = '') => {
     back.current = from
     setName(value)
+    setKind('job')
     setError(null)
     setMode(next)
   }
@@ -83,7 +87,7 @@ export function TracksSection(props: TracksProps) {
     const failure =
       mode === 'renaming' && selected
         ? await props.onRename(selected.id, checked.name)
-        : await props.onCreate(checked.name)
+        : await props.onCreate(checked.name, kind)
     if (failure) {
       setError(failure)
       input.current?.focus()
@@ -156,6 +160,11 @@ export function TracksSection(props: TracksProps) {
                 }`}
               >
                 {track.name}
+                {track.kind !== 'job' && (
+                  <span className="ml-2 text-[11px] font-normal text-muted">
+                    {kindLabel(track.kind)}
+                  </span>
+                )}
               </button>
             ))}
             {tracks.length < MAX_TRACKS && mode !== 'adding' && (
@@ -193,6 +202,34 @@ export function TracksSection(props: TracksProps) {
                   className={INPUT}
                 />
               </label>
+              {mode === 'adding' && (
+                <fieldset className="flex flex-col gap-1.5">
+                  <legend className="text-[13px] font-bold text-muted">
+                    What kind of work is this track for?
+                  </legend>
+                  <div className="flex flex-wrap gap-2.5">
+                    {OPPORTUNITY_KINDS.map((option) => (
+                      <label
+                        key={option}
+                        className="inline-flex min-h-11 items-center gap-2 text-sm text-ink"
+                      >
+                        <input
+                          type="radio"
+                          name="track-kind"
+                          value={option}
+                          checked={kind === option}
+                          onChange={() => setKind(option)}
+                        />
+                        {kindLabel(option)}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-faint">
+                    You cannot change this later. Freelance and AI training
+                    tracks start as remote; you can edit that.
+                  </p>
+                </fieldset>
+              )}
               {error && (
                 <p
                   id="track-name-err"

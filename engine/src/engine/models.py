@@ -43,6 +43,7 @@ CV_PARSE_ERRORS = (
 )
 FACT_STATUSES = ("extracted", "confirmed", "edited")
 
+OPPORTUNITY_KINDS = ("job", "gig", "ai_training")
 AI_WORKFLOWS = ("parse", "screen", "evaluate", "tailor", "reach_check", "outreach")
 
 
@@ -266,6 +267,7 @@ class Track(Base):
             "work_modes <@ array['remote', 'hybrid', 'onsite']",
             name="ck_track_work_modes",
         ),
+        CheckConstraint("kind in ('job', 'gig', 'ai_training')", name="ck_track_kind"),
         Index("track_user_name_uniq", "user_id", text("lower(name)"), unique=True),
     )
 
@@ -274,6 +276,7 @@ class Track(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
     name: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Text, server_default=text("'job'"))
     variant_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
     target_roles: Mapped[list[str]] = mapped_column(
         ARRAY(Text), server_default=text("'{}'::text[]")
@@ -335,6 +338,7 @@ class Job(Base):
     __table_args__ = (
         CheckConstraint("status in ('saved', 'dismissed')", name="ck_job_status"),
         CheckConstraint("flag in ('ok', 'review')", name="ck_job_flag"),
+        CheckConstraint("kind in ('job', 'gig', 'ai_training')", name="ck_job_kind"),
         Index("job_user_dedupe_uniq", "user_id", "dedupe_key", unique=True),
         Index(
             "job_user_url_uniq",
@@ -358,6 +362,7 @@ class Job(Base):
     dedupe_key: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, server_default=text("'saved'"))
+    kind: Mapped[str] = mapped_column(Text, server_default=text("'job'"))
     flag: Mapped[str] = mapped_column(Text, server_default=text("'ok'"))
     findings: Mapped[dict[str, int]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb")

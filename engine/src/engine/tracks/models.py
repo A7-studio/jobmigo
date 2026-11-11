@@ -1,7 +1,7 @@
 """The shapes of a track in and out. Bodies use camelCase."""
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints
 
@@ -19,10 +19,19 @@ TrackName = Annotated[
 ]
 
 
+Kind = Literal["job", "gig", "ai_training"]
+
+
 class TrackIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: TrackName
+
+
+class TrackCreate(TrackIn):
+    """A new track. Its type cannot be changed afterwards."""
+
+    kind: Kind = "job"
 
 
 class EmphasisOut(BaseModel):
@@ -35,6 +44,7 @@ class TrackOut(BaseModel):
 
     id: uuid.UUID
     name: str
+    kind: str
     variant_version: int = Field(serialization_alias="variantVersion")
     emphasis: list[EmphasisOut]
     preferences: PreferencesOut
@@ -44,6 +54,7 @@ def track_out(track: Track, emphasis: list[tuple[str, uuid.UUID]]) -> TrackOut:
     return TrackOut(
         id=track.id,
         name=track.name,
+        kind=track.kind,
         variant_version=track.variant_version,
         emphasis=[EmphasisOut(kind=kind, item_id=item) for kind, item in emphasis],
         preferences=out(track),
