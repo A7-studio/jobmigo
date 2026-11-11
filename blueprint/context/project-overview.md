@@ -1,6 +1,6 @@
 # Jobmigo - Project Overview
 
-<!-- blueprint:source-hash 9ea580bd72dac22f69417689395257a209991e22b9310245a98fc13f0531d071 -->
+<!-- blueprint:source-hash ff9dc8a6a1d2ecdbfc28a5af4a6d4e3ee10584a731d992149a1339baaf4c40de -->
 
 > AI job-application assistant for professionals: gets applications out of the ghost pipeline and into interviews (no outcome promised; winning the interview is up to the user). AI proposes, the user decides; workflow map in `docs/ai-workflows.md`: Discover -> Verify -> Evaluate -> Prepare -> Contact -> Apply -> Track -> Improve. First product of A7Studio.
 
@@ -43,7 +43,7 @@ _Slice 1, founder edition (in build order)_
 8. **AI job evaluation** - dealbreaker gates before AI calls (including "hires from my country"), cheap screen, evidence-based fit band (importance is the model's guess, capped at important), gaps, salary/eligibility checks, research budget, cached; the Fit step, verdict first; a golden set of the founder's verdicts (starts at 10, grows to 30 to 50) gates model and prompt changes (`uv run eval`).
 35. **AI cost and quality page** - read-only, staff: cost, tokens and calls per workflow, cost per evaluation, cache savings, model and prompt versions, failures, golden-set match rate beside cost, paid-model estimate.
 34. **Opportunity types** - job, freelance gig or AI training role; picks track defaults and cover letter vs proposal.
-11. **Application kit** - tailored CV, cover letter or proposal, answers from confirmed facts, fact check, versions, PDF/DOCX export; the CV and letter step.
+11. **Application kit** - 11a writing and fact check (engine), 11b the CV and letter step, 11c PDF/DOCX export: tailored CV, cover letter or proposal, answers from confirmed facts, versions.
 12. **Application tracking** - stage per job with terminal flags, dates, notes, interview stages, follow-up date, outcome; stages are views of the Jobs list; interviews per application by track; board view later.
 36. **One-step prepare** - one button runs evaluation, kit and fact check (later contacts and outreach draft) in the background; one review page, one approval; nothing is sent.
 6. **Job source ingestion** - adapter contract: company board feeds (Greenhouse, Lever, Ashby, Workable), free remote feeds, JSearch; verify live, expiry, dedupe, per-host limits, monthly call budget, dismissed-job memory, legitimacy flag; no LinkedIn or Indeed scraping.
