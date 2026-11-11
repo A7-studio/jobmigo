@@ -781,4 +781,12 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
 **Why it matters:** The Fit step reads tracks under the key `['fit-tracks']` while the Profile page creates and invalidates `['tracks']` (profile.tsx:165, :173). The query client has `staleTime: 30_000` (router.tsx:7), so returning to the job within 30 seconds of adding the matching-type track serves the cached list and repeats the empty state that sent the person to Profile. The new empty state makes this the main path for gig and AI training jobs. Evidenced by reading the keys and config; not run in a browser.
 **Suggested fix:** Use the same `['tracks']` key in the Fit step, or invalidate `['fit-tracks']` where tracks change.
+**Resolution:** Not reproduced in a browser on 2026-11-11: after adding a matching track in Profile and returning to the job through the app's links, the Fit step listed the new track. The cache window may have passed; the code reading still stands.
+
+### F-176 [P3] open - The Fit step's empty state reads "This is a ai training role"
+
+**File:** web/src/components/jobs/fit-step.tsx
+**Found:** 2026-11-11 in a browser check of feature 34 (job set to AI training role, no matching track)
+**Why it matters:** The sentence is built as "This is a ${label in lower case}", so the AI training role gives "a ai training role" and "Add a ai training role track". It is wrong English and shows an acronym in lower case.
+**Suggested fix:** Word it without an article, for example "This job is marked as AI training role, and a track only checks its own kind of work. Add a track of that kind in your profile." Keep the label's own case.
 **Resolution:**
