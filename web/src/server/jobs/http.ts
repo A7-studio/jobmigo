@@ -83,6 +83,32 @@ export const handleJobScreens = (
     () => checkId(id),
   )
 
+/** Evaluate this job for the track named in the body. The body is short: `{ trackId }`. */
+export const handleJobEvaluate = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    { method: 'POST', path: `/internal/jobs/${id}/evaluate`, withBody: true },
+    () => checkId(id),
+  )
+
+/** The kept evaluations of this job, one per track. */
+export const handleJobEvaluations = (
+  request: Request,
+  id: string,
+  deps: JobsHttpDeps = {},
+) =>
+  forward(
+    request,
+    deps,
+    { method: 'GET', path: `/internal/jobs/${id}/evaluations` },
+    () => checkId(id),
+  )
+
 export const handleJobFetch = (request: Request, deps: JobsHttpDeps = {}) =>
   forward(request, deps, {
     method: 'POST',

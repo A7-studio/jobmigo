@@ -9,6 +9,7 @@ import {
   safeHref,
   sourceHost,
   titleHint,
+  bandLabel,
 } from '#/lib/jobs-view'
 
 const good = {
@@ -161,5 +162,19 @@ describe('jobsCopy', () => {
       expect(jobsCopy(code).body.toLowerCase()).toMatch(/paste|try again/)
     }
     expect(PASTE_INSTEAD.has('already_exists')).toBe(false)
+  })
+})
+
+describe('bandLabel', () => {
+  it('names the four bands and calls a poor fit a Weak fit', () => {
+    expect(
+      (['strong', 'good', 'stretch', 'poor'] as const).map(bandLabel),
+    ).toEqual(['Strong', 'Good', 'Stretch', 'Weak fit'])
+  })
+
+  it('never turns a band into a percentage', () => {
+    for (const band of ['strong', 'good', 'stretch', 'poor'] as const) {
+      expect(bandLabel(band)).not.toMatch(/\d|%/)
+    }
   })
 })

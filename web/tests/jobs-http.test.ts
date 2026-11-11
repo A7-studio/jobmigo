@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   MAX_JOB_BODY_BYTES,
   handleJob,
+  handleJobEvaluate,
+  handleJobEvaluations,
   handleJobFetch,
   handleJobScreen,
   handleJobScreens,
@@ -47,9 +49,11 @@ describe('jobs handlers', () => {
       handleJobFetch(request('POST', { url: 'https://x.example/' }), deps),
       handleJobScreen(request('POST'), ID, deps),
       handleJobScreens(request('GET'), ID, deps),
+      handleJobEvaluate(request('POST', { trackId: ID }), ID, deps),
+      handleJobEvaluations(request('GET'), ID, deps),
     ])
     expect(results.map((r) => r.status)).toEqual([
-      401, 401, 401, 401, 401, 401, 401, 401,
+      401, 401, 401, 401, 401, 401, 401, 401, 401, 401,
     ])
     expect(fetchFn).not.toHaveBeenCalled()
   })
@@ -169,6 +173,80 @@ describe('screen handlers', () => {
     expect(await r.json()).toEqual({
       code: 'no_tracks',
       message: 'Create a track first.',
+    })
+  })
+})
+
+describe('evaluation handlers', () => {
+  it('forward only to the evaluation paths of that job, with the session user', async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      void url
+      void init
+      return reply([])
+    })
+    const deps = { requireUser: signedIn, fetchFn, env }
+    expect(
+      (await handleJobEvaluate(request('POST', { trackId: ID }), ID, deps))
+        .status,
+    ).toBe(200)
+    expect((await handleJobEvaluations(request('GET'), ID, deps)).status).toBe(
+      200,
+    )
+    expect(fetchFn.mock.calls.map(([url, init]) => [init.method, url])).toEqual(
+      [
+        ['POST', `http://engine.test:8000/internal/jobs/${ID}/evaluate`],
+        ['GET', `http://engine.test:8000/internal/jobs/${ID}/evaluations`],
+      ],
+    )
+    expect(fetchFn.mock.calls[0][1].body).toBe(JSON.stringify({ trackId: ID }))
+    for (const [, init] of fetchFn.mock.calls) {
+      expect(new Headers(init.headers).get('x-user-id')).toBe(USER)
+    }
+  })
+
+  it('refuse a bad id before the engine', async () => {
+    const never = vi.fn()
+    const deps = { requireUser: signedIn, fetchFn: never, env }
+    expect(
+      (await handleJobEvaluate(request('POST', { trackId: ID }), 'nope', deps))
+        .status,
+    ).toBe(404)
+    expect(
+      (await handleJobEvaluations(request('GET'), 'nope', deps)).status,
+    ).toBe(404)
+    expect(never).not.toHaveBeenCalled()
+  })
+
+  it('refuse an oversized body with a 422 and never call the engine', async () => {
+    const never = vi.fn()
+    const r = await handleJobEvaluate(
+      request('POST', { trackId: ID, x: 'y'.repeat(40_000) }),
+      ID,
+      { requireUser: signedIn, fetchFn: never, env },
+    )
+    expect(r.status).toBe(422)
+    expect(never).not.toHaveBeenCalled()
+  })
+
+  it('pass an engine refusal through unchanged', async () => {
+    const fetchFn = vi.fn(async () =>
+      reply(
+        {
+          code: 'no_confirmed_profile',
+          message: 'Confirm some of your profile first.',
+        },
+        409,
+      ),
+    )
+    const r = await handleJobEvaluate(request('POST', { trackId: ID }), ID, {
+      requireUser: signedIn,
+      fetchFn,
+      env,
+    })
+    expect(r.status).toBe(409)
+    expect(await r.json()).toEqual({
+      code: 'no_confirmed_profile',
+      message: 'Confirm some of your profile first.',
     })
   })
 })

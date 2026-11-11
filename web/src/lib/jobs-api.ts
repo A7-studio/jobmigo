@@ -119,6 +119,72 @@ export const screenJob = (id: string, deps: Deps = {}) =>
 export const getJobScreens = (id: string, deps: Deps = {}) =>
   call<JobScreen[]>(`/api/jobs/${id}/screens`, { method: 'GET' }, deps)
 
+/** `poor` is shown as "Weak fit". There is no score and no percentage. */
+export type FitBand = 'strong' | 'good' | 'stretch' | 'poor'
+export type RequirementStatus = 'met' | 'partial' | 'gap' | 'unknown'
+export type Importance = 'must' | 'important' | 'nice'
+
+/** A confirmed or edited fact of your profile that a requirement points to. */
+export type EvidenceRef = { kind: string; id: string; text: string }
+
+export type EvaluatedRequirement = {
+  need: string
+  importance: Importance
+  /** `posting`: the posting says how important it is. `inferred`: we guessed, capped at `important`. */
+  importanceSource: 'posting' | 'inferred'
+  /** The posting's own words. Show as text. */
+  quote: string
+  status: RequirementStatus
+  /** Empty unless the status is `met` or `partial`. */
+  evidence: EvidenceRef[]
+  /** One sentence written by AI. Label it as AI output. */
+  note: string
+}
+
+export type EvaluationChecks = {
+  salary: {
+    status: 'meets' | 'below' | 'unknown'
+    postingMonthly: number | null
+    floorMonthly: number | null
+    currency: string | null
+    quote: string | null
+  }
+  workMode: {
+    status: 'matches' | 'differs' | 'unclear'
+    posting: 'remote' | 'hybrid' | 'onsite' | null
+  }
+  region: {
+    status: 'none_found' | 'compatible' | 'mismatch' | 'unclear'
+    region: string | null
+  }
+}
+
+/** The evidence-based evaluation of one job for one track. */
+export type Evaluation = {
+  id: string
+  jobId: string
+  trackId: string
+  trackName: string
+  profileVersion: number
+  /** Your profile or this track's rules changed after this result was made. */
+  stale: boolean
+  band: FitBand
+  /** One sentence made by code, for example "Evidence for 6 of 7 must-haves". */
+  summary: string
+  mainGap: { need: string; status: RequirementStatus; note: string } | null
+  requirements: EvaluatedRequirement[]
+  checks: EvaluationChecks
+  updatedAt: string
+}
+
+/** Evaluate a saved job for one track; a model is called unless nothing changed. */
+export const evaluateJob = (id: string, trackId: string, deps: Deps = {}) =>
+  call<Evaluation>(`/api/jobs/${id}/evaluate`, json('POST', { trackId }), deps)
+
+/** The kept evaluations for a job, without running anything. */
+export const getJobEvaluations = (id: string, deps: Deps = {}) =>
+  call<Evaluation[]>(`/api/jobs/${id}/evaluations`, { method: 'GET' }, deps)
+
 export type FetchedPage = {
   text: string
   title: string | null

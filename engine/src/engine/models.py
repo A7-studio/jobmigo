@@ -409,3 +409,47 @@ class JobScreen(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class Evaluation(Base):
+    """The evidence-based evaluation of one job for one track (replaced when re-run)."""
+
+    __tablename__ = "evaluation"
+    __table_args__ = (
+        CheckConstraint(
+            "band in ('strong', 'good', 'stretch', 'poor')", name="ck_evaluation_band"
+        ),
+        Index("evaluation_job_track_uniq", "job_id", "track_id", unique=True),
+        Index("evaluation_user_idx", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.job.id", ondelete="CASCADE")
+    )
+    track_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.track.id", ondelete="CASCADE")
+    )
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engine.profile.id", ondelete="CASCADE")
+    )
+    profile_version: Mapped[int] = mapped_column(Integer)
+    rules_key: Mapped[str] = mapped_column(Text)
+    cache_key: Mapped[str] = mapped_column(Text)
+    band: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str] = mapped_column(Text)
+    main_gap: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    requirements: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    checks: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    usage_event_ids: Mapped[list[str]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

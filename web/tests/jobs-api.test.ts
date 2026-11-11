@@ -4,6 +4,8 @@ import {
   deleteJob,
   fetchJobPage,
   getJob,
+  evaluateJob,
+  getJobEvaluations,
   getJobScreens,
   listJobs,
   screenJob,
@@ -26,6 +28,8 @@ describe('jobs-api', () => {
     await fetchJobPage('https://x.example/j', { fetchFn })
     await screenJob(ID, { fetchFn })
     await getJobScreens(ID, { fetchFn })
+    await evaluateJob(ID, ID, { fetchFn })
+    await getJobEvaluations(ID, { fetchFn })
     const del = vi.fn<Fetch>(async () => new Response(null, { status: 204 }))
     expect(await deleteJob(ID, { fetchFn: del })).toEqual({
       ok: true,
@@ -54,6 +58,8 @@ describe('jobs-api', () => {
       ],
       ['POST', `/api/jobs/${ID}/screen`, undefined],
       ['GET', `/api/jobs/${ID}/screens`, undefined],
+      ['POST', `/api/jobs/${ID}/evaluate`, JSON.stringify({ trackId: ID })],
+      ['GET', `/api/jobs/${ID}/evaluations`, undefined],
     ])
   })
 

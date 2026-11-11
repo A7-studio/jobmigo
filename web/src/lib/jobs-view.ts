@@ -1,5 +1,7 @@
 /** Pure rules for the Jobs screen: form checks, calm copy for every code, and small labels. */
 
+import type { FitBand } from './jobs-api'
+
 export const LIMITS = {
   company: 120,
   title: 200,
@@ -212,3 +214,13 @@ export const PASTE_INSTEAD = new Set([
 export function titleHint(pageTitle: string | null): string {
   return pageTitle === null ? '' : tidy(pageTitle).slice(0, LIMITS.title)
 }
+
+const BAND_LABELS: Record<FitBand, string> = {
+  strong: 'Strong',
+  good: 'Good',
+  stretch: 'Stretch',
+  poor: 'Weak fit',
+}
+
+/** The words for a fit band. A poor fit is "Weak fit"; nothing here is a percentage. */
+export const bandLabel = (band: FitBand): string => BAND_LABELS[band]

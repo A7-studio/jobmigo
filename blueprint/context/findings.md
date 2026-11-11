@@ -767,3 +767,51 @@ Reopened 2026-11-11 by independent review (fresh subagent): the list wording is 
 **Why it matters:** `downgrade` sets `outcome = 'passed'` for flagged rows but leaves `reason_code = 'dealbreaker'` and the "Possible match" reason, so a `passed` row has a dealbreaker reason, a state the 0009-era code never wrote. The signal is also lost silently. The constraint swap itself is correct and the test shows rows survive.
 **Suggested fix:** Also clear `reason_code` and `reason` for those rows (or map them to `unscreened` with a re-run reason).
 **Resolution:**
+
+### F-148 [P2] open - A negated importance wording ("Not required", "No requirements", "must not") still states a must-have
+
+**File:** engine/src/engine/jobs/eval_extract.py:166
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security, quality, tests)
+**Why it matters:** `_MUST_WORDS` and `_NICE_WORDS` are plain word matches with no look at what comes before them. Probed with `verify`: posting "Not required: Kubernetes experience" with marker `Not required` gives `must`/`posting`; the same for "No requirements for: ..." (marker `No requirements`), "You must not need: ..." (marker `must not`), and `nice` for "Not a plus: ..." (marker `a plus`). The nearest-wording check also treats such a phrase as a heading. A negated or taken-back wording therefore turns an item into a stated must-have, which feeds the band, and the posting's own words said the opposite. `gates.py` already has `_NEGATION` for exactly this and is not used here. No test covers a negated wording.
+**Suggested fix:** Ignore a must or nice word that has a negation just before it (reuse `gates._NEGATION`) both in the marker and in the nearest-wording search, so such a marker states nothing; add tests for `Not required`, `No requirements`, `must not`, `not a plus`.
+**Resolution:**
+
+### F-149 [P2] open - Importance is overstated as `must` under a heading the word lists do not know ("Good to have", "Optional"); the nearest wording is never reset by a new section
+
+**File:** engine/src/engine/jobs/eval_extract.py:166, engine/src/engine/jobs/eval_extract.py:197
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security, quality, tests)
+**Why it matters:** The lists miss common optional headings (good to have, optional, extra credit, would be great) and only wording before the quote is read. Probed: "Requirements\n- Flutter experience\nGood to have\n- Kubernetes experience" with the model saying `nice` and marker `Requirements` gives `must`/`posting` (also under "Optional extras" and under "Responsibilities"). Because a passing marker replaces the model's own importance, a sloppy or injected model reply makes an optional item a stated must-have, which is the F-144 outcome through a different door. In the other direction, trailing wording ("... is a plus", "Python is required") and headings such as "Qualifications", "What you bring" state nothing (probed: `inferred`, capped at `important`), so real must-haves are shown as important in common postings.
+**Suggested fix:** Treat any heading-like line (short line ending a section, or a known section title such as Responsibilities, Benefits, Good to have, Optional) as resetting the nearest wording so the marker must agree with the section the quote sits in; extend the nice list; consider letting the model's own `nice` win over a stated `must` when the nearest wording is not a recognised heading. Add tests for these headings.
+**Resolution:**
+
+### F-150 [P3] open - A shared-suffix pay range ("3-4k", "80-100k") either drops the pay or accepts a bare "3"
+
+**File:** engine/src/engine/jobs/eval_extract.py:216
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality, tests)
+**Why it matters:** `_amounts` applies the `k` only to the number it touches. For the quote "pay 3-4k per month" the read amounts are {3, 4000}: a faithful reply (min 3000, max 4000) is dropped, while min 3 with max 4000 is kept. "80-100k" gives {80, 100000}, so 80000 to 100000 is dropped. Probed with `_pay`. The result is only a missing salary check (honest `unknown`) or a wrong minimum that the band never reads, so impact is low, but ranges like this are common. `3.000` (decimal point as a thousands separator) and `3 000` are also dropped. No test covers a shared suffix.
+**Suggested fix:** Apply a trailing `k` to the earlier number of a `a-bk` range as well (or accept either reading), and add tests for `3-4k`, `80-100k`.
+**Resolution:**
+
+### F-151 [P3] open - Replies with more than 60 requirements or judgements are refused instead of cut
+
+**File:** engine/src/engine/jobs/eval_extract.py:70, engine/src/engine/jobs/eval_evidence.py:153
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
+**Why it matters:** `ExtractOutput.requirements` and `EvidenceOutput.judgements` have `max_length=60`. The spec keeps at most 20 requirements and `verify` already slices to 20, but a reply with 61 or more entries fails validation (probed), costing a retry and then `ai_output_invalid` (502), the same class as F-147. Rare, but a long posting with a verbose model can reach it.
+**Suggested fix:** Drop the field caps and slice in a `BeforeValidator` (as done for labels) or in `verify`.
+**Resolution:**
+
+### F-152 [P3] open - A quote may span two posting fields, and importance is read where the quote first appears
+
+**File:** engine/src/engine/jobs/eval_extract.py:150, engine/src/engine/jobs/eval_extract.py:261
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security, quality)
+**Why it matters:** `posting_text` joins title, company, location and description with newlines and `_fold` turns them into spaces, so a "verbatim quote" such as the end of the company plus the start of the description passes, although the spec says a quote must be a stretch of one field (same class as F-141). Also `text.find(quote)` takes the first occurrence, and the quote need not start at a word start: probed, posting "mustard skills", quote "ard skills", marker `must` gives `must`/`posting` because the marker check slices the text at the quote and `(?!\w)` is true at the end of the slice. A short repeated quote under a Requirements heading can likewise lend that heading to a nice item that is quoted elsewhere.
+**Suggested fix:** Verify the quote against each field separately and require it to start on a word boundary; check the marker with the following character of the full text, not the slice; prefer the occurrence nearest the first marker.
+**Resolution:**
+
+### F-153 [P3] open - Evaluation lookups and the upsert do not filter on user_id
+
+**File:** engine/src/engine/jobs/evaluating.py:177, engine/src/engine/jobs/evaluating.py:274
+**Found:** 2026-11-11 by /audit independent (scope: current; lens: security, quality)
+**Why it matters:** The spec says every statement filters on `user_id`, and the coding standards require every user-owned query to be scoped. The two `select(Evaluation)` statements filter only on job and track, and the upsert conflicts on `(job_id, track_id)` without a user check. In practice the job and track were already proven to belong to the user, so no other user's row is reachable today; it is defense in depth and a standards drift that a later change to the unique key would expose.
+**Suggested fix:** Add `Evaluation.user_id == user_id` to both selects and a `where` on the conflict update.
+**Resolution:**

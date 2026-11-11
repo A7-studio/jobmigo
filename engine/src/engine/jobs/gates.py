@@ -232,3 +232,42 @@ def run_gates(
         or _work_mode(title, location, description, work_modes)
         or _region_only(title, location, description, eligibility, locations)
     )
+
+
+def stated_work_mode(title: str, location: str | None, description: str) -> str | None:
+    """The one work mode the posting clearly states, or None when unclear or mixed."""
+    stated = _modes_stated(title, location, description)
+    if len(stated) != 1:
+        return None
+    mode = next(iter(stated))
+    return mode if mode in _MODE_NAME else None
+
+
+def region_status(
+    title: str,
+    location: str | None,
+    description: str,
+    eligibility: str | None,
+    locations: Sequence[str],
+) -> tuple[str, str | None]:
+    """How a posting's region limit sits with a track, as (status, region name).
+
+    `none_found`: no clear limit. `unclear`: a limit, but the track has no eligibility
+    notes to compare with. `compatible`: a limit the track's notes or locations mention.
+    `mismatch`: a limit the track does not mention.
+    """
+    text = f"{title}\n{location or ''}\n{description}"
+    limits = [
+        (name, excuse)
+        for name, says, excuse in _REGION_SAYS
+        if _stated(says, text, region=True)
+    ]
+    if not limits:
+        return "none_found", None
+    if not (eligibility or "").strip():
+        return "unclear", limits[0][0]
+    mine = "\n".join([eligibility or "", *locations])
+    for name, excuse in limits:
+        if excuse.search(mine):
+            return "compatible", name
+    return "mismatch", limits[0][0]
