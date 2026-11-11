@@ -56,15 +56,31 @@ _NEGATION = re.compile(
     r"(?:\bnot|\bno|\bnon|n['\u2019]t|\bnever|\bwithout)\W+(?:\w+\W+){0,2}$", re.I
 )
 _LISTED = re.compile(r"(?:,|/|&|\bor|\band)\s*$", re.I)
+# A region phrase turned inside out ("candidates outside the US only").
+_OUTSIDE = re.compile(
+    r"(?:\boutside|\bexcluding|\bexcept|\bother than|\bnon)[\s-]*(?:of )?(?:the )?$",
+    re.I,
+)
+# A phrase that is taken back or limited right after it ("is not an option", "only
+# during onboarding").
+_LIMITED = re.compile(
+    r"\s*(?:(?:is|are|was|will be|would be)\s*)?(?:not|n['\u2019]t)\b"
+    r"|\s*(?:during|until|while|initially|temporarily|at first|for the first)\b",
+    re.I,
+)
 
 
-def _stated(pattern: re.Pattern[str], text: str, *, listed_counts: bool = True) -> bool:
-    """Whether the pattern matches where it is not negated (or, if asked, listed)."""
+def _stated(pattern: re.Pattern[str], text: str, *, region: bool = False) -> bool:
+    """Whether the pattern matches somewhere that clearly says it.
+
+    A match does not count when it is negated before it, taken back or limited after it,
+    or, for a region, one item of a list or turned inside out ("outside the US").
+    """
     for found in pattern.finditer(text):
         before = text[max(0, found.start() - 24) : found.start()]
-        if _NEGATION.search(before):
+        if _NEGATION.search(before) or _LIMITED.match(text, found.end()):
             continue
-        if not listed_counts and _LISTED.search(before[-8:]):
+        if region and (_LISTED.search(before[-8:]) or _OUTSIDE.search(before)):
             continue
         return True
     return False
@@ -109,7 +125,7 @@ def _modes_stated(title: str, location: str | None, description: str) -> set[str
         if _stated(pattern, text):
             found.add(mode)
     for mode, pattern in _MODE_LOCATION.items():
-        if location and pattern.search(location):
+        if location and _stated(pattern, location):
             found.add(mode)
     return found
 
@@ -180,7 +196,7 @@ def _region_only(
     text = f"{title}\n{location or ''}\n{description}"
     mine = "\n".join([eligibility or "", *locations])
     for name, says, excuse in _REGION_SAYS:
-        if _stated(says, text, listed_counts=False) and not excuse.search(mine):
+        if _stated(says, text, region=True) and not excuse.search(mine):
             return Removal(
                 "region_only",
                 f"The posting limits applicants to {name}, and neither your "

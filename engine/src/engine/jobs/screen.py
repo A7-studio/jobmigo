@@ -21,7 +21,7 @@ from engine.ai.tasks import AiTask
 from engine.cv.parse import _clean
 from engine.db import Database
 
-PROMPT_VERSION = "screen-2"
+PROMPT_VERSION = "screen-3"
 # What the model reads of one posting. The quote check still uses the whole posting.
 MAX_POSTING_CHARS = 12_000
 MIN_QUOTE_CHARS = 6
@@ -97,10 +97,12 @@ def _lines(label: str, items: Sequence[str]) -> str:
     return f"{label}: " + ("; ".join(items) if items else "(none)")
 
 
+def _safe(text: str) -> str:
+    """Stop posting text from closing the data block early."""
+    return re.sub(r"</posting", "</ posting", text, flags=re.IGNORECASE)
+
+
 def _user_message(task_input: ScreenInput) -> str:
-    posting = re.sub(
-        r"</posting", "</ posting", task_input.description, flags=re.IGNORECASE
-    )
     rules = "\n".join(
         [
             _lines("Target roles", task_input.target_roles),
@@ -113,10 +115,12 @@ def _user_message(task_input: ScreenInput) -> str:
     )
     return (
         f"The person's rules for this track:\n{rules}\n\n"
-        f"Role: {task_input.title} at {task_input.company}"
-        f" ({task_input.location or 'no location given'}).\n"
-        "The posting text is between the <posting> tags.\n"
-        f"<posting>\n{posting}\n</posting>"
+        "The posting is between the <posting> tags: its title, company and location, "
+        "then its text.\n"
+        f"<posting>\nTitle: {_safe(task_input.title)}\n"
+        f"Company: {_safe(task_input.company)}\n"
+        f"Location: {_safe(task_input.location or 'not given')}\n\n"
+        f"{_safe(task_input.description)}\n</posting>"
     )
 
 
@@ -189,23 +193,61 @@ def _words(text: str) -> list[str]:
     return re.findall(r"\w+", text.casefold())
 
 
-def _related(dealbreaker: str, quote: str) -> bool:
-    """Whether the quote uses a meaningful word of the dealbreaker (or a longer form).
+def _same_word(wanted: str, seen: str) -> bool:
+    """Equal, or one is a longer form of the other ("crypto", "cryptocurrency")."""
+    if wanted == seen:
+        return True
+    return min(len(wanted), len(seen)) >= 4 and (
+        wanted.startswith(seen) or seen.startswith(wanted)
+    )
 
-    A removal must rest on posting text that is about the thing the user ruled out.
-    A quote that shares no meaningful word with the dealbreaker proves nothing, so the
-    job stays in. A meaning in different words ("free first month" for "unpaid trial")
-    also stays in: that costs one extra look, while the reverse costs a lost job.
+
+_ALTERNATIVES = re.compile(r",|/|;|\bor\b", re.IGNORECASE)
+_SENTENCE_END = re.compile(r"[.;:!?]")
+_NEGATOR = re.compile(r"\b(?:not|no|never|without|neither|nor)\b|n['\u2019]t\b", re.I)
+_CLAUSE_CHARS = 80
+
+
+def _alternatives(dealbreaker: str) -> list[list[str]]:
+    """The meaningful words of each way a dealbreaker can be met ("a or b" is two)."""
+    found = [
+        [w for w in _words(part) if w not in _FUNCTION_WORDS]
+        for part in _ALTERNATIVES.split(dealbreaker)
+    ]
+    return [words for words in found if words]
+
+
+def _negated(posting: str, at: int) -> bool:
+    """Whether a negator comes earlier in the same sentence as position `at`."""
+    before = posting[max(0, at - _CLAUSE_CHARS) : at]
+    ends = list(_SENTENCE_END.finditer(before))
+    clause = before[ends[-1].end() :] if ends else before
+    return _NEGATOR.search(clause) is not None
+
+
+def _shows(dealbreaker: str, posting: str, quote: str) -> bool:
+    """Whether the quote states the dealbreaker, in the posting, and not as a denial.
+
+    One way of meeting the dealbreaker must have every one of its meaningful words in
+    the quote, and none of those words may sit in a negated sentence of the posting
+    ("we never ask for an unpaid trial", or "No weekend work" for the dealbreaker "No
+    weekend work", which is the opposite of the rule). Posting text that merely shares
+    a common word with the dealbreaker proves nothing, and a meaning in different words
+    stays in: that costs one extra look, while the reverse costs a lost job.
     """
-    wanted = [w for w in _words(dealbreaker) if w not in _FUNCTION_WORDS]
-    seen = _words(quote)
-    for word in wanted:
-        for other in seen:
-            if word == other:
-                return True
-            if min(len(word), len(other)) >= 4 and (
-                word.startswith(other) or other.startswith(word)
-            ):
+    start = posting.find(quote)
+    if start < 0:
+        return False
+    tokens = [(m.group(), m.start()) for m in re.finditer(r"\w+", quote)]
+    for words in _alternatives(dealbreaker):
+        spots: list[int] = []
+        for word in words:
+            at = next((pos for token, pos in tokens if _same_word(word, token)), None)
+            if at is None:
+                break
+            spots.append(at)
+        else:
+            if not any(_negated(posting, start + pos) for pos in spots):
                 return True
     return False
 
@@ -217,7 +259,8 @@ def verdict(
 
     A hit counts only when its dealbreaker is one the user wrote, its quote (ignoring
     case and spacing) is a stretch of the posting at least `MIN_QUOTE_CHARS` long, and
-    the quote is about the dealbreaker (see `_related`). A reply that fails any of these
+    the quote states the dealbreaker and does not deny it (see `_shows`). A reply that
+    fails any of these
     leaves the job in.
     """
     mine = {_fold(item): item for item in dealbreakers}
@@ -229,7 +272,7 @@ def verdict(
             own
             and len(quote) >= MIN_QUOTE_CHARS
             and quote in text
-            and _related(own, hit.quote)
+            and _shows(own, text, quote)
         ):
             return Verdict(own, hit.quote)
     return None

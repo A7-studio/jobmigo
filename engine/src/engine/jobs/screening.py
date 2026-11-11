@@ -210,7 +210,11 @@ async def _decide(
             "reason_code": code,
             "reason": reason,
         }
-    found = screen.verdict(screened.output, track.dealbreakers, job.description)
+    # Joined with a full stop so a denial in one field cannot spill into the next.
+    posting = ". ".join(
+        part for part in (job.title, job.company, job.location, job.description) if part
+    )
+    found = screen.verdict(screened.output, track.dealbreakers, posting)
     note = {
         "role_match": screened.output.role_match,
         "note": screened.output.note,
@@ -224,6 +228,14 @@ async def _decide(
         "reason_code": "dealbreaker" if found else None,
         "reason": found.reason if found else None,
     }
+
+
+def _is_foreign_key(error: IntegrityError) -> bool:
+    """Whether the database refused a row because the job or track it names is gone."""
+    code = getattr(error.orig, "sqlstate", None) or getattr(
+        getattr(error.orig, "__cause__", None), "sqlstate", None
+    )
+    return code == "23503"
 
 
 async def screen_job(
@@ -280,7 +292,9 @@ async def screen_job(
             try:
                 async with session.begin_nested():
                     await session.execute(upsert)
-            except IntegrityError:
+            except IntegrityError as error:
+                if not _is_foreign_key(error):
+                    raise  # a bug in what we wrote is a 500, never "not found"
                 # The job or this track was deleted meanwhile. Only a deleted job is
                 # an error for the caller; a deleted track simply has no result.
                 if (

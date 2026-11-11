@@ -199,3 +199,53 @@ def test_the_first_matching_rule_wins() -> None:
     )
     assert removal is not None
     assert removal.code == "do_not_apply"
+
+
+def test_a_negated_or_limited_location_is_not_a_work_mode() -> None:
+    assert gates(location="Nairobi (not remote)", work_modes=["onsite"]) is None
+    assert gates(location="Not on-site", work_modes=["remote"]) is None
+
+
+def test_a_work_mode_that_is_taken_back_or_limited_is_not_clear() -> None:
+    for text in (
+        "Fully remote is not an option here.",
+        "Fully remote isn't possible for this role.",
+        "Remote only during onboarding, then on-site role.",
+        "Fully remote until the new office opens.",
+    ):
+        assert gates(description=text, work_modes=["onsite"]) is None, text
+
+
+def test_a_region_turned_inside_out_is_not_a_restriction() -> None:
+    for text in (
+        "Candidates outside the US only.",
+        "Applicants excluding the EU only.",
+        "Open to non-US candidates only.",
+        "Residents other than the UK only.",
+    ):
+        assert gates(description=text, eligibility="Kenya resident") is None, text
+
+
+def test_the_clear_cases_still_remove_after_the_repairs() -> None:
+    assert gates(location="Remote", work_modes=["onsite"]) == "work_mode"
+    assert gates(location="On-site", work_modes=["remote"]) == "work_mode"
+    assert (
+        gates(description="This is a fully remote role.", work_modes=["onsite"])
+        == "work_mode"
+    )
+    assert gates(description="US only.", eligibility="Kenya") == "region_only"
+    assert (
+        gates(description="You must reside in the United States.", eligibility="Kenya")
+        == "region_only"
+    )
+
+
+def test_a_long_hostile_posting_is_checked_quickly() -> None:
+    import time
+
+    unit = "Candidates outside the US only. Not remote. Fully remote is not an option. "
+    text = unit * (200_000 // len(unit))
+    started = time.perf_counter()
+    gates(description=text, work_modes=["onsite"], eligibility="Kenya")
+    gates(location="Not remote " * 20_000, work_modes=["onsite"], eligibility="Kenya")
+    assert time.perf_counter() - started < 1.0

@@ -7,11 +7,13 @@ from collections.abc import AsyncIterator
 
 import asyncpg
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from engine.ai.errors import AiUnavailableError
 from engine.ai.provider import AiRequest, AiResponse
 from engine.db import Database
 from engine.errors import ApiError
+from engine.jobs import screening
 from engine.jobs.screening import list_screens, screen_job
 from tests.db import fetch, upgrade
 from tests.test_ai_gateway import ENV, Fake
@@ -36,9 +38,11 @@ class Smart:
 
     def __init__(self) -> None:
         self.calls = 0
+        self.requests: list[AiRequest] = []
 
     async def complete(self, request: AiRequest) -> AiResponse:
         self.calls += 1
+        self.requests.append(request)
         hit = "Dealbreakers: no crypto" in request.user
         hits = (
             [{"dealbreaker": "no crypto", "quote": "trade crypto tokens"}]
@@ -116,6 +120,44 @@ async def test_two_tracks_can_reach_different_outcomes(
     assert easy_screen.role_match == "yes"
     assert provider.calls == 2
     assert not by_track[strict].stale
+
+
+async def test_a_dealbreaker_stated_only_in_the_title_can_remove_a_job(
+    db_url: str, database: Database
+) -> None:
+    job = uuid.uuid4()
+    await run(
+        db_url,
+        "insert into engine.job (id, user_id, company, title, dedupe_key, description) "
+        "values ($1, $2, 'Acme', 'Crypto Exchange Engineer', $3, 'Build mobile apps.')",
+        job,
+        USER,
+        f"k-{job}",
+    )
+    await add_track(db_url, "One", dealbreakers=["no crypto"])
+
+    class TitleOnly:
+        name = "title-only"
+
+        async def complete(self, request: AiRequest) -> AiResponse:
+            body = {
+                "dealbreaker_hits": [
+                    {"dealbreaker": "no crypto", "quote": "Crypto Exchange Engineer"}
+                ],
+                "role_match": "partial",
+                "note": "",
+            }
+            return AiResponse(json.dumps(body), 10, 5)
+
+    results = await screen_job(
+        user_id=USER,
+        job_id=str(job),
+        database=database,
+        env=ENV,
+        provider=TitleOnly(),
+    )
+    assert results[0].outcome == "removed"
+    assert "Crypto Exchange Engineer" in (results[0].reason or "")
 
 
 async def test_a_gate_removal_makes_no_model_call(
@@ -369,3 +411,100 @@ async def test_no_posting_text_is_logged(
         user_id=USER, job_id=job, database=database, env=ENV, provider=Smart()
     )
     assert "crypto" not in caplog.text
+
+
+async def test_an_unusable_reply_is_unscreened_as_ai_invalid(
+    db_url: str, database: Database
+) -> None:
+    job = await add_job(db_url)
+    await add_track(db_url, "One")
+    results = await screen_job(
+        user_id=USER,
+        job_id=job,
+        database=database,
+        env=ENV,
+        provider=Fake(AiResponse("not json", 1, 1), AiResponse("still not json", 1, 1)),
+    )
+    assert results[0].outcome == "unscreened"
+    assert results[0].reason_code == "ai_invalid"
+
+
+async def test_a_very_long_posting_is_cut_for_the_model_but_checked_whole(
+    db_url: str, database: Database
+) -> None:
+    text = "Plain filler words. " * 1500 + "We trade crypto tokens."
+    assert len(text) > 12_000
+    job = await add_job(db_url, text=text)
+    await add_track(db_url, "One", dealbreakers=["no crypto"])
+    provider = Smart()
+    results = await screen_job(
+        user_id=USER, job_id=job, database=database, env=ENV, provider=provider
+    )
+    # The model only read the first part, yet a quote from the end still counts.
+    assert results[0].outcome == "removed"
+    assert provider.requests[0].user.count("Plain filler") <= 700
+    assert "crypto tokens" not in provider.requests[0].user
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "update engine.track set target_roles = array['Designer'] where id = $1",
+        "update engine.track set locations = array['Lagos'] where id = $1",
+        "update engine.track set eligibility = 'EU resident' where id = $1",
+        "update engine.track set criteria = "
+        '\'[{"label": "Dart", "weight": "must"}]\'::jsonb where id = $1',
+    ],
+)
+async def test_every_rule_the_screen_reads_makes_a_result_stale(
+    db_url: str, database: Database, statement: str
+) -> None:
+    job = await add_job(db_url)
+    track = await add_track(db_url, "One")
+    await screen_job(
+        user_id=USER, job_id=job, database=database, env=ENV, provider=Smart()
+    )
+    await run(db_url, statement, uuid.UUID(track))
+    after = await list_screens(user_id=USER, job_id=job, database=database)
+    assert after[0].stale
+
+
+async def test_a_job_deleted_mid_run_is_not_found(
+    db_url: str, database: Database
+) -> None:
+    job = await add_job(db_url)
+    await add_track(db_url, "One")
+
+    class DeletesTheJob(Smart):
+        async def complete(self, request: AiRequest) -> AiResponse:
+            await run(db_url, "delete from engine.job where id = $1", uuid.UUID(job))
+            return await super().complete(request)
+
+    with pytest.raises(ApiError) as error:
+        await screen_job(
+            user_id=USER,
+            job_id=job,
+            database=database,
+            env=ENV,
+            provider=DeletesTheJob(),
+        )
+    assert error.value.code == "not_found"
+
+
+async def test_an_integrity_error_that_is_not_a_missing_row_is_not_hidden(
+    db_url: str, database: Database, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    job = await add_job(db_url)
+    await add_track(db_url, "One")
+    real = screening._decide
+
+    async def broken(*args: object, **kwargs: object) -> dict[str, object]:
+        row = await real(*args, **kwargs)  # type: ignore[arg-type]
+        return {**row, "outcome": "bogus"}  # breaks a check constraint
+
+    monkeypatch.setattr(screening, "_decide", broken)
+    with pytest.raises(IntegrityError):
+        await screen_job(
+            user_id=USER, job_id=job, database=database, env=ENV, provider=Smart()
+        )
+    assert await fetch(db_url, "select 1 from engine.job_screen") == []
