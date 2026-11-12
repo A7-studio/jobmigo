@@ -99,7 +99,13 @@ def test_a_cv_is_built_from_facts_with_sources_and_no_flags() -> None:
     assert content["skills"] == [
         {"label": "S1", "kind": "skill", "id": str(FACTS[2].id), "name": "Flutter"}
     ]
-    assert check == {"blocks": 2, "flagged": 0, "flags": [], "omitted": 0}
+    assert check == {
+        "blocks": 2,
+        "flagged": 0,
+        "flags": [],
+        "omitted": 0,
+        "edited": [],
+    }
 
 
 def test_an_entry_the_facts_do_not_back_is_left_out_not_invented() -> None:
@@ -426,3 +432,16 @@ async def test_an_unusable_reply_raises_and_the_gateway_records_both_calls(
                 reply(json.dumps({"summary": {"text": "x", "sources": ["Z9"]}}))
             ),
         )
+
+
+def test_a_freshly_written_document_has_an_empty_edited_list() -> None:
+    _, check = verify_cv(cv(), FACTS)
+    assert check["edited"] == []
+    out = LetterOut.model_validate(
+        {"paragraphs": [{"text": "I lead Flutter.", "sources": ["E1"]}]}
+    )
+    assert verify_paragraphs(out, FACTS, "letter")[1]["edited"] == []
+    answers = AnswersOut.model_validate(
+        {"answers": [{"index": 1, "text": "Yes.", "sources": ["S1"]}]}
+    )
+    assert verify_answers(answers, ["Flutter?"], FACTS)[1]["edited"] == []

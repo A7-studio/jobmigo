@@ -549,6 +549,8 @@ function Document({
   onChange: (change: KitEdit) => void
 }) {
   const summary = checkSummary(version)
+  // A kit saved before edits existed has no list at all.
+  const editedCount = version.factCheck.edited?.length ?? 0
   const needs = needsYou(version.content)
   const located = blocksOf(version.content)
   const content = version.content
@@ -629,11 +631,11 @@ function Document({
         ) : null}
       </section>
 
-      {version.factCheck.edited.length > 0 ? (
+      {editedCount > 0 ? (
         <p className="text-xs text-muted">
-          You edited {version.factCheck.edited.length}{' '}
-          {version.factCheck.edited.length === 1 ? 'statement' : 'statements'}{' '}
-          in this version. Edits are checked the same way.
+          You edited {editedCount}{' '}
+          {editedCount === 1 ? 'statement' : 'statements'} in this version.
+          Edits are checked the same way.
         </p>
       ) : null}
 

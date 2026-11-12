@@ -368,7 +368,12 @@ class _Checker:
         }
 
     def summary(self) -> dict[str, Any]:
-        return {**kit_check.summarise(self.results), "omitted": self.omitted}
+        # `edited` lists the statements the person changed; a fresh kit has none.
+        return {
+            **kit_check.summarise(self.results),
+            "omitted": self.omitted,
+            "edited": [],
+        }
 
 
 def verify_cv(

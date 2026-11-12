@@ -255,8 +255,8 @@ export type KitVersion = {
     flagged: number
     /** Entries or skills the model named that your facts do not back, left out. */
     omitted: number
-    /** Paths of the statements you edited. */
-    edited: string[]
+    /** Paths of the statements you edited. Missing on a kit saved before edits existed. */
+    edited?: string[]
     flags: { path: string; flags: KitFlag[]; numbers: string[] }[]
   }
   createdAt: string
