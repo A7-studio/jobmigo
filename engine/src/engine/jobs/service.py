@@ -150,17 +150,33 @@ async def get_job(*, user_id: uuid.UUID, job_id: str, database: Database) -> Job
 async def set_status(
     *, user_id: uuid.UUID, job_id: str, body: dict[str, Any], database: Database
 ) -> JobFull:
-    """Change a saved job's status, its type, or both."""
+    """Change a saved job: its status, type, stage, outcome, follow-up date or notes."""
     wanted = _id(job_id)
     parsed = _validated(JobPatch, body)
     async with AsyncSession(database.engine) as session:
         job = await _owned(session, user_id, wanted)
         changed = False
+        sent = parsed.model_fields_set
         if parsed.status is not None and job.status != parsed.status:
             job.status = parsed.status
             changed = True
         if parsed.kind is not None and job.kind != parsed.kind:
             job.kind = parsed.kind
+            changed = True
+        if parsed.stage is not None and job.stage != parsed.stage:
+            job.stage = parsed.stage
+            job.stage_changed_at = func.now()
+            if parsed.stage == "applied" and job.applied_at is None:
+                job.applied_at = func.now()
+            changed = True
+        if "outcome" in sent and job.outcome != parsed.outcome:
+            job.outcome = parsed.outcome
+            changed = True
+        if "follow_up_on" in sent and job.follow_up_on != parsed.follow_up_on:
+            job.follow_up_on = parsed.follow_up_on
+            changed = True
+        if "notes" in sent and job.notes != (parsed.notes or ""):
+            job.notes = parsed.notes or ""
             changed = True
         if changed:
             job.updated_at = func.now()

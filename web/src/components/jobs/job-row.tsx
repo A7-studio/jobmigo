@@ -12,6 +12,7 @@ import {
   sourceHost,
 } from '#/lib/jobs-view'
 import { kindLabel } from '#/lib/opportunity'
+import { followUpNote, stageLabel } from '#/lib/tracking-view'
 
 const TINTS = [
   'bg-accent-soft text-accent-soft-ink',
@@ -35,6 +36,7 @@ export type RowActions = {
 
 /** One job: what we stored, and what you can do with it. */
 export function JobRow({ job, actions }: { job: Job; actions: RowActions }) {
+  const chase = followUpNote(job)
   const [asking, setAsking] = useState(false)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -88,6 +90,18 @@ export function JobRow({ job, actions }: { job: Job; actions: RowActions }) {
             {job.location ? ` · ${job.location}` : ''}
             {job.kind !== 'job' ? ` · ${kindLabel(job.kind)}` : ''}
           </p>
+          {job.stage !== 'saved' ? (
+            <p className="mt-0.5 text-[13px] font-bold text-ink">
+              {stageLabel(job.stage)}
+              {chase ? (
+                <span
+                  className={`ml-2 font-normal ${chase.due ? 'text-warn-ink' : 'text-muted'}`}
+                >
+                  {chase.text}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <p className="mt-1 break-words text-xs text-faint">{meta}</p>
         </div>
         {job.flag === 'review' && (

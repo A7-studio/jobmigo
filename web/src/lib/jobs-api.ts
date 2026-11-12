@@ -4,6 +4,10 @@ import type { Result } from './profile-api'
 type Deps = { fetchFn?: typeof fetch }
 
 export type JobStatus = 'saved' | 'dismissed'
+/** Where a job stands in your search. */
+export type Stage =
+  'saved' | 'preparing' | 'applied' | 'interviewing' | 'offer' | 'closed'
+export type Outcome = 'no_response' | 'rejected' | 'interview' | 'offer'
 export type Findings = {
   instructionLike: number
   invisibleInWords: number
@@ -21,6 +25,13 @@ export type Job = {
   sourceUrl: string | null
   status: JobStatus
   kind: OpportunityKind
+  stage: Stage
+  outcome: Outcome | null
+  appliedAt: string | null
+  /** A calendar day, YYYY-MM-DD. */
+  followUpOn: string | null
+  notes: string
+  stageChangedAt: string
   flag: 'ok' | 'review'
   findings: Findings
   createdAt: string
@@ -86,6 +97,18 @@ export const getJob = (id: string, deps: Deps = {}) =>
 
 export const setJobStatus = (id: string, status: JobStatus, deps: Deps = {}) =>
   call<JobFull>(`/api/jobs/${id}`, json('PATCH', { status }), deps)
+
+/** What can be changed about how a job is going. `null` clears an outcome, date or note. */
+export type TrackingChange = {
+  stage?: Stage
+  outcome?: Outcome | null
+  followUpOn?: string | null
+  notes?: string | null
+}
+
+/** Save where a job stands: its stage, outcome, follow-up day or notes. */
+export const trackJob = (id: string, change: TrackingChange, deps: Deps = {}) =>
+  call<JobFull>(`/api/jobs/${id}`, json('PATCH', change), deps)
 
 /** Change a saved job's type. Results kept for tracks of another type stay stored, hidden. */
 export const setJobKind = (

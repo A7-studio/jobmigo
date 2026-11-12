@@ -6,7 +6,8 @@ import { AddJob } from '#/components/jobs/add-job'
 import { JobRow } from '#/components/jobs/job-row'
 import type { RowActions } from '#/components/jobs/job-row'
 import { deleteJob, listJobs, setJobStatus } from '#/lib/jobs-api'
-import type { Job, JobStatus } from '#/lib/jobs-api'
+import type { Job, JobStatus, Stage } from '#/lib/jobs-api'
+import { STAGES, countByStage, stageLabel } from '#/lib/tracking-view'
 import type { Result } from '#/lib/profile-api'
 import { jobsCopy } from '#/lib/jobs-view'
 
@@ -32,6 +33,7 @@ function JobsPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [view, setView] = useState<JobStatus>('saved')
+  const [stage, setStage] = useState<Stage | 'all'>('all')
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -60,6 +62,12 @@ function JobsPage() {
   }, [unauthorized, navigate])
   // After a failed read show the error and no rows: stale rows must not be acted on.
   const jobs = query.isError ? undefined : query.data
+  const counts = countByStage(jobs ?? [])
+  // Stages only filter the saved list; a dismissed job is never in a stage view.
+  const shown =
+    view === 'saved' && stage !== 'all'
+      ? (jobs ?? []).filter((j) => j.stage === stage)
+      : (jobs ?? [])
 
   async function change<T>(
     action: () => Promise<Result<T>>,
@@ -227,13 +235,46 @@ function JobsPage() {
         </section>
       )}
 
-      {jobs && jobs.length > 0 && (
+      {jobs && jobs.length > 0 && view === 'saved' && (
+        <div
+          role="group"
+          aria-label="Filter by stage"
+          className="flex flex-wrap gap-2"
+        >
+          {(['all', ...STAGES] as const).map((value) => {
+            const count = value === 'all' ? jobs.length : counts[value]
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={stage === value}
+                className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[13px] font-bold ${
+                  stage === value
+                    ? 'border-accent-mid bg-accent-soft text-ink'
+                    : 'border-border-strong bg-surface text-ink'
+                }`}
+                onClick={() => setStage(value)}
+              >
+                {value === 'all' ? 'All' : stageLabel(value)} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {jobs && jobs.length > 0 && shown.length === 0 && (
+        <p className="text-sm text-faint">
+          No jobs in this stage yet. Change a job's stage on its Track tab.
+        </p>
+      )}
+
+      {jobs && shown.length > 0 && (
         <section
           aria-label={view === 'saved' ? 'Saved jobs' : 'Dismissed jobs'}
           className="rounded-[20px] border border-border bg-surface p-2"
         >
           <ul className="m-0 list-none p-0">
-            {jobs.map((job) => (
+            {shown.map((job) => (
               <JobRow key={job.id} job={job} actions={actions} />
             ))}
           </ul>

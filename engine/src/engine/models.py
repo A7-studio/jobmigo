@@ -5,13 +5,14 @@ the web app's schema. Rows are removed by user id when account deletion arrives.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -363,6 +364,15 @@ class Job(Base):
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, server_default=text("'saved'"))
     kind: Mapped[str] = mapped_column(Text, server_default=text("'job'"))
+    # Where the job stands in the person's search, and what came of it.
+    stage: Mapped[str] = mapped_column(Text, server_default=text("'saved'"))
+    outcome: Mapped[str | None] = mapped_column(Text)
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    follow_up_on: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    stage_changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     flag: Mapped[str] = mapped_column(Text, server_default=text("'ok'"))
     findings: Mapped[dict[str, int]] = mapped_column(
         JSONB, server_default=text("'{}'::jsonb")

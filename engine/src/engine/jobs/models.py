@@ -4,7 +4,7 @@ import hashlib
 import re
 import unicodedata
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -30,6 +30,9 @@ MAX_URL_CHARS = 2000
 
 Status = Literal["saved", "dismissed"]
 Kind = Literal["job", "gig", "ai_training"]
+Stage = Literal["saved", "preparing", "applied", "interviewing", "offer", "closed"]
+Outcome = Literal["no_response", "rejected", "interview", "offer"]
+MAX_NOTES = 4_000
 
 Company = Annotated[
     str, BeforeValidator(_clean), StringConstraints(min_length=1, max_length=120)
@@ -58,17 +61,44 @@ class JobIn(BaseModel):
     kind: Kind = "job"
 
 
-class JobPatch(BaseModel):
-    """A change to a saved job: its status, its type, or both."""
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
-    model_config = ConfigDict(extra="forbid")
+
+def _notes(value: object) -> object:
+    """Notes keep their line breaks; control characters go and the ends are trimmed."""
+    if not isinstance(value, str):
+        return value
+    flat = value.replace("\r\n", "\n").replace("\r", "\n")
+    return _CONTROL.sub("", flat).strip()
+
+
+class JobPatch(BaseModel):
+    """A change to a saved job: status, type, stage, outcome, follow-up date, notes.
+
+    `outcome`, `follow_up_on` and `notes` may be sent as null to clear them; a field
+    that is not sent is left alone.
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     status: Status | None = None
     kind: Kind | None = None
+    stage: Stage | None = None
+    outcome: Outcome | None = None
+    follow_up_on: date | None = Field(default=None, alias="followUpOn")
+    notes: (
+        Annotated[str, BeforeValidator(_notes), Field(max_length=MAX_NOTES)] | None
+    ) = None
 
     @model_validator(mode="after")
     def _something_to_change(self) -> "JobPatch":
-        if self.status is None and self.kind is None:
+        clearable = {"outcome", "follow_up_on", "notes"}
+        sent = [
+            name
+            for name in self.model_fields_set
+            if getattr(self, name) is not None or name in clearable
+        ]
+        if not sent:
             raise ValueError("nothing to change")
         return self
 
@@ -83,6 +113,12 @@ class JobOut(BaseModel):
     source_url: str | None = Field(serialization_alias="sourceUrl")
     status: str
     kind: str
+    stage: str
+    outcome: str | None
+    applied_at: datetime | None = Field(serialization_alias="appliedAt")
+    follow_up_on: date | None = Field(serialization_alias="followUpOn")
+    notes: str
+    stage_changed_at: datetime = Field(serialization_alias="stageChangedAt")
     flag: str
     findings: dict[str, int]
     created_at: datetime = Field(serialization_alias="createdAt")
@@ -101,6 +137,12 @@ def summary(job: Job) -> JobOut:
         source_url=job.source_url,
         status=job.status,
         kind=job.kind,
+        stage=job.stage,
+        outcome=job.outcome,
+        applied_at=job.applied_at,
+        follow_up_on=job.follow_up_on,
+        notes=job.notes,
+        stage_changed_at=job.stage_changed_at,
         flag=job.flag,
         findings=dict(job.findings),
         created_at=job.created_at,
