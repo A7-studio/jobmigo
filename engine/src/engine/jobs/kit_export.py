@@ -9,6 +9,7 @@ file formats, and the PDF replaces a character its font cannot draw with `?` ins
 a blank box. Nothing here logs text.
 """
 
+import datetime
 import io
 import os
 import re
@@ -18,6 +19,7 @@ from xml.sax.saxutils import escape
 
 import reportlab
 from docx import Document
+from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
@@ -144,6 +146,18 @@ def _drawable(text: str) -> str:
     )
 
 
+def count_undrawable(doc: Doc) -> int:
+    """How many characters of the document the PDF font cannot draw (shown as `?`)."""
+    _register_fonts()
+    glyphs = pdfmetrics.getFont(_REGULAR).face.charToGlyph
+    return sum(
+        1
+        for line in doc.lines
+        for ch in line.text
+        if ch not in "\n\t" and ord(ch) not in glyphs
+    )
+
+
 def _styles() -> dict[str, ParagraphStyle]:
     base = ParagraphStyle(
         "base", fontName=_REGULAR, fontSize=10, leading=13.5, alignment=TA_LEFT
@@ -208,6 +222,18 @@ def render_pdf(doc: Doc) -> bytes:
 # --- DOCX ------------------------------------------------------------------------
 
 
+def _plain_font(element: Any) -> None:
+    """Arial everywhere, with no theme font that Word would prefer, and no border."""
+    fonts = element.rPr.rFonts
+    for attribute in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+        fonts.attrib.pop(qn(f"w:{attribute}"), None)
+    for attribute in ("eastAsia", "cs"):
+        fonts.set(qn(f"w:{attribute}"), "Arial")
+    border = element.pPr.find(qn("w:pBdr")) if element.pPr is not None else None
+    if border is not None:
+        element.pPr.remove(border)
+
+
 def render_docx(doc: Doc) -> bytes:
     """Real Title, Heading and List Bullet styles in a plain black font."""
     document = Document()
@@ -226,6 +252,11 @@ def render_docx(doc: Doc) -> bytes:
         style.font.size = Pt(size)
         style.font.bold = bold
         style.font.color.rgb = RGBColor(0, 0, 0)
+        _plain_font(style.element)
+    now = datetime.datetime.now(datetime.UTC)
+    document.core_properties.created = now
+    document.core_properties.modified = now
+    document.core_properties.last_modified_by = ""
     section = document.sections[0]
     section.left_margin = section.right_margin = Pt(57)
     section.top_margin = section.bottom_margin = Pt(51)

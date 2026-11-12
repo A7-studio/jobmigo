@@ -8,6 +8,8 @@ import {
   blockLimit,
   blocksOf,
   checkQuestions,
+  cleanedLength,
+  codePoints,
   checkSummary,
   docLabel,
   docsInOrder,
@@ -16,6 +18,7 @@ import {
   kitCopy,
   needsYou,
   preview,
+  replacedNote,
   versionLabel,
 } from '#/lib/kit-view'
 import type { Located } from '#/lib/kit-view'
@@ -51,7 +54,15 @@ export function KitStep({
   const [picked, setPicked] = useState<number | null>(null)
   // null means untouched: the box then shows the questions already answered.
   const [questions, setQuestions] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  // Each message is a new object, so the focus effect runs again even for the same words.
+  const [notice, setNotice] = useState<{ text: string; n: number } | null>(null)
+  // The statement being edited. It lives here, not in the document, so it survives a
+  // refetch; a draft whose version is no longer shown is kept apart, never thrown away.
+  const [draft, setDraft] = useState<{
+    versionId: string
+    path: string
+    text: string
+  } | null>(null)
   const noticeRef = useRef<HTMLParagraphElement>(null)
   const [questionError, setQuestionError] = useState<string | null>(null)
 
@@ -111,15 +122,24 @@ export function KitStep({
       if (!result.ok) throw new StepError(result.code)
       return result.data
     },
-    onSuccess: async (_saved, input) => {
+    onSuccess: async (saved, input) => {
+      // Show the new version at once: do not wait for the list to be fetched again.
+      client.setQueryData<KitVersion[]>(['kits', jobId, trackId], (old) => [
+        ...(old ?? []).filter((v) => v.id !== saved.id),
+        saved,
+      ])
       setPicked(null)
-      setNotice(
-        input.change.action === 'remove'
-          ? 'Removed. This is saved as a new version.'
-          : 'Saved as a new version.',
-      )
+      setDraft(null)
+      setNotice((last) => ({
+        text:
+          input.change.action === 'remove'
+            ? 'Removed. This is saved as a new version.'
+            : 'Saved as a new version.',
+        n: (last?.n ?? 0) + 1,
+      }))
       await refresh()
     },
+    onError: () => setNotice(null),
   })
 
   // Say what happened, and move focus there: the statement that was changed is gone.
@@ -206,7 +226,11 @@ export function KitStep({
     write.mutate(checked.questions)
   }
 
-  const error = write.error ?? change.error ?? kits.error
+  const draftHere =
+    draft !== null && shown !== null && draft.versionId === shown.id
+  const draftLost = draft !== null && !draftHere
+  // A failed save is shown beside the open editor, so not again at the top.
+  const error = write.error ?? kits.error ?? (draftHere ? null : change.error)
   const copy = error
     ? kitCopy(error instanceof StepError ? error.code : 'unexpected')
     : null
@@ -366,6 +390,7 @@ export function KitStep({
                 onChange={(event) => {
                   setPicked(Number(event.target.value))
                   setNotice(null)
+                  change.reset()
                 }}
               >
                 {versions.map((v) => (
@@ -390,13 +415,40 @@ export function KitStep({
               tabIndex={-1}
               className="text-sm font-bold text-ink"
             >
-              {notice}
+              {notice.text}
             </p>
+          ) : null}
+
+          {draftLost ? (
+            <div role="alert" className={`${CARD} flex flex-col gap-2`}>
+              <p className="text-sm font-bold text-ink">
+                Your unsaved text was not saved
+              </p>
+              <p className="text-xs text-muted">
+                The document changed while you were editing, so the statement
+                you were editing is no longer where it was. Your text is here to
+                copy.
+              </p>
+              <p className="whitespace-pre-line break-words rounded-lg border border-border bg-surface-muted p-3 text-sm text-ink">
+                {draft.text}
+              </p>
+              <button
+                type="button"
+                className={`${BTN} self-start`}
+                onClick={() => setDraft(null)}
+              >
+                Dismiss
+              </button>
+            </div>
           ) : null}
 
           <Document
             key={shown.id}
             version={shown}
+            editing={draftHere ? { path: draft.path, text: draft.text } : null}
+            onEditing={(next) =>
+              setDraft(next ? { versionId: shown.id, ...next } : null)
+            }
             editable={isLatest && !change.isPending}
             lines={profile.data ? factLines(profile.data) : null}
             saving={change.isPending}
@@ -477,6 +529,8 @@ function Questions({
 
 function Document({
   version,
+  editing,
+  onEditing,
   editable,
   lines,
   saving,
@@ -485,6 +539,8 @@ function Document({
   onChange,
 }: {
   version: KitVersion
+  editing: { path: string; text: string } | null
+  onEditing: (next: { path: string; text: string } | null) => void
   editable: boolean
   lines: Map<string, string> | null
   saving: boolean
@@ -495,11 +551,6 @@ function Document({
   const summary = checkSummary(version)
   const needs = needsYou(version.content)
   const located = blocksOf(version.content)
-  // Which statement is open for editing. This component is keyed by the version, so a
-  // new version starts with nothing open and a path can never point at a moved statement.
-  const [editing, setEditing] = useState<{ path: string; text: string } | null>(
-    null,
-  )
   const content = version.content
 
   const row = (item: Located) => (
@@ -514,11 +565,11 @@ function Document({
       editing={editing?.path === item.path ? editing.text : null}
       onStart={() => {
         onStartEdit()
-        setEditing({ path: item.path, text: item.block.text })
+        onEditing({ path: item.path, text: item.block.text })
       }}
-      onType={(text) => setEditing({ path: item.path, text })}
+      onType={(text) => onEditing({ path: item.path, text })}
       onCancel={() => {
-        setEditing(null)
+        onEditing(null)
         requestAnimationFrame(() =>
           document.getElementById(`edit-${item.path}`)?.focus(),
         )
@@ -688,6 +739,9 @@ function Statement({
   const flagged = block.flags.length > 0
   const limit = blockLimit(item.path)
   const open = editing !== null
+  // Counted the way the engine counts: whitespace collapsed, characters not UTF-16 units.
+  const used = editing === null ? 0 : cleanedLength(editing)
+  const over = used > limit
   const box = useRef<HTMLTextAreaElement>(null)
   // Move focus into the box when it opens, so a keyboard user can type at once.
   useEffect(() => {
@@ -707,7 +761,7 @@ function Statement({
               ref={box}
               className={`${FIELD} min-h-24 font-normal`}
               value={editing}
-              maxLength={limit}
+              aria-invalid={over ? true : undefined}
               aria-describedby={`count-${item.path}`}
               onChange={(event) => onType(event.target.value)}
             />
@@ -716,7 +770,9 @@ function Statement({
             id={`count-${item.path}`}
             className="text-xs font-normal text-muted"
           >
-            {editing.length} of {limit} characters
+            {over
+              ? `${used} of ${limit} characters: over by ${used - limit}. Shorten it to save.`
+              : `${used} of ${limit} characters`}
           </p>
           {error ? (
             <p role="alert" className="text-xs font-bold text-bad-ink">
@@ -727,7 +783,7 @@ function Statement({
             <button
               type="button"
               className={BTN_PRIMARY}
-              disabled={saving || editing.trim() === ''}
+              disabled={saving || editing.trim() === '' || over}
               onClick={onSave}
             >
               {saving ? 'Saving…' : 'Save'}
@@ -822,6 +878,10 @@ function saveFile(blob: Blob, filename: string) {
 const NAME_MAX = 80
 const CONTACT_MAX = 200
 
+/** Cut to a number of characters (an emoji counts as one), as the engine counts. */
+const clip = (value: string, max: number) =>
+  codePoints(value) > max ? Array.from(value).slice(0, max).join('') : value
+
 /** Download the shown version as a PDF or a DOCX. The file is made now and not stored. */
 function ExportSection({
   jobId,
@@ -858,7 +918,10 @@ function ExportSection({
       setFieldError('Add the name for the document.')
       return
     }
-    if (trimmed.length > NAME_MAX || contactValue.trim().length > CONTACT_MAX) {
+    if (
+      codePoints(trimmed) > NAME_MAX ||
+      codePoints(contactValue.trim()) > CONTACT_MAX
+    ) {
       setFieldError(
         `Keep the name to ${NAME_MAX} characters and the contact line to ${CONTACT_MAX}.`,
       )
@@ -900,9 +963,15 @@ function ExportSection({
           type="text"
           className={`${FIELD} font-normal`}
           value={nameValue}
-          maxLength={NAME_MAX}
+          aria-invalid={
+            fieldError && nameValue.trim() === '' ? true : undefined
+          }
+          aria-describedby={fieldError ? 'kit-download-err' : undefined}
           autoComplete="name"
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(clip(event.target.value, NAME_MAX))
+            setFieldError(null)
+          }}
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
@@ -911,13 +980,19 @@ function ExportSection({
           type="text"
           className={`${FIELD} font-normal`}
           value={contactValue}
-          maxLength={CONTACT_MAX}
           placeholder="email · phone · city"
-          onChange={(event) => setContact(event.target.value)}
+          onChange={(event) => {
+            setContact(clip(event.target.value, CONTACT_MAX))
+            setFieldError(null)
+          }}
         />
       </label>
       {fieldError ? (
-        <p role="alert" className="text-xs font-bold text-bad-ink">
+        <p
+          id="kit-download-err"
+          role="alert"
+          className="text-xs font-bold text-bad-ink"
+        >
           {fieldError}
         </p>
       ) : null}
@@ -944,9 +1019,14 @@ function ExportSection({
         </button>
       </div>
       {download.isSuccess ? (
-        <p role="status" className="text-sm font-bold text-ink">
-          Downloaded {download.data.filename}.
-        </p>
+        <div role="status" className="text-sm text-ink">
+          <p className="font-bold">Downloaded {download.data.filename}.</p>
+          {replacedNote(download.data.replaced) ? (
+            <p className="mt-1 text-xs text-muted">
+              {replacedNote(download.data.replaced)}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {refusal ? (
         <div role="alert" className="text-sm text-ink">

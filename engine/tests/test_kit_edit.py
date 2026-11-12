@@ -188,7 +188,8 @@ def test_sources_are_found_again_by_id_even_if_the_labels_moved() -> None:
         D1,
     ]
     again, _ = recheck(content, moved)
-    assert again["entries"][0]["source"]["label"] == "E1"  # the stored source is kept
+    # the entry follows its fact: the fact with E1's id is now labelled E2
+    assert again["entries"][0]["source"]["label"] == "E2"
     # the first bullet cited the fact with E1's id, now labelled E2, and still passes
     assert again["entries"][0]["bullets"][0]["flags"] == []
     assert again["entries"][0]["bullets"][0]["sources"][0]["id"] == str(E1.id)
@@ -274,3 +275,35 @@ def test_a_skill_can_be_removed_but_not_edited() -> None:
         apply_edit(gone, "skills.1", "remove", None)
     again, _ = recheck(gone, FACTS)
     assert again["skills"] == []
+
+
+def test_a_fact_corrected_since_is_reflected_in_the_heading_and_the_skill_name() -> (
+    None
+):
+    content, _ = cv_content()
+    corrected = [
+        Fact(
+            "E1",
+            "experience",
+            E1.id,
+            "Lead at BeatBnk Africa (2025-2026): cut bugs by 60%",
+            None,
+        ),
+        E2,
+        A1,
+        Fact("S1", "skill", S1.id, "Dart", None),
+        D1,
+    ]
+    again, summary = recheck(content, corrected)
+    assert again["entries"][0]["heading"] == "Lead at BeatBnk Africa (2025-2026)"
+    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022-2024)"
+    assert [s["name"] for s in again["skills"]] == ["Dart"]
+    assert summary["flagged"] == 1  # still only the "12 people" statement
+
+
+def test_a_gone_fact_keeps_the_heading_and_flags_the_bullets() -> None:
+    content, _ = cv_content()
+    again, summary = recheck(content, [f for f in FACTS if f is not E2])
+    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022-2024)"
+    assert again["entries"][1]["bullets"][0]["flags"] == ["no_source"]
+    assert summary["flagged"] >= 2

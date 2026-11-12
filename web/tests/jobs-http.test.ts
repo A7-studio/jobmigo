@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   MAX_JOB_BODY_BYTES,
+  safeName,
   handleJob,
   handleJobEvaluate,
   handleJobEvaluations,
@@ -440,6 +441,40 @@ describe('fetch handler', () => {
         `http://engine.test:8000/internal/jobs/${ID}/kits/${ID}/export`,
       )
       expect(fetchFn.mock.calls[0][1].method).toBe('POST')
+    })
+
+    it('cuts a long name by characters and never throws on an emoji', () => {
+      const name = `a${'😀'.repeat(200)}`
+      const cut = safeName(name)
+      expect(Array.from(cut)).toHaveLength(150)
+      expect(() => encodeURIComponent(cut)).not.toThrow()
+      expect(() => encodeURIComponent(safeName('x\ud800y'))).not.toThrow()
+      expect(safeName('x\ud800y')).toBe('xy')
+      expect(safeName('a/b\\c"d%e;f')).toBe('abcdef')
+      expect(safeName('   ')).toBe('document')
+    })
+
+    it('sends how many characters the PDF could not draw, and refuses nonsense', async () => {
+      const ok = await ask(
+        reply({ filename: 'a.pdf', contentType: PDF, data: b64, replaced: 4 }),
+      ).run()
+      expect(ok.status).toBe(200)
+      expect(ok.headers.get('x-export-replaced')).toBe('4')
+      const none = await ask(
+        reply({ filename: 'a.pdf', contentType: PDF, data: b64 }),
+      ).run()
+      expect(none.headers.get('x-export-replaced')).toBe('0')
+      for (const bad of [-1, 1.5, 'x', 5_000_000, null]) {
+        const r = await ask(
+          reply({
+            filename: 'a.pdf',
+            contentType: PDF,
+            data: b64,
+            replaced: bad,
+          }),
+        ).run()
+        expect(r.status).toBe(502)
+      }
     })
 
     it('passes an engine refusal through unchanged', async () => {

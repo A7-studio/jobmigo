@@ -807,63 +807,66 @@ Re-examined 2026-11-10 by /audit independent, left open: the 401 redirect is now
 **Suggested fix:** Decide whether the track's rules reach the prompt. If so, send them and put them in the key; if not, reword the spec and note that tracks share a kit. Add `parent` to `_facts_hash`.
 **Resolution:**
 
-### F-194 [P3] open - The edit box's `maxLength` counts UTF-16 units and raw whitespace, but the engine counts code points after cleaning, so a legal edit is cut or blocked
+### F-194 [P3] fixed - The edit box's `maxLength` counts UTF-16 units and raw whitespace, but the engine counts code points after cleaning, so a legal edit is cut or blocked
 
 **File:** web/src/components/jobs/kit-step.tsx:700 (`maxLength={limit}`, `editing.length`), web/src/lib/kit-view.ts:251
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** The engine limit is on `len(_clean(text))`: Python code points after control characters are dropped and whitespace is collapsed and trimmed. The browser `maxLength` and `.length` count UTF-16 units of the raw text. Reproduced with `apply_edit`: a bullet of 150 emoji plus 150 letters (300 code points, 450 UTF-16 units) is accepted by the engine, and a 420-character raw text with doubled spaces and newlines cleans to 239 and is accepted. The box stops the person at 300 units, and a paste is silently truncated at 300 with no message, so the tail words of a legal text are lost. The counter reads "300 of 300 characters" while the engine would allow more. The other direction (an illegal edit allowed) cannot happen; the engine refuses.
 **Suggested fix:** Drop the hard `maxLength`; count `[...cleaned].length` after collapsing whitespace the way the engine does, show "over by N" and disable Save when over, or at minimum count code points. Keep the engine as the authority.
+**Resolution:** Repaired 2026-11-11: no hard `maxLength`; the count and the Save rule follow the engine (whitespace collapsed, characters not UTF-16 units) and say "over by N"; helpers `cleanedLength` and `codePoints` are tested.
 
-### F-195 [P3] open - The "Saved as a new version." notice does not move focus or announce again on the second save, and old notices and errors linger
+### F-195 [P3] fixed - The "Saved as a new version." notice does not move focus or announce again on the second save, and old notices and errors linger
 
 **File:** web/src/components/jobs/kit-step.tsx:112-127 (`setNotice`, the focus `useEffect` on `[notice]`), :362-368 (version picker)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** The message is one of two fixed strings and is never cleared between saves. The second consecutive save sets the same string, so React bails out, the `[notice]` effect does not run, focus stays lost on the body (the pressed Save button was disabled and its document replaced), and a `role="status"` region whose text did not change is usually not announced again. This is the F-191 focus fix failing for every save after the first in a session on that document. The version picker also calls `setNotice(null)` but not `change.reset()`, so a failed save's top-level error stays on screen after the person picks another version, and a "Saved" notice from an earlier save stays beside a later failure. Found by reading the code; no DOM test is available.
 **Suggested fix:** Hold the notice as an object or a counter (`{text, n}`) so each save re-runs the effect, clear it when a new edit starts, and call `change.reset()` in the version picker's `onChange`.
+**Resolution:** Repaired 2026-11-11: each notice is a new object so the focus effect and the announcement repeat; the version picker calls `change.reset()`; a failed save clears the notice; the saved version is put in the cache at once.
 
-### F-196 [P3] open - An open editor's typed text is dropped silently when a refetch or a switch replaces the version, and a failed save shows its message twice
+### F-196 [P3] fixed - An open editor's typed text is dropped silently when a refetch or a switch replaces the version, and a failed save shows its message twice
 
 **File:** web/src/components/jobs/kit-step.tsx:394 (`key={shown.id}`), :240 (`copy` Problem), :700 (editor alert)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** `key={shown.id}` correctly prevents a stale path from reaching another statement (checked: every `mutate` uses the `shown.id` and path from one render, and the engine answers 409 `not_latest` for any other). The cost is that a focus refetch (query `staleTime` is 30 s) that finds a newer version, or "Write again" while an editor is open, remounts the Document and discards the typed text with no message, while the person is told only that text is kept after a failed save. Separately, a failed save renders both the top `Problem` (`copy`, from `change.error`) and the in-editor `role="alert"` with the same body text, so it is announced twice and the top one has a "Reload" that discards the text. If the refetch after a successful save fails, the old version stays with the editor open and the next Save gets a 409.
 **Suggested fix:** Lock "Write again" and the tabs while an editor is open (or keep the draft in `KitStep` keyed by kit id and show "A newer version exists; your draft is kept"), and show the failed-save message only beside the editor.
+**Resolution:** Repaired 2026-11-11: the draft lives in `KitStep`; when the document changes under it the text is kept in an unsaved-text panel with Dismiss; a failed save shows beside the editor only.
 
-### F-197 [P2] open - An export prints the stored entry headings and skill names, so a fact the person corrected since is not reflected and no check flags it
+### F-197 [P2] fixed - An export prints the stored entry headings and skill names, so a fact the person corrected since is not reflected and no check flags it
 
 **File:** engine/src/engine/jobs/kit_edit.py:156-170 (`recheck`), engine/src/engine/jobs/kit_export.py:98-110 (`build_doc`), engine/src/engine/jobs/kitting.py:566-582 (`export_kit`)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
 **Why it matters:** The spec's promise is that an export is checked again against the person's current confirmed facts. `recheck` re-checks only the text blocks (summary, bullets, paragraphs, answers). An entry's `heading` (role, company, dates) and a skill's `name` are copied from the fact at write time and never refreshed. Reproduced with `recheck` and `build_doc`: after fact E2 was changed to "Engineer at OtherCo (1999-2000)" and skill S1 to "Rust", the export still printed "Engineer at Alvin (2022-2024)" and "Flutter", with only the old flag counted. A person who fixes a wrong company, title or date in the profile and then downloads the CV gets the old, wrong heading in the file, unflagged. An entry whose fact is gone and that has no bullets is also kept with its stale heading (skills are dropped, entries are not).
 **Suggested fix:** In `recheck`, re-derive each entry heading and each skill name from the fact found by `source.id` (the same `heading_of`), drop or count an entry whose fact is gone or no longer an experience/project/education, and add a test that changes the fact text after writing and expects the new heading in the file.
-**Resolution:**
+**Resolution:** Repaired 2026-11-11: `recheck` reads headings and skill names from the facts as they are now and drops and counts a skill whose fact is gone. Tests: a corrected fact shows in the heading and the skill; a gone fact keeps the heading and flags its bullets.
 
-### F-198 [P2] open - The PDF turns every character the Vera font lacks into `?` with no warning, including parts of a person's own name, while the DOCX keeps them
+### F-198 [P2] fixed - The PDF turns every character the Vera font lacks into `?` with no warning, including parts of a person's own name, while the DOCX keeps them
 
 **File:** engine/src/engine/jobs/kit_export.py:131-137 (`_drawable`), web/src/components/jobs/kit-step.tsx (ExportSection copy)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness, quality)
 **Why it matters:** Reproduced through `render_pdf` and pypdf: Cyrillic, CJK, emoji, a combining accent (U+0301), U+200D, a non-breaking hyphen (U+2011), arrows and ✓ and Latin letters such as ŋ and ṣ (Yoruba, Vietnamese and other names) all come out as `?`. A name with no Latin letters becomes `????` in the title, the header and the letter's signature, and the file name keeps the real name. Nothing tells the person before or after the download (the success line is "Downloaded ...", and the copy says the name is theirs and not checked). The DOCX of the same version keeps the characters, so the two formats differ. The replacement is a deliberate, documented design, but its effect on the identity field is silent.
 **Suggested fix:** Return the list of replaced characters from the build (or a flag) and show "N characters your PDF font cannot draw were shown as ?; use the DOCX or edit them" (or refuse the PDF when the name needs it), and consider a font with wider coverage (DejaVu) bundled for the PDF.
-**Resolution:**
+**Resolution:** Repaired 2026-11-11: the export reports `replaced` (characters the PDF cannot draw; 0 for DOCX), the web sends it as `x-export-replaced` and the screen tells the person after a download. Tests: Cyrillic counts 4 in a PDF and 0 in a DOCX.
 
-### F-199 [P3] open - The export file name loses its extension for a long company name, and the web server's 150-unit slice can cut an emoji in half and turn a good export into a 502
+### F-199 [P3] fixed - The export file name loses its extension for a long company name, and the web server's 150-unit slice can cut an emoji in half and turn a good export into a 502
 
 **File:** engine/src/engine/jobs/kitting.py:586-588 (`clean_filename(..., limit=150)`), web/src/server/jobs/http.ts:176-183 (`safeName`, `.slice(0, 150)`)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: correctness)
 **Why it matters:** The engine builds `"{name} - {label} - {company}.{ext}"` and cuts the whole string at 150. Company allows 120 and name 80, so for example a 60-character name with "Cover letter" and a 120-character company ends in company letters and has no `.pdf` or `.docx` (reproduced with `clean_filename`); the file is saved with no extension. Separately `safeName` slices UTF-16 units: a name of one letter plus 80 emoji makes the slice end between the two halves of a pair, and `encodeURIComponent` then throws `URIError: URI malformed` (reproduced in node). The surrounding `try` turns that into the 502 "Something went wrong" after the engine has already built the file.
 **Suggested fix:** Cut the stem, not the whole name: truncate `"{name} - {label} - {company}"` to `150 - len(ext) - 1` and then add the extension. In `safeName` slice by code points (`Array.from(...).slice(0, 150)`) or drop the second cut, since the engine already limits it.
-**Resolution:**
+**Resolution:** Repaired 2026-11-11: the engine cuts the stem and adds the extension; the web `safeName` cuts by characters and drops a lone surrogate. Tests: a long company keeps `.pdf` and `.docx`; 200 emoji encode.
 
-### F-200 [P3] open - The DOCX headings and title keep the template's theme fonts, blue border and 2013 creation date, though the module says plain black Arial
+### F-200 [P3] fixed - The DOCX headings and title keep the template's theme fonts, blue border and 2013 creation date, though the module says plain black Arial
 
 **File:** engine/src/engine/jobs/kit_export.py:200-218 (`render_docx`)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** Reproduced by reading `word/styles.xml` of a built file: the Title and Heading 1 styles carry `w:asciiTheme="majorHAnsi"` beside the new `w:ascii="Arial"`, and Word gives the theme attribute precedence, so headings show in the theme heading font, not Arial. The Title style keeps its blue bottom border (`4F81BD`). `docProps/core.xml` keeps `created` 2013-12-23 from the python-docx default template, which a person or an applicant tracking system may see in the file properties. Heading 2 is not touched by the colour loop in any way that removes the theme font either. Content and reading order are fine; this is look and metadata only.
 **Suggested fix:** Remove the theme attributes from each style's `rFonts` (and set `w:eastAsia`), clear the Title border, and set `core_properties.created` and `modified` to now.
-**Resolution:**
+**Resolution:** Repaired 2026-11-11: DOCX styles lose theme-font attributes, the Title loses its border, and created, modified and last-modified-by are set fresh. Test reads `styles.xml` and the core properties.
 
-### F-201 [P3] open - The download form leaves its validation message after the field is fixed and does not tie the message to the field
+### F-201 [P3] fixed - The download form leaves its validation message after the field is fixed and does not tie the message to the field
 
 **File:** web/src/components/jobs/kit-step.tsx:862-925 (`ExportSection`, `start`, `fieldError`)
 **Found:** 2026-11-11 by /audit independent (scope: current; lens: quality)
 **Why it matters:** Found by reading the code; no DOM test is available. `fieldError` is set only on a click and cleared only on the next valid click, so "Add the name for the document." stays on screen while the person is typing the name. The inputs have no `aria-invalid` or `aria-describedby`, so a screen reader hears the alert but the field is not marked. The check counts UTF-16 units (`.trim().length`) while the engine counts code points, so a name of 41 to 80 emoji is refused by the form but legal in the engine. A prefilled display name over 80 characters (`maxLength` does not trim a prefill) gets the "Keep the name to 80" message with no way to see which character to cut other than the field.
 **Suggested fix:** Clear `fieldError` in the inputs' `onChange`, set `aria-invalid` and `aria-describedby` on the failing input, and count `[...value].length`.
-**Resolution:**
+**Resolution:** Repaired 2026-11-11: the form clears its error as the person types, ties it to the field and counts and clips by characters.

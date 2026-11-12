@@ -171,13 +171,22 @@ const EXPORT_TYPES = new Set([
 const MAX_EXPORT_BYTES = 5 * 1024 * 1024
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/
 
-/** A header-safe name: no control characters, no path separators, no quotes. */
-function safeName(raw: string): string {
+/**
+ * A header-safe name: no control characters, no path separators, no quotes, no half of
+ * a surrogate pair, and at most 150 characters (counted as characters, not UTF-16 units).
+ */
+export function safeName(raw: string): string {
   const cleaned = Array.from(raw)
-    .filter((ch) => ch >= ' ' && ch !== '\u007f' && !'/\\"%;'.includes(ch))
+    .filter(
+      (ch) =>
+        ch >= ' ' &&
+        ch !== '\u007f' &&
+        !'/\\"%;'.includes(ch) &&
+        !(ch.length === 1 && ch >= '\ud800' && ch <= '\udfff'),
+    )
+    .slice(0, 150)
     .join('')
     .trim()
-    .slice(0, 150)
   return cleaned || 'document'
 }
 
@@ -222,6 +231,7 @@ export async function handleJobKitExport(
       filename?: unknown
       contentType?: unknown
       data?: unknown
+      replaced?: unknown
     }
     if (
       typeof file.filename !== 'string' ||
@@ -229,7 +239,13 @@ export async function handleJobKitExport(
       !EXPORT_TYPES.has(file.contentType) ||
       typeof file.data !== 'string' ||
       file.data.length > Math.ceil((MAX_EXPORT_BYTES * 4) / 3) + 4 ||
-      !BASE64.test(file.data)
+      !BASE64.test(file.data) ||
+      (file.replaced !== undefined &&
+        !(
+          Number.isInteger(file.replaced) &&
+          (file.replaced as number) >= 0 &&
+          (file.replaced as number) <= 1_000_000
+        ))
     ) {
       return refuse()
     }
@@ -244,6 +260,7 @@ export async function handleJobKitExport(
         'content-disposition': `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`,
         'cache-control': 'no-store',
         'x-content-type-options': 'nosniff',
+        'x-export-replaced': String(file.replaced ?? 0),
       },
     })
   } catch {

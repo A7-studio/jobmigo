@@ -286,7 +286,8 @@ async def test_a_checked_kit_exports_as_json_with_the_file_in_base64(
         )
     assert r.status_code == 200, r.text
     body: dict[str, Any] = r.json()
-    assert set(body) == {"filename", "contentType", "data"}
+    assert set(body) == {"filename", "contentType", "data", "replaced"}
+    assert body["replaced"] == 0
     assert body["contentType"] == "application/pdf"
     assert body["filename"] == "Sam Gichu - CV - Acme.pdf"
     assert base64.b64decode(body["data"]).startswith(b"%PDF")

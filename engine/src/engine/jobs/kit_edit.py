@@ -4,8 +4,10 @@ The person can edit or remove a statement. Nothing is overwritten: the caller sa
 result as the next version. The check runs again over every block from the sources it
 already holds, each found again by fact id among the facts of the version's own profile
 that are still confirmed or edited. A source whose fact is gone is dropped, so its
-block is flagged `no_source`. An edited block is the person's own words but is held to
-the same check: an edit that adds a number its sources do not state is flagged.
+block is flagged `no_source`. An entry's heading and a skill's name are read from the
+fact as it is now; a skill whose fact is gone is dropped and counted. An edited block
+is the person's own words but is held to the same check: an edit that adds a number its
+sources do not state is flagged.
 
 Paths are 1-based and are the ones the fact check already names: `summary`,
 `paragraphs.N`, `answers.N`, `entries.N` and `entries.N.bullets.M`, plus `skills.N`,
@@ -26,9 +28,12 @@ from engine.jobs.kit_write import (
     PARAGRAPH_CHARS,
     SUMMARY_CHARS,
     _Checker,
+    _source,
+    heading_of,
 )
 
 Action = Literal["edit", "remove"]
+_ENTRY_KINDS = ("experience", "project", "education")
 MAX_PATH_CHARS = 40
 MAX_EDIT_CHARS = 2_000
 
@@ -156,6 +161,12 @@ def recheck(
         for n, entry in enumerate(out.get("entries", []), start=1):
             fact = by_id.get(entry.get("source", {}).get("id", ""))
             anchors = check.anchors(fact) if fact is not None else set()
+            if fact is not None and fact.kind in _ENTRY_KINDS:
+                # The heading is read from the fact as it is now, never from the copy
+                # taken when the kit was written.
+                entry["heading"] = heading_of(fact)
+                entry["kind"] = fact.kind
+                entry["source"] = _source(fact)
             bullets = []
             for m, bullet in enumerate(entry.get("bullets", []), start=1):
                 path = f"entries.{n}.bullets.{m}"
@@ -164,10 +175,14 @@ def recheck(
                 bullets.append(fresh)
             entry["bullets"] = bullets
         # A skill whose fact is gone is dropped and counted, like an unbacked entry.
-        kept = [k for k in out.get("skills", []) if k.get("id") in by_id]
-        check.omitted += len(out.get("skills", [])) - len(kept)
+        skills: list[dict[str, Any]] = []
+        for old in out.get("skills", []):
+            fact = by_id.get(old.get("id", ""))
+            if fact is not None and fact.kind == "skill":
+                skills.append({**_source(fact), "name": fact.text})
+        check.omitted += len(out.get("skills", [])) - len(skills)
         if "skills" in out:
-            out["skills"] = kept
+            out["skills"] = skills
     elif doc in ("letter", "proposal"):
         for n, block in enumerate(out.get("paragraphs", []), start=1):
             out["paragraphs"][n - 1] = _block(

@@ -179,3 +179,58 @@ def test_an_empty_document_still_renders() -> None:
         doc = build_doc(content, "Sam", "", "x")
         assert render_pdf(doc).startswith(b"%PDF")
         assert render_docx(doc)[:2] == b"PK"
+
+
+def test_the_pdf_counts_the_characters_it_cannot_draw_and_the_docx_keeps_them() -> None:
+    from engine.jobs.kit_export import count_undrawable
+
+    cyrillic = Doc("t", "a", [Line("title", "Анна"), Line("paragraph", "ok")])
+    assert count_undrawable(cyrillic) == 4
+    plain = Doc("t", "a", [Line("title", "José Müller"), Line("paragraph", "ok")])
+    assert count_undrawable(plain) == 0
+    mixed = Doc("t", "a", [Line("paragraph", "a✓b✓ 世")])
+    assert count_undrawable(mixed) == 3
+    document = Document(io.BytesIO(render_docx(cyrillic)))
+    assert document.paragraphs[0].text == "Анна"
+
+
+def test_the_docx_has_plain_black_fonts_no_theme_fonts_no_border_and_todays_date() -> (
+    None
+):
+    import datetime
+    import zipfile
+
+    data = render_docx(
+        Doc(
+            "t",
+            "a",
+            [Line("title", "Sam"), Line("heading", "Summary"), Line("subheading", "x")],
+        )
+    )
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        styles = archive.read("word/styles.xml").decode()
+    document = Document(io.BytesIO(data))
+    for name in ("Normal", "Title", "Heading 1", "Heading 2", "List Bullet"):
+        rpr = document.styles[name].element.rPr
+        assert rpr is not None
+        fonts = rpr.rFonts
+        assert fonts is not None, name
+        assert (
+            fonts.get(
+                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ascii"
+            )
+            == "Arial"
+        ), name
+        for attribute in fonts.attrib:
+            assert "Theme" not in attribute, (name, attribute)
+    title = document.styles["Title"].element
+    assert (
+        title.pPr is None
+        or title.pPr.find(
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pBdr"
+        )
+        is None
+    )
+    assert "4F81BD" not in styles.split('w:styleId="Title"')[1].split("</w:style>")[0]
+    created = document.core_properties.created
+    assert created.year >= datetime.datetime.now(datetime.UTC).year

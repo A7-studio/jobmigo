@@ -682,7 +682,7 @@ async def export(
     *,
     user: uuid.UUID = USER,
     **body: object,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     from engine.jobs.kitting import export_kit
 
     out = await export_kit(
@@ -918,3 +918,28 @@ async def test_nothing_the_person_wrote_is_logged_by_an_export(
     text = " ".join(r.getMessage() + str(r.__dict__) for r in caplog.records)
     for secret in ("Zebediah", "private-contact", "Built apps"):
         assert secret not in text
+
+
+async def test_a_long_company_name_keeps_the_file_extension(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job = await add_job(db_url, company="C" * 120)
+    track = await add_track(db_url)
+    letter = (await kit(database, job, track, Kit()))[1]
+    for fmt in ("pdf", "docx"):
+        out = await export(database, job, str(letter["id"]), format=fmt, name="N" * 60)
+        assert out["filename"].endswith(f".{fmt}")
+        assert len(out["filename"]) <= 150
+
+
+async def test_the_export_says_how_many_characters_the_pdf_could_not_draw(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    cv, _ = await kit(database, job, track, Kit())
+    pdf = await export(database, job, str(cv["id"]), format="pdf", name="Анна")
+    docx = await export(database, job, str(cv["id"]), format="docx", name="Анна")
+    plain = await export(database, job, str(cv["id"]), format="pdf", name="Anna")
+    assert (pdf["replaced"], docx["replaced"], plain["replaced"]) == (4, 0, 0)

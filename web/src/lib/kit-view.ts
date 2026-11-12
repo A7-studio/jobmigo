@@ -266,3 +266,19 @@ export function preview(text: string, length = 40): string {
   const flat = text.replace(/\s+/g, ' ').trim()
   return flat.length > length ? `${flat.slice(0, length).trimEnd()}…` : flat
 }
+
+/** Characters as people count them, not UTF-16 units: an emoji is one. */
+export const codePoints = (text: string): number => Array.from(text).length
+
+/**
+ * How long a statement is the way the engine counts it: whitespace collapsed and trimmed,
+ * then counted in characters. The engine is the authority; this only tells the person.
+ */
+export const cleanedLength = (text: string): number =>
+  codePoints(text.replace(/\s+/g, ' ').trim())
+
+/** What to tell the person when a PDF had to show characters it cannot draw as "?". */
+export function replacedNote(replaced: number): string | null {
+  if (replaced <= 0) return null
+  return `${replaced} ${replaced === 1 ? 'character' : 'characters'} in this document cannot be drawn in a PDF and ${replaced === 1 ? 'is' : 'are'} shown as ?. The DOCX keeps ${replaced === 1 ? 'it' : 'them'}.`
+}

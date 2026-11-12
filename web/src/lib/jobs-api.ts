@@ -330,7 +330,7 @@ export async function exportKit(
   kitId: string,
   request: ExportRequest,
   deps: Deps = {},
-): Promise<Result<{ blob: Blob; filename: string }>> {
+): Promise<Result<{ blob: Blob; filename: string; replaced: number }>> {
   const fetchFn = deps.fetchFn ?? fetch
   let response: Response
   try {
@@ -347,7 +347,9 @@ export async function exportKit(
       const filename =
         fileNameFrom(response.headers.get('content-disposition')) ??
         `document.${request.format}`
-      return { ok: true, data: { blob, filename } }
+      const count = Number(response.headers.get('x-export-replaced'))
+      const replaced = Number.isInteger(count) && count > 0 ? count : 0
+      return { ok: true, data: { blob, filename, replaced } }
     } catch {
       return { ok: false, code: 'unexpected', message: 'Unexpected response.' }
     }

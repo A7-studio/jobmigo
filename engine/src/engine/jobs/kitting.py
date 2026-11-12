@@ -524,6 +524,8 @@ class ExportOut(BaseModel):
     filename: str
     content_type: str = Field(serialization_alias="contentType")
     data: str
+    # Characters the PDF font cannot draw, shown as `?`. Always 0 for a DOCX.
+    replaced: int = 0
 
 
 _CONTENT_TYPES = {
@@ -584,11 +586,19 @@ async def export_kit(
     doc = kit_export.build_doc(content, wanted.name, wanted.contact, label)
     render = kit_export.render_pdf if wanted.format == "pdf" else kit_export.render_docx
     data = await asyncio.to_thread(render, doc)
-    filename = clean_filename(
-        f"{wanted.name} - {label} - {company}.{wanted.format}", limit=150
+    replaced = (
+        await asyncio.to_thread(kit_export.count_undrawable, doc)
+        if wanted.format == "pdf"
+        else 0
     )
+    # Cut the stem, not the whole name, so the extension always survives.
+    stem = clean_filename(
+        f"{wanted.name} - {label} - {company}", limit=150 - len(wanted.format) - 1
+    ).rstrip()
+    filename = f"{stem or 'document'}.{wanted.format}"
     return ExportOut(
         filename=filename,
         content_type=_CONTENT_TYPES[wanted.format],
         data=base64.b64encode(data).decode("ascii"),
+        replaced=replaced,
     )

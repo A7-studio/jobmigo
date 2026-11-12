@@ -134,6 +134,7 @@ describe('jobs-api', () => {
         new Response(new Uint8Array([37, 80, 68, 70]), {
           status: 200,
           headers: {
+            'x-export-replaced': '3',
             'content-disposition': `attachment; filename="Jose_Mueller - CV - Acme.pdf"; filename*=UTF-8''Jos%C3%A9%20M%C3%BCller%20-%20CV.pdf`,
           },
         }),
@@ -146,6 +147,7 @@ describe('jobs-api', () => {
     )
     expect(ok.ok && ok.data.filename).toBe('José Müller - CV.pdf')
     expect(ok.ok && ok.data.blob.size).toBe(4)
+    expect(ok.ok && ok.data.replaced).toBe(3)
     expect(file.mock.calls[0][0]).toBe(`/api/jobs/${ID}/kits/${ID}/export`)
     expect(file.mock.calls[0][1]?.method).toBe('POST')
     expect(file.mock.calls[0][1]?.body).toBe(

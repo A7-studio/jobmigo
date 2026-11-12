@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   blockLimit,
+  cleanedLength,
+  codePoints,
+  replacedNote,
   blocksOf,
   checkQuestions,
   checkSummary,
@@ -284,5 +287,28 @@ describe('blockLimit and preview', () => {
     expect(preview('  Cut   bugs\nby 60%. ')).toBe('Cut bugs by 60%.')
     expect(preview('x'.repeat(60))).toBe(`${'x'.repeat(40)}…`)
     expect(preview('')).toBe('')
+  })
+})
+
+describe('counting like the engine', () => {
+  it('counts characters, not UTF-16 units', () => {
+    expect(codePoints('abc')).toBe(3)
+    expect(codePoints('😀😀')).toBe(2)
+    expect('😀😀'.length).toBe(4)
+  })
+
+  it('collapses and trims whitespace before counting', () => {
+    expect(cleanedLength('  a   b \n\n c  ')).toBe(5)
+    expect(cleanedLength(`${'x '.repeat(10)}${'😀'.repeat(5)}`)).toBe(25)
+    expect(cleanedLength('   ')).toBe(0)
+  })
+
+  it('tells the person about characters a PDF cannot draw', () => {
+    expect(replacedNote(0)).toBeNull()
+    expect(replacedNote(1)).toBe(
+      '1 character in this document cannot be drawn in a PDF and is shown as ?. The DOCX keeps it.',
+    )
+    expect(replacedNote(4)).toContain('4 characters')
+    expect(replacedNote(4)).toContain('are shown as ?')
   })
 })
