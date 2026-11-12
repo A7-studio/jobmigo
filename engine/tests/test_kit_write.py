@@ -82,6 +82,21 @@ def cv(**over: object) -> CvOut:
     return CvOut.model_validate(body)
 
 
+def test_a_date_span_reads_as_a_range_in_a_heading() -> None:
+    def head(text: str) -> str:
+        return heading_of(Fact("E9", "experience", uuid.uuid4(), text))
+
+    assert (
+        head("Lead at A (2026-05-2026-10): x") == "Lead at A (2026-05 \u2013 2026-10)"
+    )
+    assert head("Lead at A (2022-2024): x") == "Lead at A (2022 \u2013 2024)"
+    assert (
+        head("Lead at A (2025-01-present): x") == "Lead at A (2025-01 \u2013 present)"
+    )
+    assert head("Lead at A (2025-01-?): x") == "Lead at A (2025-01 \u2013 ?)"
+    assert head("Lead at A: x") == "Lead at A"  # no span, nothing to change
+
+
 def test_headings_are_cut_from_the_facts_not_written() -> None:
     assert heading_of(FACTS[0]) == "Mobile Team Lead at BeatBnk (2025-01 to 2026-05)"
     assert heading_of(FACTS[4]) == "Kakitoo"

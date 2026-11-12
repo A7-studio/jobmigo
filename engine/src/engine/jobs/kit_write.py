@@ -303,6 +303,10 @@ class Written:
     cache_hit: bool
 
 
+# A span is stored as "(2026-05-2026-10)"; a CV reads better as a range.
+_SPAN = re.compile(r"\((\d{4}(?:-\d{2})?)-(\d{4}(?:-\d{2})?|present|\?)\)")
+
+
 def heading_of(fact: Fact) -> str:
     """The title of an entry, cut from the fact it cites: never written by the model."""
     head = (
@@ -310,6 +314,7 @@ def heading_of(fact: Fact) -> str:
         if fact.kind in ("experience", "project")
         else fact.text
     )
+    head = _SPAN.sub(lambda m: f"({m.group(1)} \u2013 {m.group(2)})", head)
     return head.strip()[:HEADING_CHARS]
 
 

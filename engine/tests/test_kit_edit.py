@@ -295,8 +295,8 @@ def test_a_fact_corrected_since_is_reflected_in_the_heading_and_the_skill_name()
         D1,
     ]
     again, summary = recheck(content, corrected)
-    assert again["entries"][0]["heading"] == "Lead at BeatBnk Africa (2025-2026)"
-    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022-2024)"
+    assert again["entries"][0]["heading"] == "Lead at BeatBnk Africa (2025 \u2013 2026)"
+    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022 \u2013 2024)"
     assert [s["name"] for s in again["skills"]] == ["Dart"]
     assert summary["flagged"] == 1  # still only the "12 people" statement
 
@@ -304,6 +304,6 @@ def test_a_fact_corrected_since_is_reflected_in_the_heading_and_the_skill_name()
 def test_a_gone_fact_keeps_the_heading_and_flags_the_bullets() -> None:
     content, _ = cv_content()
     again, summary = recheck(content, [f for f in FACTS if f is not E2])
-    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022-2024)"
+    assert again["entries"][1]["heading"] == "Engineer at Alvin (2022 \u2013 2024)"
     assert again["entries"][1]["bullets"][0]["flags"] == ["no_source"]
     assert summary["flagged"] >= 2
