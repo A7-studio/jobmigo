@@ -943,3 +943,35 @@ async def test_the_export_says_how_many_characters_the_pdf_could_not_draw(
     docx = await export(database, job, str(cv["id"]), format="docx", name="Анна")
     plain = await export(database, job, str(cv["id"]), format="pdf", name="Anna")
     assert (pdf["replaced"], docx["replaced"], plain["replaced"]) == (4, 0, 0)
+
+
+async def test_the_documents_of_a_kit_are_written_at_the_same_time(
+    db_url: str, database: Database
+) -> None:
+    """Both model calls must be in flight together, or this waits and fails."""
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+
+    class Together(Kit):
+        def __init__(self) -> None:
+            super().__init__()
+            self.barrier = asyncio.Barrier(2)
+
+        async def complete(self, request: AiRequest) -> AiResponse:
+            await asyncio.wait_for(self.barrier.wait(), timeout=5)
+            return await super().complete(request)
+
+    provider = Together()
+    docs = await kit(database, job, track, provider)
+    assert [d["docType"] for d in docs] == ["cv", "letter"]
+    assert len(provider.requests) == 2
+
+
+async def test_a_failure_in_one_document_is_raised_and_nothing_is_saved(
+    db_url: str, database: Database
+) -> None:
+    await confirmed_profile(db_url)
+    job, track = await add_job(db_url), await add_track(db_url)
+    with pytest.raises(AiOutputInvalidError):
+        await kit(database, job, track, Kit(bad_letter=True))
+    assert await fetch(db_url, "select 1 from engine.kit_version") == []

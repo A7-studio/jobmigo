@@ -6,6 +6,13 @@ export const MAX_JOB_BODY_BYTES = 256 * 1024
 
 export type JobsHttpDeps = ProfileHttpDeps
 
+/**
+ * A fit check or a kit makes several model calls one after another, and a slow or free model
+ * can take half a minute for each. The default 30 seconds gave up while the engine was still
+ * working, so these routes wait up to four minutes.
+ */
+export const AI_TIMEOUT_MS = 240_000
+
 export const handleJobs = (request: Request, deps: JobsHttpDeps = {}) => {
   const status = new URL(request.url).searchParams.get('status')
   const query = status === null ? '' : `?status=${encodeURIComponent(status)}`
@@ -66,7 +73,11 @@ export const handleJobScreen = (
   forward(
     request,
     deps,
-    { method: 'POST', path: `/internal/jobs/${id}/screen` },
+    {
+      method: 'POST',
+      path: `/internal/jobs/${id}/screen`,
+      timeoutMs: AI_TIMEOUT_MS,
+    },
     () => checkId(id),
   )
 
@@ -92,7 +103,12 @@ export const handleJobEvaluate = (
   forward(
     request,
     deps,
-    { method: 'POST', path: `/internal/jobs/${id}/evaluate`, withBody: true },
+    {
+      method: 'POST',
+      path: `/internal/jobs/${id}/evaluate`,
+      withBody: true,
+      timeoutMs: AI_TIMEOUT_MS,
+    },
     () => checkId(id),
   )
 
@@ -118,7 +134,12 @@ export const handleJobKit = (
   forward(
     request,
     deps,
-    { method: 'POST', path: `/internal/jobs/${id}/kit`, withBody: true },
+    {
+      method: 'POST',
+      path: `/internal/jobs/${id}/kit`,
+      withBody: true,
+      timeoutMs: AI_TIMEOUT_MS,
+    },
     () => checkId(id),
   )
 

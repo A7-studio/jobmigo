@@ -283,20 +283,31 @@ async def _generate(
         track_id = track.id
         session.expunge_all()
 
+    # The documents do not depend on each other, so they are written at the same time:
+    # a kit then takes as long as its slowest document, not the sum. Nothing is saved
+    # unless every one worked, and the first failure is the one raised.
+    todo = [doc for doc in docs if doc not in kept]
+    outcomes = await asyncio.gather(
+        *(
+            _write(
+                doc,
+                posting,
+                facts,
+                wanted.questions,
+                user_id=user_id,
+                database=database,
+                env=env,
+                provider=provider,
+            )
+            for doc in todo
+        ),
+        return_exceptions=True,
+    )
     written: dict[str, Written] = {}
-    for doc in docs:
-        if doc in kept:
-            continue
-        written[doc] = await _write(
-            doc,
-            posting,
-            facts,
-            wanted.questions,
-            user_id=user_id,
-            database=database,
-            env=env,
-            provider=provider,
-        )
+    for doc, outcome in zip(todo, outcomes, strict=True):
+        if isinstance(outcome, BaseException):
+            raise outcome
+        written[doc] = outcome
 
     async with AsyncSession(database.engine) as session:
         # One lock per job and track keeps two saves from taking one version number.

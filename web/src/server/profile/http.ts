@@ -96,6 +96,8 @@ export type Call = {
   /** Body cap in bytes; the default suits short edits. */
   maxBytes?: number
   status?: number
+  /** How long to wait for the engine; slow AI routes need far more than the default. */
+  timeoutMs?: number
 }
 
 export async function forward(
@@ -114,6 +116,7 @@ export async function forward(
       userId: user.id,
       method: call.method,
       body,
+      timeoutMs: call.timeoutMs,
       fetchFn: deps.fetchFn,
       env: deps.env,
     })
